@@ -1,0 +1,81 @@
+STEP-BY-STEP COMMANDS TO UPDATE YOUR PROJECT
+============================================
+
+If you're starting fresh or want to manually add the files:
+
+STEP 1: CREATE NEW FOLDER
+--------------------------
+cd mixtape-app
+mkdir -p src/contexts
+
+
+STEP 2: COPY NEW FILES FROM OUTPUT
+-----------------------------------
+If you have access to the outputs folder, you can copy everything:
+
+# Copy the entire updated project
+cp -r /path/to/outputs/mixtape-app/* ./
+
+OR manually create each new file:
+
+# New context file
+# Copy contents from outputs/mixtape-app/src/contexts/AuthContext.tsx
+
+# New utility files
+# Copy from outputs/mixtape-app/src/utils/supabase.ts
+# Copy from outputs/mixtape-app/src/utils/database.ts
+
+# New component files
+# Copy from outputs/mixtape-app/src/components/AuthModal.tsx
+# Copy from outputs/mixtape-app/src/components/AuthModal.css
+# Copy from outputs/mixtape-app/src/components/Library.tsx
+# Copy from outputs/mixtape-app/src/components/Library.css
+
+# Documentation
+# Copy from outputs/mixtape-app/SUPABASE_SETUP.md
+
+
+STEP 3: UPDATE EXISTING FILES
+------------------------------
+These files need updates (copy from outputs or manually edit):
+
+- .env.example (add Supabase vars)
+- .env (add your actual Supabase credentials)
+- package.json (add @supabase/supabase-js dependency)
+- README.md (updated documentation)
+- src/main.tsx (wrap with AuthProvider)
+- src/App.tsx (integrate auth & database)
+- src/vite-env.d.ts (add Supabase types)
+- src/components/Header.tsx (add auth buttons)
+
+
+STEP 4: INSTALL DEPENDENCIES
+-----------------------------
+npm install
+
+
+STEP 5: SET UP SUPABASE
+------------------------
+1. Go to https://supabase.com
+2. Create a new project
+3. Run the SQL from SUPABASE_SETUP.md
+4. Copy your credentials to .env
+
+
+STEP 6: RUN THE APP
+-------------------
+npm run dev
+
+
+EASIEST METHOD:
+===============
+If you want to start completely fresh with all the new changes:
+
+1. Delete your current mixtape-app folder (backup first!)
+2. Copy the entire mixtape-app folder from outputs/
+3. Run: npm install
+4. Set up Supabase (follow SUPABASE_SETUP.md)
+5. Add credentials to .env
+6. Run: npm run dev
+
+Done! 🎉

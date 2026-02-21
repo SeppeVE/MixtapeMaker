@@ -1,0 +1,58 @@
+.cassette-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-xl);
+}
+
+.cassette-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  font-family: var(--font-display);
+  font-weight: bold;
+}
+
+.cassette-controls label {
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cassette-select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.cassette-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.j-card {
+  background: var(--color-white);
+  border: 4px solid var(--color-text);
+  padding: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+}
+
+@media (max-width: 968px) {
+  .j-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cassette-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

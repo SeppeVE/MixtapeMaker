@@ -1,35 +1,50 @@
 .library-modal {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-lg);
   max-width: 900px;
   width: 90%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.2s cubic-bezier(.3,.7,.3,1) both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .library-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 2px solid #eee;
+  padding: 5px 10px 4px;
+  background: var(--color-forest);
+  border-bottom: 2px solid var(--color-text);
 }
 
 .library-header h2 {
   margin: 0;
-  color: #333;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  font-size: 1.75rem;
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-weight: normal;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 0.5px;
 }
 
 .library-content {
-  padding: 2rem;
+  padding: var(--spacing-md);
   overflow-y: auto;
   flex: 1;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(42, 30, 40, 0.03) 3px,
+    rgba(42, 30, 40, 0.03) 4px
+  );
 }
 
 .library-loading,
@@ -37,11 +52,14 @@
 .library-empty {
   text-align: center;
   padding: 3rem 2rem;
-  color: #666;
+  color: var(--color-text-light);
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
 }
 
 .library-error {
-  color: #c33;
+  color: var(--color-warning);
 }
 
 .library-empty p {
@@ -50,93 +68,110 @@
 
 .mixtapes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-md);
 }
 
+/* Cassette-style card */
 .mixtape-card {
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  padding: 1.25rem;
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
   cursor: pointer;
-  transition: all 0.2s;
-  background: #fafafa;
+  background: var(--color-mustard);
+  transition: transform 0.08s, box-shadow 0.08s;
+  position: relative;
 }
 
 .mixtape-card:hover {
-  border-color: #4a90e2;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
+.mixtape-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Label strip */
 .mixtape-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: start;
-  margin-bottom: 1rem;
-  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 6px 8px 5px;
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
+  box-shadow: var(--bevel-out);
+  gap: var(--spacing-xs);
 }
 
 .mixtape-card-header h3 {
   margin: 0;
-  color: #333;
-  font-family: 'Courier New', monospace;
-  font-size: 1.1rem;
-  font-weight: bold;
-  word-break: break-word;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   flex: 1;
 }
 
 .delete-button {
   background: none;
   border: none;
-  font-size: 1.75rem;
+  font-size: 16px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-light);
   line-height: 1;
   padding: 0;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 4px;
-  transition: all 0.2s;
 }
 
 .delete-button:hover {
-  color: #c33;
-  background: #fee;
+  color: var(--color-primary);
 }
 
+/* Cassette body */
 .mixtape-card-info {
-  margin-bottom: 1rem;
+  padding: 8px 10px 6px;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.35rem 0;
-  font-size: 0.9rem;
+  padding: 2px 0;
+  font-size: 11px;
 }
 
 .info-row .label {
-  color: #666;
-  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.7;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1;
 }
 
 .info-row .value {
-  color: #333;
-  font-family: 'Courier New', monospace;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 11px;
 }
 
 .mixtape-card-date {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #ddd;
-  font-size: 0.85rem;
-  color: #999;
+  padding: 5px 10px 7px;
+  border-top: 1px solid rgba(42, 30, 40, 0.25);
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--color-text);
+  opacity: 0.65;
+  line-height: 1;
 }
 
 @media (max-width: 768px) {
@@ -147,13 +182,5 @@
   .library-modal {
     width: 95%;
     max-height: 90vh;
-  }
-
-  .library-header {
-    padding: 1rem 1.5rem;
-  }
-
-  .library-content {
-    padding: 1.5rem;
   }
 }

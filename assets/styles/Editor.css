@@ -1,0 +1,199 @@
+/* ── Full-screen editor layout ── */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: var(--color-seafoam);
+  transition: background 0.35s;
+}
+
+.editor-side-b { background: var(--color-lavender); }
+
+/* ── Menubar ── */
+.menubar {
+  position: relative;
+  z-index: 10;
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 12px;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.menubar-logo { font-weight: 700; flex-shrink: 0; }
+.menubar-sep  { opacity: 0.45; }
+
+.menubar-title {
+  cursor: pointer;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
+}
+.menubar-title:hover { opacity: 1; }
+
+.menubar-cursor::after {
+  content: '_';
+  animation: cur-blink 1s step-end infinite;
+  opacity: 0.5;
+  margin-left: 1px;
+}
+@keyframes cur-blink {
+  0%,50%  { opacity: 0.5; }
+  51%,100%{ opacity: 0; }
+}
+
+.menubar-title-input {
+  font-family: var(--font-display);
+  font-size: 18px;
+  background: rgba(212,169,53,.15);
+  border: none;
+  border-bottom: 2px solid var(--color-secondary);
+  color: var(--color-text);
+  outline: none;
+  line-height: 1;
+  min-width: 200px;
+  max-width: 380px;
+}
+
+.menubar-spacer { flex: 1; }
+
+.menubar-user {
+  font-size: 13px;
+  font-family: var(--font-body);
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.menubar-link {
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text);
+  padding: 0;
+  opacity: 0.75;
+}
+.menubar-link:hover { opacity: 1; }
+
+.menubar-save {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-primary);
+  color: var(--color-paper);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: transform 0.06s, box-shadow 0.06s, background 0.06s;
+  line-height: 1;
+}
+.menubar-save:hover:not(:disabled) { background: var(--color-secondary); color: var(--color-text); }
+.menubar-save:active:not(:disabled){ transform: translate(2px,2px); box-shadow: none; }
+.menubar-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Workspace 3-column grid ── */
+.workspace {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 290px 1fr 270px;
+  gap: 13px;
+  padding: 13px 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.col-search,
+.col-deck,
+.col-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+}
+
+.col-preview {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* ── Hello banners ── */
+.col-hello,
+.deck-side-label {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-mustard);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 4px 14px 2px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.deck-side-label   { background: var(--color-seafoam); }
+.deck-side-label-b { background: var(--color-lavender); }
+
+/* ── Deck toolbar ── */
+.deck-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.deck-toolbar-spacer { flex: 1; }
+
+.deck-tool-btn {
+  padding: 5px 9px;
+  font-size: 11px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Side toggle ── */
+.side-toggle {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.side-toggle-btn {
+  min-width: 32px;
+  padding: 3px 8px 1px;
+  background: var(--color-paper);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--bevel-out);
+  letter-spacing: 0.3px;
+}
+.side-toggle-btn:first-child { border-right: none; }
+
+.side-toggle-btn.active {
+  background: var(--color-primary);
+  color: var(--color-paper);
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,.25);
+}
+.side-toggle-btn:not(.active):hover { background: var(--color-secondary); }
+
+/* ── Transition on side flip ── */
+.flipping .col-deck { opacity: 0.4; transition: opacity 0.24s; }

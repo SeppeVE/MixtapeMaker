@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scherzo Mixtape — Design</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; height: 100%; overflow: hidden; }
+  body { font-family: "Geneva", "Verdana", system-ui, sans-serif; }
+  .tweaks-panel {
+    position: fixed; bottom: 16px; right: 16px; z-index: 999;
+    background: #EFE8D6; color: #2A1E28;
+    border: 2px solid #2A1E28; box-shadow: 4px 4px 0 #2A1E28;
+    font-family: "Geneva", "Verdana", system-ui, sans-serif;
+    width: 240px; display: none;
+  }
+  .tweaks-panel.open { display: block; }
+  .tweaks-title {
+    background: #5B2838; color: #EFE8D6; padding: 4px 8px;
+    font-family: "VT323", monospace; font-size: 20px; line-height: 1;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid #2A1E28;
+  }
+  .tweaks-body { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .tweaks-body label { font-family: "VT323", monospace; font-size: 16px; line-height: 1; display: block; margin-bottom: 3px; }
+  .tweaks-body select, .tweaks-body input[type=range] {
+    width: 100%; font-family: "Geneva", monospace; font-size: 12px;
+    border: 2px solid #2A1E28; background: #FAF6EB; padding: 3px 5px; box-sizing: border-box;
+  }
+  .tweaks-body input[type=range] { padding: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Tweaks panel (lives outside React so toggling doesn't re-mount scenes) -->
+<div id="tweaks" class="tweaks-panel">
+  <div class="tweaks-title">Tweaks <span style="cursor:pointer; opacity:.8;" onclick="document.getElementById('tweaks').classList.remove('open')">×</span></div>
+  <div class="tweaks-body">
+    <div>
+      <label>Editor theme</label>
+      <select id="tw-theme">
+        <option value="auto">auto (follow A/B)</option>
+        <option value="seafoam">seafoam</option>
+        <option value="sage">sage</option>
+        <option value="lavender">lavender</option>
+        <option value="forest">forest</option>
+      </select>
+    </div>
+    <div>
+      <label>Song tile style</label>
+      <select id="tw-tile">
+        <option value="floppy">mini-floppy</option>
+        <option value="cassette">cassette row</option>
+        <option value="binder">binder-ring card</option>
+      </select>
+    </div>
+    <div>
+      <label>Background chaos <span id="tw-chaos-v" style="opacity:.6">4</span></label>
+      <input type="range" id="tw-chaos" min="0" max="10" step="1" value="4" />
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="scherzo-primitives.jsx"></script>
+<script type="text/babel" src="screen-library.jsx"></script>
+<script type="text/babel" src="screen-editor.jsx"></script>
+<script type="text/babel" src="screen-jcard.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "auto",
+  "tileStyle": "floppy",
+  "chaos": 5
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+
+  // Wire up tweaks panel inputs
+  React.useEffect(() => {
+    const theme = document.getElementById('tw-theme');
+    const tile  = document.getElementById('tw-tile');
+    const chaos = document.getElementById('tw-chaos');
+    const chaosV = document.getElementById('tw-chaos-v');
+    theme.value = tweaks.theme; tile.value = tweaks.tileStyle; chaos.value = tweaks.chaos;
+    chaosV.textContent = tweaks.chaos;
+    const on = (el, k, cast = (v) => v) => {
+      const handler = (e) => {
+        const v = cast(e.target.value);
+        setTweaks((t) => { const next = { ...t, [k]: v }; persist(next); return next; });
+        if (k === 'chaos') chaosV.textContent = v;
+      };
+      el.addEventListener('change', handler);
+      el.addEventListener('input', handler);
+      return () => { el.removeEventListener('change', handler); el.removeEventListener('input', handler); };
+    };
+    const offs = [
+      on(theme, 'theme'),
+      on(tile, 'tileStyle'),
+      on(chaos, 'chaos', Number),
+    ];
+    return () => offs.forEach((f) => f());
+  }, []);
+
+  // Edit-mode protocol (must register listener BEFORE announcing availability)
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  function persist(next) {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: next }, '*');
+  }
+
+  const FULL_W = 1280, FULL_H = 800;
+  const TALL_W = 640,  TALL_H = 800;
+
+  return (
+    <DesignCanvas>
+      <DCSection id="library" title="① Library" subtitle="The shelf — all of your saved mixtapes">
+        <DCArtboard id="shelf" label="Shelf · grid view" width={FULL_W} height={FULL_H}>
+          <SchLibrary theme="seafoam" density={tweaks.chaos} />
+        </DCArtboard>
+        <DCArtboard id="shelf-lav" label="Shelf · lavender theme" width={FULL_W} height={FULL_H}>
+          <SchLibrary theme="lavender" density={tweaks.chaos} />
+        </DCArtboard>
+        <DCArtboard id="shelf-sage" label="Shelf · sage theme" width={FULL_W} height={FULL_H}>
+          <SchLibrary theme="sage" density={tweaks.chaos} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="editor" title="② The Editor" subtitle="A/B sides, Spotify search, drag-drop deck, dithered tape meter">
+        <DCArtboard id="main" label="Main — Side A (seafoam)" width={FULL_W} height={FULL_H}>
+          <SchEditor theme={tweaks.theme} density={tweaks.chaos} tileStyle={tweaks.tileStyle} />
+        </DCArtboard>
+        <DCArtboard id="tile-cassette" label="Variation — cassette-row tiles" width={FULL_W} height={FULL_H}>
+          <SchEditor theme={tweaks.theme} density={tweaks.chaos} tileStyle="cassette" />
+        </DCArtboard>
+        <DCArtboard id="tile-binder" label="Variation — binder-ring tiles" width={FULL_W} height={FULL_H}>
+          <SchEditor theme={tweaks.theme} density={tweaks.chaos} tileStyle="binder" />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="jcard" title="③ J-Card Designer" subtitle="Future feature — upload cover art, edit titles, print-ready proof">
+        <DCArtboard id="jcard-main" label="J-Card designer" width={FULL_W} height={FULL_H}>
+          <SchJCard density={tweaks.chaos} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCPostIt top={40} left={40} rotate={-4} width={220}>
+        Balanced Scherzo fidelity — muted-neon palette, hard 45° shadows, dither fills, bitmap display font for chrome + readable body for song titles.
+      </DCPostIt>
+
+      <DCPostIt top={40} right={40} rotate={3} width={210}>
+        Toggle Tweaks from the toolbar to swap editor theme, song-tile style, or background-chaos density.
+      </DCPostIt>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

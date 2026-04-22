@@ -11,6 +11,7 @@ export interface Song {
 export interface Mixtape {
   id: string;
   title: string;
+  dedicatedTo?: string;
   cassetteLength: 60 | 90 | 120; // minutes
   sideA: Song[];
   sideB: Song[];

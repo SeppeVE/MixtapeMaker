@@ -12,6 +12,7 @@ import CassetteTape from './components/CassetteTape';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
 import Library from './components/Library';
+import Toast from './components/Toast';
 import '../assets/styles/App.css';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
@@ -21,6 +22,7 @@ function App() {
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const [mixtape, setMixtape] = useState<Mixtape>(() => {
     const saved = loadMixtapeFromLocal();
@@ -103,22 +105,17 @@ function App() {
   };
 
   const handleNewMixtape = () => {
-    if (
-      confirm(
-        'Create a new mixtape? Your current mixtape is saved locally and will be replaced.'
-      )
-    ) {
-      const newMixtape: Mixtape = {
-        id: generateId(),
-        title: 'Untitled Mixtape',
-        cassetteLength: 90,
-        sideA: [],
-        sideB: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setMixtape(newMixtape);
-    }
+    const newMixtape: Mixtape = {
+      id: generateId(),
+      title: 'Untitled Mixtape',
+      cassetteLength: 90,
+      sideA: [],
+      sideB: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setMixtape(newMixtape);
+    setToast({ message: 'New mixtape created', type: 'success' });
   };
 
   const handleSave = async () => {
@@ -129,15 +126,17 @@ function App() {
 
     try {
       await saveMixtape(mixtape, user.id);
-      alert('Mixtape saved to cloud successfully!');
+      setToast({ message: 'Mixtape saved to cloud', type: 'success' });
     } catch (error) {
       console.error('Failed to save mixtape:', error);
-      alert('Failed to save mixtape. Please try again.');
+      setToast({ message: 'Failed to save mixtape', type: 'error' });
     }
   };
 
   const handleLoadMixtape = (loadedMixtape: Mixtape) => {
     setMixtape(loadedMixtape);
+    setIsLibraryOpen(false);
+    setToast({ message: 'Mixtape loaded', type: 'success' });
   };
 
   return (
@@ -178,6 +177,14 @@ function App() {
         onClose={() => setIsLibraryOpen(false)}
         onLoadMixtape={handleLoadMixtape}
       />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

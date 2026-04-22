@@ -4,6 +4,7 @@
   padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
+  border-radius: 8px;
 }
 
 .tape-side-header {
@@ -41,17 +42,17 @@
   margin-left: var(--spacing-xs);
 }
 
-/* Red stripes like classic j-card */
 .stripe {
-  height: 3px;
+  height: 2px;
   background: repeating-linear-gradient(
     90deg,
-    #e74c3c 0px,
-    #e74c3c 10px,
-    transparent 10px,
-    transparent 20px
+    var(--color-primary) 0px,
+    var(--color-primary) 8px,
+    transparent 8px,
+    transparent 16px
   );
-  margin: var(--spacing-sm) 0;
+  margin: var(--spacing-md) 0;
+  opacity: 0.3;
 }
 
 .song-list {
@@ -74,38 +75,55 @@
 .song-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
   border-left: 3px solid transparent;
   transition: all 0.2s ease;
   cursor: move;
 }
 
 .song-item:hover {
-  background: #f0f8ff;
-  border-left-color: var(--color-primary);
+  background: rgba(232, 164, 56, 0.1);
+  border-left-color: var(--color-secondary);
 }
 
 .song-number {
   font-family: var(--font-display);
   font-weight: bold;
-  color: var(--color-primary);
-  min-width: 30px;
+  color: var(--color-text-light);
+  min-width: 24px;
+  font-size: 13px;
+}
+
+.song-artwork {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .song-details {
   flex: 1;
-  color: var(--color-primary);
+  color: var(--color-text);
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
+  min-width: 0;
 }
 
 .song-item-title {
   font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .song-item-artist {
   color: var(--color-text-light);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .song-item-duration {

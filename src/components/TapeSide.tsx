@@ -82,14 +82,18 @@ const TapeSide = ({
               onDragEnd={handleDragEnd}
             >
               <div className="song-number">{index + 1}.</div>
+              {song.albumCover && (
+                <img
+                  src={song.albumCover}
+                  alt={song.album}
+                  className="song-artwork"
+                />
+              )}
               <div className="song-details">
-                <span className="song-item-title">{song.title}</span>
-                <span className="song-separator"> - </span>
-                <span className="song-item-artist">{song.artist}</span>
-                <span className="song-separator"> - </span>
-                <span className="song-item-duration">
-                  {formatTime(song.duration)}
-                </span>
+                <div className="song-item-title">{song.title}</div>
+                <div className="song-item-artist">
+                  {song.artist} · {formatTime(song.duration)}
+                </div>
               </div>
               <div className="song-actions">
                 <button

@@ -1,8 +1,9 @@
 .header {
   background: var(--color-white);
-  border-bottom: 4px solid var(--color-text);
+  border-bottom: 3px solid var(--color-text);
   padding: var(--spacing-lg) var(--spacing-xl);
   margin-bottom: var(--spacing-xl);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -33,16 +34,12 @@
 
 .title-container.editing {
   cursor: default;
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(232, 164, 56, 0.15);
   border-color: var(--color-secondary);
-
-  input {
-    padding: 6.5px 0;
-  }
 }
 
 .title-container:not(.editing):hover {
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(232, 164, 56, 0.15);
   border-color: var(--color-secondary);
 }
 

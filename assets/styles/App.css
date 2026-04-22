@@ -1,14 +1,15 @@
 :root {
-  /* Retro pastel colors */
-  --color-bg: #f5f5f0;
-  --color-primary: #4a90e2;
-  --color-secondary: #e85d75;
-  --color-accent: #f6b93b;
+  /* Warm retro colors - cassette tape inspired */
+  --color-bg: #f5f1e8;
+  --color-primary: #d84a38;
+  --color-secondary: #e8a438;
+  --color-accent: #4a6fa5;
   --color-white: #ffffff;
-  --color-text: #2c3e50;
-  --color-text-light: #5a6c7d;
-  --color-border: #d4d4d4;
-  --color-warning: #e74c3c;
+  --color-text: #2d2d2d;
+  --color-text-light: #6d6d6d;
+  --color-border: #d4c5b0;
+  --color-warning: #d84a38;
+  --color-success: #5a9367;
   
   /* Spacing */
   --spacing-xs: 4px;
@@ -53,6 +54,7 @@ body {
   transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-radius: 6px;
 }
 
 .btn:hover {
@@ -88,17 +90,25 @@ body {
 }
 
 .btn-search {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
   color: var(--color-text);
 }
 
+.btn-search:hover {
+  box-shadow: 4px 4px 0 var(--color-text);
+}
+
 .btn-add {
-  background: var(--color-secondary);
+  background: var(--color-accent);
   color: var(--color-white);
-  border-color: var(--color-secondary);
+  border-color: var(--color-accent);
   font-size: 12px;
   padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.btn-add:hover {
+  box-shadow: 4px 4px 0 var(--color-text);
 }
 
 .btn-icon {
@@ -109,6 +119,7 @@ body {
   cursor: pointer;
   color: var(--color-text-light);
   transition: color 0.2s ease;
+  border-radius: 4px;
 }
 
 .btn-icon:hover {

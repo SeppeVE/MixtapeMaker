@@ -58,7 +58,7 @@ const TapeSide = ({ side, songs, maxDuration, onRemoveSong, onReorderSongs, onMo
           songs.map((song, index) => (
             <div
               key={`${song.id}-${index}`}
-              className={`song-item${draggedIndex === index ? ' dragging' : ''}`}
+              className="song-item"
               draggable
               onDragStart={() => handleDragStart(index)}
               onDragOver={e => handleDragOver(e, index)}
@@ -78,9 +78,12 @@ const TapeSide = ({ side, songs, maxDuration, onRemoveSong, onReorderSongs, onMo
               <div className="song-actions">
                 <button
                   onClick={() => onMoveSong(song.id, side, otherSide)}
-                  className="btn-icon"
+                  className="btn-icon btn-move"
                   title={`Move to Side ${otherSide}`}
-                >↔</button>
+                >
+                  <span className="btn-move-dest">{otherSide}</span>
+                  <span className="btn-move-arrow">→</span>
+                </button>
                 <button
                   onClick={() => onRemoveSong(song.id, side)}
                   className="btn-icon btn-remove"

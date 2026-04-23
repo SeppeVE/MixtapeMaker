@@ -10,6 +10,7 @@ import TapePreview from './components/TapePreview';
 import Floaters from './components/Floaters';
 import AuthModal from './components/AuthModal';
 import Library from './components/Library';
+import HomePage from './components/HomePage';
 import Toast from './components/Toast';
 import '../assets/styles/App.css';
 import '../assets/styles/Editor.css';
@@ -19,6 +20,7 @@ const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '';
 
 function App() {
   const { user, signOut } = useAuth();
+  const [view, setView] = useState<'home' | 'editor'>('home');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -107,6 +109,7 @@ function App() {
       updatedAt: new Date().toISOString(),
     });
     setSideA(true);
+    setView('editor');
     setToast({ message: 'New mixtape created', type: 'success' });
   };
 
@@ -131,6 +134,7 @@ function App() {
     setMixtape(loaded);
     setIsLibraryOpen(false);
     setSideA(true);
+    setView('editor');
     setToast({ message: 'Mixtape loaded', type: 'success' });
   };
 
@@ -154,13 +158,35 @@ function App() {
     setIsEditingTitle(false);
   };
 
+  if (view === 'home') {
+    return (
+      <>
+        <HomePage
+          onNewMixtape={handleNewMixtape}
+          onLoadMixtape={handleLoadMixtape}
+          onOpenLibrary={() => setIsLibraryOpen(true)}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+        />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        <Library
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          onLoadMixtape={handleLoadMixtape}
+        />
+        {toast && (
+          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className={`editor editor-side-${sideA ? 'a' : 'b'}${flipping ? ' flipping' : ''}`}>
       <Floaters sideA={sideA} />
 
       {/* Menubar */}
       <div className="menubar">
-        <span className="menubar-logo">🅼</span>
+        <button className="menubar-link menubar-logo" onClick={() => setView('home')}>🅼</button>
         <button className="menubar-link" onClick={() => setIsLibraryOpen(true)}>◀ Library</button>
         <span className="menubar-sep">/</span>
         {isEditingTitle ? (

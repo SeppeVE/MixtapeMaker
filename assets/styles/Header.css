@@ -101,7 +101,8 @@
     justify-content: center;
   }
 
-  .title, .title-input {
+  .title,
+  .title-input {
     font-size: 22px;
   }
 

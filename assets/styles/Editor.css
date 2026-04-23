@@ -33,13 +33,20 @@
 
 .menubar-title {
   cursor: pointer;
-  opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 380px;
+  font-size: 22px;
+  background: rgba(212,169,53,.18);
+  border: 1.5px solid rgba(42,30,40,.35);
+  padding: 1px 9px 0;
+  letter-spacing: 0.3px;
 }
-.menubar-title:hover { opacity: 1; }
+.menubar-title:hover {
+  background: rgba(212,169,53,.32);
+  border-color: var(--color-text);
+}
 
 .menubar-cursor::after {
   content: '_';
@@ -54,13 +61,13 @@
 
 .menubar-title-input {
   font-family: var(--font-display);
-  font-size: 18px;
-  background: rgba(212,169,53,.15);
-  border: none;
-  border-bottom: 2px solid var(--color-secondary);
+  font-size: 22px;
+  background: rgba(212,169,53,.25);
+  border: 1.5px solid var(--color-secondary);
   color: var(--color-text);
   outline: none;
   line-height: 1;
+  padding: 1px 9px 0;
   min-width: 200px;
   max-width: 380px;
 }

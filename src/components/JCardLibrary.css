@@ -1,0 +1,120 @@
+/* J-Card library — SchWindow grid */
+.jcard-library {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jcard-library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.jcard-library-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-mustard);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 4px 16px 2px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.jcard-library-empty {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+  opacity: 0.6;
+  padding: 32px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Card grid ── */
+.jcard-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* Each card = SchWindow */
+.jcard-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+
+.jcard-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.jcard-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Color swatch */
+.jcard-card-swatch {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.jcard-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.jcard-card-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jcard-card-meta {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin-top: 3px;
+}
+
+.jcard-card-delete {
+  opacity: 0;
+  transition: opacity 0.12s;
+  flex-shrink: 0;
+  font-size: 18px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jcard-card:hover .jcard-card-delete {
+  opacity: 1;
+}

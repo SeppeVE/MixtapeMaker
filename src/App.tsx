@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Mixtape, CassetteLength, Song, Side } from './types';
+import { Mixtape, CassetteLength, Song, Side, JCard } from './types';
 import { generateId } from './utils/timeUtils';
 import { saveMixtapeToLocal, loadMixtapeFromLocal } from './utils/localStorage';
 import { saveMixtape } from './utils/database';
@@ -12,15 +12,19 @@ import AuthModal from './components/AuthModal';
 import Library from './components/Library';
 import HomePage from './components/HomePage';
 import Toast from './components/Toast';
+import JCardView from './components/jcard/JCardView';
+import JCardLibrary from './components/JCardLibrary';
 import '../assets/styles/App.css';
 import '../assets/styles/Editor.css';
 
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '';
 
+type AppView = 'home' | 'editor' | 'cards' | 'jcard';
+
 function App() {
   const { user, signOut } = useAuth();
-  const [view, setView] = useState<'home' | 'editor'>('home');
+  const [view, setView] = useState<AppView>('home');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -29,6 +33,7 @@ function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [activeCard, setActiveCard] = useState<JCard | null>(null);
 
   const [mixtape, setMixtape] = useState<Mixtape>(() => {
     return loadMixtapeFromLocal() || {
@@ -42,9 +47,7 @@ function App() {
     };
   });
 
-  useEffect(() => {
-    saveMixtapeToLocal(mixtape);
-  }, [mixtape]);
+  useEffect(() => { saveMixtapeToLocal(mixtape); }, [mixtape]);
 
   const activeSide: Side = sideA ? 'A' : 'B';
   const activeSongs = sideA ? mixtape.sideA : mixtape.sideB;
@@ -74,16 +77,12 @@ function App() {
   };
 
   const handleReorderSongs = (side: Side, songs: Song[]) => {
-    setMixtape(prev => ({
-      ...prev,
-      [side === 'A' ? 'sideA' : 'sideB']: songs,
-      updatedAt: new Date().toISOString(),
-    }));
+    setMixtape(prev => ({ ...prev, [side === 'A' ? 'sideA' : 'sideB']: songs, updatedAt: new Date().toISOString() }));
   };
 
   const handleMoveSong = (songId: string, fromSide: Side, toSide: Side) => {
     const fromKey = fromSide === 'A' ? 'sideA' : 'sideB';
-    const toKey = toSide === 'A' ? 'sideA' : 'sideB';
+    const toKey   = toSide === 'A' ? 'sideA' : 'sideB';
     const song = mixtape[fromKey].find(s => s.id === songId);
     if (!song) return;
     setMixtape(prev => ({
@@ -99,25 +98,14 @@ function App() {
   };
 
   const handleNewMixtape = () => {
-    setMixtape({
-      id: generateId(),
-      title: 'Untitled Mixtape',
-      cassetteLength: 90 as CassetteLength,
-      sideA: [],
-      sideB: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    setMixtape({ id: generateId(), title: 'Untitled Mixtape', cassetteLength: 90 as CassetteLength, sideA: [], sideB: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     setSideA(true);
     setView('editor');
     setToast({ message: 'New mixtape created', type: 'success' });
   };
 
   const handleSave = async () => {
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
+    if (!user) { setIsAuthModalOpen(true); return; }
     setIsSaving(true);
     try {
       await saveMixtape(mixtape, user.id);
@@ -125,9 +113,7 @@ function App() {
     } catch (error) {
       console.error('Failed to save mixtape:', error);
       setToast({ message: 'Failed to save mixtape', type: 'error' });
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
   const handleLoadMixtape = (loaded: Mixtape) => {
@@ -147,17 +133,17 @@ function App() {
     handleReorderSongs(activeSide, songs);
   };
 
-  const startEditTitle = () => {
-    setEditTitle(mixtape.title);
-    setIsEditingTitle(true);
-  };
-
+  const startEditTitle = () => { setEditTitle(mixtape.title); setIsEditingTitle(true); };
   const saveTitle = () => {
     const trimmed = editTitle.trim();
     if (trimmed) handleMixtapeUpdate({ title: trimmed });
     setIsEditingTitle(false);
   };
 
+  const openDesigner = (card: JCard | null) => { setActiveCard(card); setView('jcard'); };
+  const showToast = (msg: string, type: 'success' | 'error' | 'info') => setToast({ message: msg, type });
+
+  // ── Home ──────────────────────────────────────────────────────────────────
   if (view === 'home') {
     return (
       <>
@@ -168,23 +154,60 @@ function App() {
           onOpenAuth={() => setIsAuthModalOpen(true)}
         />
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-        <Library
-          isOpen={isLibraryOpen}
-          onClose={() => setIsLibraryOpen(false)}
-          onLoadMixtape={handleLoadMixtape}
-        />
-        {toast && (
-          <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-        )}
+        <Library isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} onLoadMixtape={handleLoadMixtape} />
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </>
     );
   }
 
+  // ── J-Card library / designer — full-page overlay ─────────────────────────
+  if (view === 'cards' || view === 'jcard') {
+    return (
+      <div className="editor editor-side-a" style={{ overflowY: 'auto' }}>
+        <div className="menubar">
+          <button className="menubar-link menubar-logo" onClick={() => setView('home')}>🅼</button>
+          <button className="menubar-link" onClick={() => setView('editor')}>◀ Editor</button>
+          <span className="menubar-sep">/</span>
+          <span className="menubar-title" style={{ cursor: 'default' }}>
+            {view === 'jcard' ? '🎴 Designer' : '🎴 J-Cards'}
+          </span>
+          <div className="menubar-spacer" />
+          {user && <span className="menubar-user">●● {user.email?.split('@')[0]}</span>}
+          {user
+            ? <button className="menubar-link" onClick={signOut}>Sign Out</button>
+            : <button className="menubar-save" onClick={() => setIsAuthModalOpen(true)}>Sign In</button>
+          }
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {view === 'cards' && (
+            <JCardLibrary
+              onOpenCard={openDesigner}
+              onNewCard={() => openDesigner(null)}
+              showToast={showToast}
+            />
+          )}
+          {view === 'jcard' && (
+            <JCardView
+              initialCard={activeCard}
+              currentMixtape={mixtape}
+              onBack={() => setView('cards')}
+              showToast={showToast}
+            />
+          )}
+        </div>
+
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
+    );
+  }
+
+  // ── Editor ────────────────────────────────────────────────────────────────
   return (
     <div className={`editor editor-side-${sideA ? 'a' : 'b'}${flipping ? ' flipping' : ''}`}>
       <Floaters sideA={sideA} />
 
-      {/* Menubar */}
       <div className="menubar">
         <button className="menubar-link menubar-logo" onClick={() => setView('home')}>🅼</button>
         <button className="menubar-link" onClick={() => setIsLibraryOpen(true)}>◀ Library</button>
@@ -204,6 +227,9 @@ function App() {
           </span>
         )}
         <div className="menubar-spacer" />
+        {/* J-Card button */}
+        <button className="menubar-link" onClick={() => setView('cards')}>🎴 J-Cards</button>
+        <span className="menubar-sep">/</span>
         {user && <span className="menubar-user">●● {user.email?.split('@')[0]}</span>}
         {user ? (
           <>
@@ -217,9 +243,7 @@ function App() {
         )}
       </div>
 
-      {/* Workspace */}
       <div className="workspace">
-        {/* Left: Search */}
         <div className="col-search">
           <div className="col-hello">Search</div>
           <SearchBar
@@ -232,31 +256,17 @@ function App() {
           />
         </div>
 
-        {/* Center: Deck */}
         <div className="col-deck">
           <div className="deck-toolbar">
-            <div className={`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`}>
-              ▸ Side {activeSide}
-            </div>
+            <div className={`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`}>▸ Side {activeSide}</div>
             <div className="deck-toolbar-spacer" />
-            <button className="btn deck-tool-btn" onClick={handleShuffle} title="Shuffle this side">
-              ⤨ Shuffle
-            </button>
-            <button className="btn deck-tool-btn" onClick={doFlip} title="Flip tape">
-              ↻ Flip
-            </button>
+            <button className="btn deck-tool-btn" onClick={handleShuffle} title="Shuffle this side">⤨ Shuffle</button>
+            <button className="btn deck-tool-btn" onClick={doFlip} title="Flip tape">↻ Flip</button>
             <div className="side-toggle">
-              <button
-                className={`side-toggle-btn${sideA ? ' active' : ''}`}
-                onClick={() => !sideA && doFlip()}
-              >A</button>
-              <button
-                className={`side-toggle-btn${!sideA ? ' active' : ''}`}
-                onClick={() => sideA && doFlip()}
-              >B</button>
+              <button className={`side-toggle-btn${sideA ? ' active' : ''}`} onClick={() => !sideA && doFlip()}>A</button>
+              <button className={`side-toggle-btn${!sideA ? ' active' : ''}`} onClick={() => sideA && doFlip()}>B</button>
             </div>
           </div>
-
           <TapeSide
             key={activeSide}
             side={activeSide}
@@ -268,7 +278,6 @@ function App() {
           />
         </div>
 
-        {/* Right: Preview */}
         <div className="col-preview">
           <TapePreview
             mixtape={mixtape}
@@ -282,14 +291,8 @@ function App() {
       </div>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      <Library
-        isOpen={isLibraryOpen}
-        onClose={() => setIsLibraryOpen(false)}
-        onLoadMixtape={handleLoadMixtape}
-      />
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
+      <Library isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} onLoadMixtape={handleLoadMixtape} />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

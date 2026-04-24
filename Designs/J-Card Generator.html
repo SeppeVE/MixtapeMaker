@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>J-Card Generator</title>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; height: 100%; overflow: hidden; }
+  body { font-family: "Geneva", "Verdana", system-ui, sans-serif; }
+
+  /* Quill overrides to match Scherzo aesthetic */
+  .ql-toolbar.ql-snow {
+    border: 2px solid #2A1E28 !important;
+    border-bottom: none !important;
+    background: #EFE8D6;
+    padding: 4px 6px;
+    font-family: "Geneva", "Verdana", system-ui, sans-serif;
+  }
+  .ql-container.ql-snow {
+    border: 2px solid #2A1E28 !important;
+    background: #FAF6EB;
+    font-family: "Geneva", "Verdana", system-ui, sans-serif;
+    font-size: 12px;
+  }
+  .ql-editor {
+    min-height: 100px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 8px 10px;
+  }
+  .ql-snow .ql-picker, .ql-snow .ql-stroke { color: #2A1E28; stroke: #2A1E28; }
+  .ql-snow .ql-fill { fill: #2A1E28; }
+  .ql-snow.ql-toolbar button:hover, .ql-snow .ql-toolbar button:hover { background: #D4A93522; }
+  .ql-snow.ql-toolbar button.ql-active { background: #5B283844; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="quill-mount" style="display:none; position:absolute; z-index:-1;"></div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="scherzo-primitives.jsx"></script>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+// ═══════════════════════════════════════════════════════════
+// Quill Rich Text Editor (TipTap-style, with full formatting)
+// ═══════════════════════════════════════════════════════════
+function QuillEditor({ value, onChange }) {
+  const containerRef = useRef(null);
+  const quillRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || quillRef.current) return;
+
+    const q = new Quill(containerRef.current, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ header: [false, 1, 2, 3] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ color: [] }, { background: [] }],
+          [{ align: [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          [{ size: ['small', false, 'large', 'huge'] }],
+          ['clean'],
+        ],
+      },
+    });
+
+    // Set initial content
+    if (value) q.clipboard.dangerouslyPasteHTML(value);
+
+    q.on('text-change', () => {
+      onChange(q.root.innerHTML);
+    });
+
+    quillRef.current = q;
+  }, []);
+
+  return <div ref={containerRef}></div>;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Color Picker Component
+// ═══════════════════════════════════════════════════════════
+function ColorPicker({ value, onChange }) {
+  const presets = [
+    SchTokens.paper, SchTokens.white, SchTokens.ink, SchTokens.inkSoft,
+    SchTokens.sage, SchTokens.seafoam, SchTokens.forest,
+    SchTokens.plum, SchTokens.mustard, SchTokens.lavender,
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+      {presets.map((c, i) => (
+        <div key={i} onClick={() => onChange(c)} style={{
+          width: 22, height: 22, background: c,
+          border: `2px solid ${SchTokens.ink}`, cursor: 'pointer',
+          outline: c === value ? `2px solid ${SchTokens.mustard}` : 'none',
+          outlineOffset: 1,
+        }} />
+      ))}
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{ width: 22, height: 22, border: `2px solid ${SchTokens.ink}`, cursor: 'pointer', padding: 0 }}
+      />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Editable Text Field — draggable, resizable, inline editable
+// ═══════════════════════════════════════════════════════════
+function EditableTextField({ field, value, setValue, textColor, fontFamily, editingField, setEditingField, onMouseDown }) {
+  const isEditing = editingField === field;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${value.x}%`, top: `${value.y}%`,
+        width: `${value.width}%`,
+        cursor: isEditing ? 'text' : 'move',
+        fontFamily, fontSize: value.fontSize, fontWeight: 700,
+        color: textColor, textTransform: 'uppercase',
+        letterSpacing: '0.5px', textAlign: 'center', padding: '4px',
+        background: isEditing ? 'rgba(255,255,255,0.18)' : 'transparent',
+        border: isEditing ? `2px dashed ${SchTokens.mustard}` : '2px dashed transparent',
+        outline: 'none', userSelect: isEditing ? 'text' : 'none', lineHeight: 1.1,
+        zIndex: isEditing ? 10 : 1,
+      }}
+      onClick={(e) => { e.stopPropagation(); setEditingField(field); }}
+      onMouseDown={(e) => !isEditing && onMouseDown(field, e, 'drag')}
+      contentEditable={isEditing}
+      suppressContentEditableWarning
+      onBlur={(e) => { setValue({ ...value, text: e.currentTarget.textContent }); setEditingField(null); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); }
+        e.stopPropagation();
+      }}
+    >
+      {value.text}
+      {isEditing && (
+        <div onMouseDown={(e) => onMouseDown(field, e, 'resize')} style={{
+          position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
+          background: SchTokens.mustard, border: `2px solid ${SchTokens.ink}`, cursor: 'nwse-resize',
+        }} />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Editable Spine Text — click to edit in place
+// ═══════════════════════════════════════════════════════════
+function EditableSpineText({ value, onChange, fontFamily, textColor, isEditing, setEditing }) {
+  return (
+    <div
+      style={{
+        transform: 'rotate(-90deg)', whiteSpace: 'nowrap',
+        fontFamily, fontSize: 16, color: textColor, letterSpacing: 1,
+        cursor: isEditing ? 'text' : 'pointer',
+        padding: '3px 6px',
+        background: isEditing ? 'rgba(255,255,255,0.2)' : 'transparent',
+        border: isEditing ? `1.5px dashed ${SchTokens.mustard}` : '1.5px dashed transparent',
+        outline: 'none', userSelect: isEditing ? 'text' : 'none',
+      }}
+      onClick={() => setEditing(true)}
+      contentEditable={isEditing}
+      suppressContentEditableWarning
+      onBlur={(e) => { onChange(e.currentTarget.textContent); setEditing(false); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+        e.stopPropagation();
+      }}
+    >
+      {value}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// J-Card Preview
+// ═══════════════════════════════════════════════════════════
+function JCardPreview({
+  coverImageMode, coverImageUrl,
+  frontTitle, setFrontTitle,
+  frontSubtitle, setFrontSubtitle,
+  frontFooter, setFrontFooter,
+  spineText, setSpineText,
+  backContent,
+  backCardShort, flapCount,
+  bgColor, textColor, accentColor, fontFamily,
+  editingField, setEditingField,
+}) {
+  const containerRef = useRef(null);
+  const [draggingField, setDraggingField] = useState(null);
+  const [resizingField, setResizingField] = useState(null);
+  const [editingSpine, setEditingSpine] = useState(false);
+
+  // Physical dimensions (mm) × display scale
+  const DS = 6;
+  const backW = (backCardShort ? 10 : 25.4) * DS;
+  const spineW = 12.7 * DS;
+  const frontW = 102 * DS;
+  const H = 102 * DS;
+  const flapWidths = [65, 63.5, 61.5, 61.5, 62, 63.5].map(w => w * DS);
+  const totalWidth = backW + spineW + frontW + flapWidths.slice(0, flapCount).reduce((a, b) => a + b, 0);
+
+  const handleMouseDown = (field, e, action = 'drag') => {
+    e.stopPropagation();
+    if (action === 'drag') setDraggingField({ field, startX: e.clientX, startY: e.clientY });
+    else setResizingField({ field, startX: e.clientX, startY: e.clientY });
+  };
+
+  useEffect(() => {
+    if (!draggingField && !resizingField) return;
+    const fieldMap = { title: [frontTitle, setFrontTitle], subtitle: [frontSubtitle, setFrontSubtitle], footer: [frontFooter, setFrontFooter] };
+    const onMove = (e) => {
+      if (draggingField && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const dx = ((e.clientX - draggingField.startX) / rect.width) * 100;
+        const dy = ((e.clientY - draggingField.startY) / rect.height) * 100;
+        const [cur, set] = fieldMap[draggingField.field];
+        set({ ...cur, x: cur.x + dx, y: cur.y + dy });
+        setDraggingField(d => ({ ...d, startX: e.clientX, startY: e.clientY }));
+      }
+      if (resizingField && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const dx = ((e.clientX - resizingField.startX) / rect.width) * 100;
+        const dy = ((e.clientY - resizingField.startY) / rect.height) * 100;
+        const [cur, set] = fieldMap[resizingField.field];
+        set({ ...cur, fontSize: Math.max(8, cur.fontSize + dy * 0.5), width: Math.max(10, cur.width + dx) });
+        setResizingField(r => ({ ...r, startX: e.clientX, startY: e.clientY }));
+      }
+    };
+    const onUp = () => { setDraggingField(null); setResizingField(null); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, [draggingField, resizingField, frontTitle, frontSubtitle, frontFooter]);
+
+  return (
+    <div id="jcard-export" ref={containerRef} onClick={() => setEditingField(null)}
+      style={{
+        width: totalWidth, height: H,
+        background: SchTokens.white,
+        border: `2px solid ${SchTokens.ink}`,
+        boxShadow: SchTokens.shadowLg,
+        display: 'flex', position: 'relative', userSelect: 'none',
+        flexShrink: 0,
+      }}
+    >
+      {/* ── Back card ─────────────────────────────── */}
+      <div style={{
+        width: backW, height: H,
+        background: bgColor,
+        borderRight: `2px solid ${SchTokens.ink}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden', flexShrink: 0, position: 'relative',
+      }}>
+        <div style={{
+          writingMode: 'vertical-rl',
+          textOrientation: 'mixed',
+          transform: 'rotate(180deg)',
+          fontFamily, color: textColor,
+          fontSize: Math.min(13, backW * 0.18),
+          lineHeight: 1.4,
+          padding: '8px 4px',
+          maxHeight: H - 16,
+          overflow: 'hidden',
+        }}
+          dangerouslySetInnerHTML={{ __html: backContent }}
+        />
+      </div>
+
+      {/* ── Spine ─────────────────────────────────── */}
+      <div style={{
+        width: spineW, height: H,
+        background: accentColor,
+        borderRight: `2px solid ${SchTokens.ink}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <EditableSpineText
+          value={spineText}
+          onChange={setSpineText}
+          fontFamily={fontFamily}
+          textColor={textColor}
+          isEditing={editingSpine}
+          setEditing={setEditingSpine}
+        />
+      </div>
+
+      {/* ── Front panel ───────────────────────────── */}
+      <div style={{
+        width: frontW, height: H,
+        background: coverImageMode === 'background' && coverImageUrl ? 'transparent' : bgColor,
+        backgroundImage: coverImageMode === 'background' && coverImageUrl ? `url(${coverImageUrl})` : 'none',
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        borderRight: flapCount > 0 ? `2px solid ${SchTokens.ink}` : 'none',
+        position: 'relative', overflow: 'hidden', flexShrink: 0,
+      }}>
+        {coverImageMode === 'foreground' && coverImageUrl && (
+          <div style={{
+            position: 'absolute', top: '8%', left: '8%', width: '84%', height: '60%',
+            backgroundImage: `url(${coverImageUrl})`,
+            backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center',
+            border: `2px solid ${SchTokens.ink}`, boxShadow: SchTokens.shadowSm,
+          }} />
+        )}
+        <EditableTextField field="title" value={frontTitle} setValue={setFrontTitle}
+          textColor={textColor} fontFamily={fontFamily}
+          editingField={editingField} setEditingField={setEditingField} onMouseDown={handleMouseDown} />
+        <EditableTextField field="subtitle" value={frontSubtitle} setValue={setFrontSubtitle}
+          textColor={textColor} fontFamily={fontFamily}
+          editingField={editingField} setEditingField={setEditingField} onMouseDown={handleMouseDown} />
+        <EditableTextField field="footer" value={frontFooter} setValue={setFrontFooter}
+          textColor={textColor} fontFamily={fontFamily}
+          editingField={editingField} setEditingField={setEditingField} onMouseDown={handleMouseDown} />
+      </div>
+
+      {/* ── Flaps ─────────────────────────────────── */}
+      {flapWidths.slice(0, flapCount).map((w, i) => (
+        <div key={i} style={{
+          width: w, height: H, flexShrink: 0,
+          background: i % 2 === 0 ? bgColor : SchTokens.paperDk,
+          borderRight: i < flapCount - 1 ? `2px solid ${SchTokens.ink}` : 'none',
+          backgroundImage: schDitherUrl(i % 2 === 0 ? bgColor : SchTokens.paperDk, SchTokens.paperDk, 3),
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontFamily: SchFonts.pixel, fontSize: 14, opacity: 0.3, color: textColor }}>{i + 1}</span>
+        </div>
+      ))}
+
+      {/* Fold lines */}
+      {[backW, backW + spineW].map((x, i) => (
+        <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: x, borderLeft: `1px dashed ${SchTokens.ink}44`, pointerEvents: 'none' }} />
+      ))}
+      {flapCount > 0 && (
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: backW + spineW + frontW, borderLeft: `1px dashed ${SchTokens.ink}44`, pointerEvents: 'none' }} />
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main App
+// ═══════════════════════════════════════════════════════════
+function App() {
+  const [coverImageMode, setCoverImageMode] = useState('background');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [frontTitle,    setFrontTitle]    = useState({ text: 'THE NUMBERS GAME',    x: 5, y: 72, fontSize: 26, width: 90 });
+  const [frontSubtitle, setFrontSubtitle] = useState({ text: 'DARK MATHEMATICIANS', x: 5, y: 82, fontSize: 17, width: 90 });
+  const [frontFooter,   setFrontFooter]   = useState({ text: 'STEREO TAPE',         x: 5, y: 92, fontSize: 13, width: 90 });
+  const [spineText, setSpineText] = useState('THE NUMBERS GAME');
+  const [backContent, setBackContent] = useState('<p>ONE OF US • TWO IS THE SHOE • THREE FOR ME • FOUR OUT THE DOOR • FIVE IS A HIVE • SIX MOVIE FLICKS • SEVEN ATE NINE • EIGHT MY GOOD MATE</p>');
+  const [backCardShort, setBackCardShort] = useState(false);
+  const [flapCount, setFlapCount] = useState(0);
+  const [bgColor,     setBgColor]     = useState(SchTokens.paper);
+  const [textColor,   setTextColor]   = useState(SchTokens.ink);
+  const [accentColor, setAccentColor] = useState(SchTokens.plum);
+  const [fontFamily,  setFontFamily]  = useState(SchFonts.chrome);
+  const [editingField, setEditingField] = useState(null);
+
+  const handleImageFile = (e) => {
+    const file = e.target.files?.[0];
+    if (file) { setCoverImageFile(file); setCoverImageUrl(URL.createObjectURL(file)); }
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100%', background: SchTokens.sage, position: 'relative', overflow: 'hidden' }}>
+      <SchFloaters density={4} seed={19} palette={['plum', 'mustard', 'lavender', 'seafoam']} />
+
+      {/* Header */}
+      <div style={{
+        position: 'relative', zIndex: 10,
+        background: SchTokens.paper, borderBottom: `2px solid ${SchTokens.ink}`,
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '4px 14px', fontFamily: SchFonts.pixel, fontSize: 20, lineHeight: 1,
+      }}>
+        <span>J-CARD GENERATOR</span>
+        <div style={{ flex: 1 }} />
+        <button className="sch-btn" onClick={exportAsPNG}>PNG</button>
+        <button className="sch-btn primary" onClick={exportAsPDF}>
+          <SchIcon name="print" size={11} color={SchTokens.paper} /> PDF
+        </button>
+      </div>
+
+      <div style={{
+        position: 'relative', zIndex: 2,
+        height: 'calc(100% - 32px)',
+        display: 'grid', gridTemplateColumns: '380px 1fr',
+        boxSizing: 'border-box',
+      }}>
+
+        {/* ── LEFT: Controls ──────────────────────── */}
+        <div style={{
+          background: SchTokens.paper, borderRight: `2px solid ${SchTokens.ink}`,
+          overflowY: 'auto', padding: '16px 14px',
+          display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+
+          {/* Cover Image */}
+          <SchWindow title="Cover Image" bg={SchTokens.white} titleColor={SchTokens.plum}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontFamily: SchFonts.pixel, fontSize: 14, marginBottom: 4 }}>Mode</div>
+              <SchToggle
+                value={coverImageMode === 'foreground'}
+                onChange={(v) => setCoverImageMode(v ? 'foreground' : 'background')}
+                labels={['Foreground', 'Background']}
+                width={170}
+              />
+            </div>
+            <div style={{
+              aspectRatio: '1/1', background: SchTokens.paperDk,
+              border: `2px dashed ${SchTokens.ink}`,
+              backgroundImage: coverImageUrl ? `url(${coverImageUrl})` : schDitherUrl(SchTokens.paperDk, SchTokens.paper, 3),
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+              cursor: 'pointer',
+            }} onClick={() => document.getElementById('file-upload').click()}>
+              {!coverImageUrl && (<>
+                <SchIcon name="plus" size={22} />
+                <div style={{ fontFamily: SchFonts.pixel, fontSize: 15, lineHeight: 1 }}>click to upload</div>
+                <div style={{ fontFamily: SchFonts.chrome, fontSize: 10, opacity: 0.6 }}>png / jpg / webp</div>
+              </>)}
+            </div>
+            <input type="file" id="file-upload" accept="image/*" style={{ display: 'none' }} onChange={handleImageFile} />
+            {coverImageUrl && (
+              <button className="sch-btn" onClick={() => { setCoverImageUrl(''); setCoverImageFile(null); }}
+                style={{ marginTop: 6, width: '100%', justifyContent: 'center', fontSize: 11 }}>
+                Remove image
+              </button>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontFamily: SchFonts.pixel, fontSize: 13, marginBottom: 4 }}>or paste URL</div>
+              <input className="sch-input" placeholder="https://..."
+                value={coverImageUrl && !coverImageFile ? coverImageUrl : ''}
+                onChange={(e) => { setCoverImageUrl(e.target.value); setCoverImageFile(null); }}
+                style={{ fontSize: 11 }}
+              />
+            </div>
+          </SchWindow>
+
+          {/* Colors */}
+          <SchWindow title="Colors" bg={SchTokens.white} titleColor={SchTokens.forest}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[['Background', bgColor, setBgColor], ['Text', textColor, setTextColor], ['Accent / Spine', accentColor, setAccentColor]].map(([label, val, set]) => (
+                <div key={label}>
+                  <label style={{ fontFamily: SchFonts.pixel, fontSize: 13, display: 'block', marginBottom: 4 }}>{label}</label>
+                  <ColorPicker value={val} onChange={set} />
+                </div>
+              ))}
+            </div>
+          </SchWindow>
+
+          {/* Font */}
+          <SchWindow title="Aa Font" bg={SchTokens.white} titleColor={SchTokens.plum}>
+            <select className="sch-input" value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} style={{ fontSize: 12 }}>
+              <option value={SchFonts.chrome}>Geneva (Sans)</option>
+              <option value={SchFonts.pixel}>VT323 (Pixel)</option>
+              <option value='"Courier New", monospace'>Courier (Typewriter)</option>
+              <option value='"Georgia", serif'>Georgia (Serif)</option>
+              <option value='"Comic Sans MS", cursive'>Comic Sans (Marker)</option>
+            </select>
+          </SchWindow>
+
+          {/* Back card */}
+          <SchWindow title="Back Card" bg={SchTokens.white} titleColor={SchTokens.forest}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontFamily: SchFonts.pixel, fontSize: 13, marginBottom: 4 }}>Height</div>
+              <SchToggle value={!backCardShort} onChange={(v) => setBackCardShort(!v)} labels={['Normal', 'Short']} width={170} />
+            </div>
+            <div style={{ fontFamily: SchFonts.pixel, fontSize: 13, marginBottom: 6 }}>Content</div>
+            <QuillEditor value={backContent} onChange={setBackContent} />
+          </SchWindow>
+
+          {/* Flaps */}
+          <SchWindow title="Flaps" bg={SchTokens.white} titleColor={SchTokens.plum}>
+            <div style={{ fontFamily: SchFonts.pixel, fontSize: 14, marginBottom: 4 }}>Count: {flapCount}</div>
+            <input type="range" min="0" max="6" value={flapCount}
+              onChange={(e) => setFlapCount(Number(e.target.value))} style={{ width: '100%' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: SchFonts.chrome, fontSize: 9, opacity: 0.6, marginTop: 2 }}>
+              {[0,1,2,3,4,5,6].map(n => <span key={n}>{n}</span>)}
+            </div>
+          </SchWindow>
+
+          <div style={{
+            background: SchTokens.mustard + '66', border: `2px solid ${SchTokens.ink}`,
+            padding: '8px 10px', fontFamily: SchFonts.chrome, fontSize: 11, lineHeight: 1.4,
+          }}>
+            💡 Click text on the j-card to edit inline. Drag to move, drag corner to resize. Click spine to edit.
+          </div>
+        </div>
+
+        {/* ── RIGHT: Preview ───────────────────────── */}
+        <div style={{
+          overflow: 'auto', padding: '40px 32px',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        }}>
+          <JCardPreview
+            coverImageMode={coverImageMode} coverImageUrl={coverImageUrl}
+            frontTitle={frontTitle} setFrontTitle={setFrontTitle}
+            frontSubtitle={frontSubtitle} setFrontSubtitle={setFrontSubtitle}
+            frontFooter={frontFooter} setFrontFooter={setFrontFooter}
+            spineText={spineText} setSpineText={setSpineText}
+            backContent={backContent}
+            backCardShort={backCardShort} flapCount={flapCount}
+            bgColor={bgColor} textColor={textColor} accentColor={accentColor}
+            fontFamily={fontFamily}
+            editingField={editingField} setEditingField={setEditingField}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Export
+// ═══════════════════════════════════════════════════════════
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportAsPNG() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  const el = document.getElementById('jcard-export');
+  const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'j-card.png'; a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+async function exportAsPDF() {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  const el = document.getElementById('jcard-export');
+  const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = (canvas.height * pw) / canvas.width;
+  const yOff = (pdf.internal.pageSize.getHeight() - ph) / 2;
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, Math.max(0, yOff), pw, ph);
+  pdf.save('j-card.pdf');
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

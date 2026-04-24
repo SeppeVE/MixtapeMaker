@@ -1,0 +1,78 @@
+/* =====================================================
+   J-Card shared CSS variables — single source of truth
+   All widths/heights are in real mm units.
+   ===================================================== */
+:root {
+  --jcard-height: 102mm;
+
+  --w-back-full:  25.4mm;
+  --w-back-short: 10mm;
+  --w-spine:      12.7mm;
+
+  --w-flap-1: 65mm;
+  --w-flap-2: 63.5mm;
+  --w-flap-3: 61.5mm;
+  --w-flap-4: 61.5mm;
+  --w-flap-5: 62mm;
+  --w-flap-6: 63.5mm;
+
+  /* Set at runtime by JCardPreview via ResizeObserver */
+  --jcard-scale: 1;
+}
+
+/* =====================================================
+   Card shell
+   ===================================================== */
+.jcard {
+  display: flex;
+  flex-direction: row;
+  height: var(--jcard-height);
+  width: max-content;
+  transform: scale(var(--jcard-scale));
+  transform-origin: top left;
+  position: relative;
+  /* Hard offset shadow — matches app design tokens */
+  border: 2px solid #2A1E28;
+  box-shadow: 6px 6px 0 #2A1E28;
+}
+
+.jcard.reversed {
+  flex-direction: row-reverse;
+}
+
+/* =====================================================
+   Parts — no individual border; use a subtle separator
+   ===================================================== */
+.jcard-part {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  /* Thin cut-line between parts */
+  border-right: 1px dashed rgba(180, 0, 0, 0.25);
+}
+
+.jcard-part:last-child {
+  border-right: none;
+}
+
+.jcard.reversed .jcard-part {
+  border-right: none;
+  border-left: 1px dashed rgba(180, 0, 0, 0.25);
+}
+
+.jcard.reversed .jcard-part:last-child {
+  border-left: none;
+}
+
+.jcard-back        { width: var(--w-back-full); }
+.jcard-back.short  { width: var(--w-back-short); }
+.jcard-spine       { width: var(--w-spine); }
+
+.jcard-flap-1 { width: var(--w-flap-1); }
+.jcard-flap-2 { width: var(--w-flap-2); }
+.jcard-flap-3 { width: var(--w-flap-3); }
+.jcard-flap-4 { width: var(--w-flap-4); }
+.jcard-flap-5 { width: var(--w-flap-5); }
+.jcard-flap-6 { width: var(--w-flap-6); }

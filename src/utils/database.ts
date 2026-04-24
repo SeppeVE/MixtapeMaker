@@ -26,7 +26,7 @@ function dbToMixtape(dbMixtape: DatabaseMixtape): Mixtape {
 }
 
 // Convert app format to database format
-function mixtapeToDb(mixtape: Mixtape, userId: string): Omit<DatabaseMixtape, 'user_id'> {
+function mixtapeToDb(mixtape: Mixtape, _userId: string): Omit<DatabaseMixtape, 'user_id'> {
   return {
     id: mixtape.id,
     title: mixtape.title,

@@ -39,3 +39,30 @@ export interface SpotifySearchResponse {
 
 export type CassetteLength = 60 | 90 | 120;
 export type Side = 'A' | 'B';
+
+export interface JCardContent {
+  flaps: 1 | 2 | 3 | 4 | 5 | 6;
+  isReversed: boolean;
+  shortBack: boolean;
+  backgroundColor: string;
+  backgroundImageUrl?: string;
+  coverImageUrl?: string;
+  coverImageBehindContent: boolean;
+  isFullCoverImage: boolean;
+  coverContent: string;
+  spineTopContent: string;
+  spineCenterContent: string;
+  spineBottomContent: string;
+  backLeftContent: string;
+  backRightContent: string;
+}
+
+export interface JCard {
+  id: string;
+  title: string;
+  userId: string;
+  mixtapeId?: string | null;
+  content: JCardContent;
+  createdAt: string;
+  updatedAt: string;
+}

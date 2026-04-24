@@ -1,0 +1,98 @@
+.jcard-library {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-xl) var(--spacing-xl);
+}
+
+.jcard-library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.jcard-library-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ── Card grid ── */
+.jcard-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.jcard-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  border-radius: 8px;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.jcard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0 var(--color-text);
+  border-color: var(--color-primary);
+}
+
+.jcard-card:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jcard-card-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  border: 2px solid var(--color-text);
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jcard-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.jcard-card-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jcard-card-meta {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: 3px;
+}
+
+.jcard-card-delete {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.jcard-card:hover .jcard-card-delete {
+  opacity: 1;
+}

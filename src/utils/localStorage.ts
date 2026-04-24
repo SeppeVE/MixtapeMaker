@@ -1,4 +1,4 @@
-import { Mixtape } from '../types';
+import { Mixtape, JCard } from '../types';
 
 const STORAGE_KEY = 'mixtape-current';
 
@@ -36,4 +36,22 @@ export const clearMixtapeFromLocal = (): void => {
   } catch (error) {
     console.error('Failed to clear local storage:', error);
   }
+};
+
+// ── JCard local storage ──────────────────────────────────────────────────────
+const JCARDS_KEY = 'jcards';
+
+export const loadJCardsFromLocal = (): JCard[] => {
+  try { return JSON.parse(localStorage.getItem(JCARDS_KEY) ?? '[]'); } catch { return []; }
+};
+
+export const saveJCardToLocal = (card: JCard): void => {
+  const cards = loadJCardsFromLocal();
+  const idx = cards.findIndex(c => c.id === card.id);
+  if (idx >= 0) cards[idx] = card; else cards.unshift(card);
+  try { localStorage.setItem(JCARDS_KEY, JSON.stringify(cards)); } catch { /* ignore */ }
+};
+
+export const deleteJCardFromLocal = (id: string): void => {
+  try { localStorage.setItem(JCARDS_KEY, JSON.stringify(loadJCardsFromLocal().filter(c => c.id !== id))); } catch { /* ignore */ }
 };

@@ -1,0 +1,116 @@
+.img-upload-root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Drop zone */
+.img-upload-drop {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  border: 2px dashed var(--color-border);
+  border-radius: 6px;
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  background: var(--color-bg);
+  min-height: 72px;
+  user-select: none;
+}
+
+.img-upload-drop:hover {
+  border-color: var(--color-accent);
+  background: rgba(74, 111, 165, 0.05);
+}
+
+.img-upload-drop.drag-over {
+  border-color: var(--color-secondary);
+  border-style: solid;
+  background: rgba(232, 164, 56, 0.08);
+  transform: scale(1.01);
+}
+
+.img-upload-drop.has-image {
+  border-style: solid;
+  border-color: var(--color-success);
+  background: rgba(90, 147, 103, 0.05);
+}
+
+.img-upload-drop.uploading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Thumbnail */
+.img-upload-thumb {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid var(--color-border);
+}
+
+/* Text block */
+.img-upload-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-light);
+  min-width: 0;
+}
+
+.img-upload-drop-text strong {
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.img-upload-hint {
+  font-size: 10px;
+  color: var(--color-text-light);
+  opacity: 0.7;
+}
+
+/* Spinner text */
+.img-upload-spinner {
+  font-style: italic;
+  color: var(--color-text-light);
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.5; }
+  to   { opacity: 1; }
+}
+
+/* Remove button */
+.img-upload-remove {
+  font-size: 11px;
+  padding: 4px 10px;
+  color: var(--color-text-light);
+  border-color: var(--color-border);
+  align-self: flex-start;
+}
+
+.img-upload-remove:hover {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+/* Error */
+.img-upload-error {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-warning);
+  background: rgba(216, 74, 56, 0.08);
+  border: 1px solid rgba(216, 74, 56, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+}

@@ -1,0 +1,92 @@
+.content-editor-root {
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-white);
+  transition: border-color 0.15s;
+}
+
+.content-editor-root:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 2px 2px 0 var(--color-accent);
+}
+
+/* ── Toolbar ── */
+.content-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.ce-btn {
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: all 0.12s ease;
+  min-width: 26px;
+  text-align: center;
+  line-height: 1;
+}
+
+.ce-btn:hover {
+  background: var(--color-white);
+  border-color: var(--color-border);
+  transform: translateY(-1px);
+  box-shadow: 1px 1px 0 var(--color-text);
+}
+
+.ce-btn.active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
+}
+
+.ce-italic { font-style: italic; }
+.ce-underline { text-decoration: underline; }
+
+.ce-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Editor content area ── */
+.content-editor-area {
+  padding: 8px 10px;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.content-editor-area:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-light);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.content-editor-area p      { margin: 0 0 3px; }
+.content-editor-area h1,
+.content-editor-area h2,
+.content-editor-area h3,
+.content-editor-area h4     { margin: 0 0 3px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 1px; }
+.content-editor-area ul,
+.content-editor-area ol     { padding-left: 16px; margin: 0 0 3px; }
+.content-editor-area li     { margin: 0; }
+
+.ProseMirror-selectednode   { outline: 2px solid var(--color-accent); }

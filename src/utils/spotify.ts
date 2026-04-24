@@ -34,7 +34,7 @@ const getAccessToken = async (
   accessToken = data.access_token;
   tokenExpiry = Date.now() + data.expires_in * 1000 - 60000; // Refresh 1 min before expiry
 
-  return accessToken;
+  return accessToken as string;
 };
 
 /**

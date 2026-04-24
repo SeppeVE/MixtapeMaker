@@ -1,53 +1,45 @@
+/* ── Preview root ── */
 .jcard-preview-root {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
-/* ── Toolbar ── */
-.jcard-preview-toolbar {
+/* ── Info bar (dimensions + actual size toggle) ── */
+.jcard-preview-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--color-white);
+  padding: 5px 10px 4px;
+  background: var(--color-paper);
   border: 2px solid var(--color-text);
-  border-radius: 6px;
-  box-shadow: 3px 3px 0 var(--color-text);
-}
-
-.jcard-preview-label {
+  box-shadow: var(--shadow-sm);
   font-family: var(--font-display);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-text-light);
+  font-size: 15px;
+  line-height: 1;
 }
 
-.jcard-actual-size-btn {
-  font-size: 11px;
-  padding: 4px 10px;
+.jcard-preview-dim {
+  color: var(--color-text);
+  opacity: 0.7;
 }
 
-.jcard-actual-size-btn.active {
-  background: var(--color-accent);
-  color: var(--color-white);
-  border-color: var(--color-accent);
+.jcard-actual-btn.active {
+  background: var(--color-mustard);
+  border-color: var(--color-text);
 }
 
-/* ── Preview area ── */
+/* ── Preview wrapper — paper with dither ── */
 .jcard-preview-wrapper {
   overflow: auto;
-  /* Subtle graph-paper background so the white card stands out */
-  background-color: #d9d4c8;
+  background-color: var(--color-paper-dk);
   background-image:
-    linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px);
+    linear-gradient(rgba(42,30,40,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,30,40,.12) 1px, transparent 1px);
   background-size: 8mm 8mm;
-  border: 3px solid var(--color-text);
-  border-radius: 8px;
-  box-shadow: 4px 4px 0 var(--color-text);
-  padding: var(--spacing-xl);
-  min-height: 160px;
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  min-height: 140px;
   position: relative;
 }

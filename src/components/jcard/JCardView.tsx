@@ -80,6 +80,8 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
 
   return (
     <div className="jcard-view">
+
+      {/* Sub-toolbar */}
       <div className="jcard-view-toolbar">
         <button className="btn" onClick={onBack}>← Cards</button>
         <h2 className="jcard-view-title">{card.title || 'Untitled J-Card'}</h2>
@@ -87,21 +89,45 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
           {isSaving ? 'Saving…' : '💾 Save'}
         </button>
       </div>
+
+      {/* 3-column body */}
       <div className="jcard-view-body">
-        <div className="jcard-view-preview">
-          <JCardPreview content={card.content} />
-        </div>
+
+        {/* LEFT — card info, layout, background, cover, export */}
         <aside className="jcard-view-sidebar">
+          <span className="jcard-col-label">Settings</span>
           <JCardSettings
             card={card}
             currentMixtape={currentMixtape}
-            onTitleChange={title => update({ title })}
+            onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
-            onMixtapeLink={mixtapeId => update({ mixtapeId })}
+            onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
+            sections={['info', 'layout', 'background', 'cover', 'export']}
           />
         </aside>
+
+        {/* CENTER — live preview */}
+        <div className="jcard-view-preview">
+          <span className="jcard-col-label">▧ Live preview</span>
+          <JCardPreview content={card.content} />
+        </div>
+
+        {/* RIGHT — tracklist sync, spine, liner notes */}
+        <aside className="jcard-view-right">
+          <span className="jcard-col-label">♯ Content</span>
+          <JCardSettings
+            card={card}
+            currentMixtape={currentMixtape}
+            onTitleChange={(title) => update({ title })}
+            onContentChange={(content: JCardContent) => update({ content })}
+            onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
+            sections={['mixtape', 'spine', 'back']}
+          />
+        </aside>
+
       </div>
     </div>
   );
 };
+
 export default JCardView;

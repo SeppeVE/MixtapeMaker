@@ -1,65 +1,82 @@
+/* J-Card library — SchWindow grid */
 .jcard-library {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-xl) var(--spacing-xl);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .jcard-library-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-md);
-  border-bottom: 3px solid var(--color-text);
 }
 
 .jcard-library-title {
   font-family: var(--font-display);
   font-size: 28px;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-mustard);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 4px 16px 2px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.jcard-library-empty {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+  opacity: 0.6;
+  padding: 32px 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 /* ── Card grid ── */
 .jcard-library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--spacing-md);
+  gap: 14px;
 }
 
+/* Each card = SchWindow */
 .jcard-card {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 12px;
   background: var(--color-white);
   border: 2px solid var(--color-text);
-  border-radius: 8px;
-  padding: var(--spacing-md);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
   position: relative;
-  box-shadow: 3px 3px 0 var(--color-text);
+  transition: transform 0.06s, box-shadow 0.06s;
 }
 
 .jcard-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 5px 5px 0 var(--color-text);
-  border-color: var(--color-primary);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .jcard-card:active {
-  transform: translateY(0);
-  box-shadow: 2px 2px 0 var(--color-text);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
+/* Color swatch */
 .jcard-card-swatch {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
-  border: 2px solid var(--color-text);
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  box-shadow: 2px 2px 0 var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
 }
 
 .jcard-card-info {
@@ -69,11 +86,10 @@
 
 .jcard-card-name {
   font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: bold;
+  font-size: 17px;
   color: var(--color-text);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -81,16 +97,22 @@
 
 .jcard-card-meta {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-light);
   margin-top: 3px;
 }
 
 .jcard-card-delete {
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.12s;
   flex-shrink: 0;
-  font-size: 20px;
+  font-size: 18px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .jcard-card:hover .jcard-card-delete {

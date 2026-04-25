@@ -1,0 +1,662 @@
+/* ── J-Card Designer ── */
+.jcard-designer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-seafoam);
+  overflow: hidden;
+}
+
+/* Header */
+.jcard-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
+  font-family: var(--font-display);
+  flex-shrink: 0;
+}
+
+.jcard-back-btn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.jcard-back-btn:hover {
+  background: var(--color-seafoam);
+}
+
+.jcard-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jcard-header-label {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.jcard-header-mixtape {
+  font-size: 14px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.jcard-header-actions {
+  margin-left: auto;
+}
+
+/* Main Content */
+.jcard-content {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.jcard-canvas-container {
+  flex: 2;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  min-width: 0;
+}
+
+.jcard-editor-container {
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+  overflow-y: auto;
+}
+
+/* Canvas Preview */
+.jcard-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.jcard-preview-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--color-text);
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* Add CSS custom properties for aspect ratios */
+:root {
+  --aspect-backCard: 25.4 / 102;
+  --aspect-backCardShort: 10 / 102;
+  --aspect-spine: 12.7 / 102;
+  --aspect-flap-1: 65 / 102;
+  --aspect-flap-2: 63.5 / 102;
+  --aspect-flap-3: 61.5 / 102;
+  --aspect-flap-4: 61.5 / 102;
+  --aspect-flap-5: 62 / 102;
+  --aspect-flap-6: 63.5 / 102;
+}
+
+.jcard-preview {
+  background: white;
+  border: 2px solid var(--color-text);
+  /* Remove rounded corners for print accuracy */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  /* Use fixed height and let aspect ratios control widths */
+  height: 400px;
+}
+
+/* Add dashed dividers between panels */
+.jcard-preview > *:not(:last-child) {
+  border-right: 1px dashed #999;
+}
+
+.jcard-panel {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Flap 1 - Front Panel */
+.jcard-flap1 {
+  aspect-ratio: var(--aspect-flap-1);
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 5px;
+}
+
+.jcard-front-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Spine Panel */
+.jcard-spine {
+  aspect-ratio: var(--aspect-spine);
+  position: relative;
+  padding: 5px;
+  overflow: hidden;
+}
+
+.jcard-spine-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+}
+
+.jcard-spine-title {
+  font-family: var(--font-display);
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Short Back Panel */
+.jcard-back-short {
+  aspect-ratio: var(--aspect-backCardShort);
+  position: relative;
+  padding: 5px;
+  overflow: hidden;
+}
+
+.jcard-back-short-content {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  align-items: center;
+  text-align: center;
+}
+
+.jcard-duration-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+}
+
+.jcard-side-duration {
+  font-size: 0.7em;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.jcard-tracks-count {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  font-size: 0.6em;
+  opacity: 0.7;
+  align-items: center;
+}
+
+/* Normal Back Panel */
+.jcard-back-normal {
+  aspect-ratio: var(--aspect-backCard);
+  position: relative;
+  padding: 5px;
+  overflow: hidden;
+}
+
+.jcard-back-normal-content {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
+  width: 38em; /* Approximate height becomes width when rotated - scales with font */
+  height: 10em; /* Approximate width becomes height when rotated - scales with font */
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  padding: 0.5em;
+  overflow: hidden;
+}
+
+.jcard-back-side {
+  flex: 1;
+  min-height: 0;
+}
+
+.jcard-back-side-header {
+  font-family: var(--font-display);
+  font-size: 0.8em;
+  font-weight: 600;
+  margin-bottom: 0.4em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid currentColor;
+}
+
+.jcard-back-tracklist {
+  overflow: hidden;
+  text-align: left;
+  line-height: 1.3;
+}
+
+/* Remove old grid-based track styles - now using inline format */
+
+.jcard-back-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.6em;
+  padding-top: 0.4em;
+  border-top: 1px solid currentColor;
+  opacity: 0.6;
+}
+
+.jcard-back-created {
+  font-size: 0.5em;
+}
+
+.jcard-back-logo {
+  font-family: var(--font-display);
+  font-size: 0.6em;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Inline Track Style */
+.jcard-back-track-inline {
+  font-size: 0.6em;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+/* Front Panel Content */
+.jcard-title {
+  font-family: var(--font-display);
+  font-size: 1.6em;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jcard-dedication {
+  font-size: 1em;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.jcard-cassette-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.8em;
+  border: 1px solid currentColor;
+  border-radius: 0.4em;
+  margin-top: auto;
+}
+
+.jcard-length {
+  font-family: var(--font-display);
+  font-size: 1.8em;
+  font-weight: 700;
+}
+
+.jcard-brand {
+  font-family: var(--font-display);
+  font-size: 0.8em;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+
+/* Remove old back panel styles - now using simplified short back panel */
+
+/* Guidelines */
+.jcard-guidelines {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.jcard-guideline-text {
+  font-size: 12px;
+  color: var(--color-text);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Editor Panel */
+.jcard-editor {
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: fit-content;
+}
+
+.jcard-editor-header {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-text);
+}
+
+.jcard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jcard-section-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Templates */
+.jcard-template-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jcard-template-card {
+  padding: 12px;
+  border: 1px solid var(--color-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--color-seafoam);
+}
+
+.jcard-template-card:hover {
+  background: var(--color-paper);
+}
+
+.jcard-template-card.active {
+  background: var(--color-text);
+  color: var(--color-paper);
+}
+
+.jcard-template-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.jcard-template-desc {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Color Controls */
+.jcard-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jcard-color-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  flex: 1;
+  min-width: 0;
+}
+
+.jcard-color-preset:hover {
+  background: var(--color-seafoam);
+}
+
+.jcard-color-preview {
+  position: relative;
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--color-text);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.jcard-color-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.jcard-color-accent {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 8px;
+}
+
+.jcard-color-name {
+  font-size: 10px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.jcard-color-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.jcard-color-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.jcard-color-control label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.jcard-color-control input[type="color"] {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--color-text);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Typography */
+.jcard-font-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jcard-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jcard-control label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.jcard-control select {
+  padding: 6px;
+  border: 1px solid var(--color-text);
+  border-radius: 4px;
+  background: var(--color-paper);
+  font-family: var(--font-body);
+}
+
+/* Options */
+.jcard-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jcard-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.jcard-checkbox input[type="checkbox"] {
+  margin: 0;
+}
+
+/* Zoom Controls */
+.jcard-zoom-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jcard-zoom-control label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.jcard-zoom-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  outline: none;
+  cursor: pointer;
+}
+
+.jcard-zoom-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+}
+
+.jcard-zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+  border: none;
+}
+
+.jcard-zoom-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.jcard-zoom-presets button {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--color-text);
+  background: var(--color-seafoam);
+  color: var(--color-text);
+  font-size: 10px;
+  font-family: var(--font-body);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.jcard-zoom-presets button:hover {
+  background: var(--color-text);
+  color: var(--color-paper);
+}
+
+/* Font Size Controls */
+.jcard-font-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #ddd;
+  outline: none;
+  cursor: pointer;
+}
+
+.jcard-font-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+}
+
+.jcard-font-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+  border: none;
+}
+
+.jcard-font-presets {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.jcard-font-presets button {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--color-text);
+  background: var(--color-seafoam);
+  color: var(--color-text);
+  font-size: 10px;
+  font-family: var(--font-body);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.jcard-font-presets button:hover {
+  background: var(--color-text);
+  color: var(--color-paper);
+}

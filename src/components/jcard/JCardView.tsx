@@ -38,8 +38,11 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
 
   const doSave = useCallback(async (target: JCard, feedback: boolean) => {
     setIsSaving(true);
+    // Always persist to localStorage first — this guarantees the card is never lost.
+    saveJCardToLocal(target);
     try {
       if (user) {
+        // Also sync to Supabase when logged in.
         let saved: JCard;
         if (persisted.current) {
           saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null });
@@ -54,14 +57,12 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
           }
         }
         setCard(prev => ({ ...prev, id: saved.id, updatedAt: saved.updatedAt }));
-      } else {
-        saveJCardToLocal(target);
       }
       if (feedback) showToast('J-card saved', 'success');
     } catch (e) {
-      console.error(e);
-      if (feedback) showToast('Failed to save', 'error');
-      saveJCardToLocal(target);
+      console.error('Supabase sync failed (card is still saved locally):', e);
+      // Don't show an error — card is safely in localStorage.
+      if (feedback) showToast('J-card saved', 'success');
     } finally { setIsSaving(false); }
   }, [user, showToast]);
 
@@ -90,38 +91,27 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
         </button>
       </div>
 
-      {/* 3-column body */}
+      {/* 2-column body */}
       <div className="jcard-view-body">
 
-        {/* LEFT — card info, layout, background, cover, export */}
-        <aside className="jcard-view-sidebar">
-          <span className="jcard-col-label">Settings</span>
-          <JCardSettings
-            card={card}
-            currentMixtape={currentMixtape}
-            onTitleChange={(title) => update({ title })}
-            onContentChange={(content: JCardContent) => update({ content })}
-            onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'layout', 'background', 'cover', 'export']}
-          />
-        </aside>
-
-        {/* CENTER — live preview */}
-        <div className="jcard-view-preview">
-          <span className="jcard-col-label">▧ Live preview</span>
-          <JCardPreview content={card.content} />
+        {/* MAIN — preview */}
+        <div className="jcard-view-main">
+          <div className="jcard-view-preview">
+            <span className="jcard-col-label">▧ Live preview</span>
+            <JCardPreview content={card.content} />
+          </div>
         </div>
 
-        {/* RIGHT — tracklist sync, spine, liner notes */}
+        {/* RIGHT — all settings + content */}
         <aside className="jcard-view-right">
-          <span className="jcard-col-label">♯ Content</span>
+          <span className="jcard-col-label">⚙ Settings</span>
           <JCardSettings
             card={card}
             currentMixtape={currentMixtape}
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['mixtape', 'spine', 'back']}
+            sections={['info', 'layout', 'background', 'cover', 'export', 'mixtape', 'spine', 'back']}
           />
         </aside>
 

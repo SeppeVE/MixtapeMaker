@@ -1,265 +1,148 @@
-import { PDFDocument, PDFFont, StandardFonts, rgb, degrees, PDFPage } from 'pdf-lib';
+import React from 'react';
+import { createRoot, Root } from 'react-dom/client';
+import { PDFDocument } from 'pdf-lib';
+import { toPng } from 'html-to-image';
 import { JCardContent } from '../types';
-import { JCARD_HEIGHT_MM, BACK_FULL_MM, BACK_SHORT_MM, SPINE_MM, FLAPS_MM, computeWidthMm } from '../components/jcard/dimensions';
+import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
+import JCardPrintable from '../components/jcard/JCardPrintable';
 
-// ─── Units ───────────────────────────────────────────────────────────────────
-// pdf-lib uses PDF points (72 pt = 1 inch).
-// Page origin is BOTTOM-LEFT; y increases UPWARD.
-// CSS rotate(90deg) = CW = pdf-lib degrees(-90).
+// PDF points: 72 pt = 1 inch, 1 mm = 72 / 25.4 pt
+const MM_TO_PT = 72 / 25.4;
+// CSS px: 96 dpi reference, 1 mm = 96 / 25.4 px
+const MM_TO_PX = 96 / 25.4;
 
-const MM = 72 / 25.4; // points per mm
+// How many output pixels per CSS pixel when snapshotting. Higher = sharper
+// PDF but larger file. 4 ≈ 384 dpi at 96 css-dpi, more than enough for print.
+const SNAPSHOT_PIXEL_RATIO = 4;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function hexToRgb(hex: string) {
-  const c    = hex.replace('#', '');
-  const full = c.length === 3 ? c.split('').map(x => x + x).join('') : c;
-  const n    = parseInt(full, 16);
-  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '• ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-async function embedImg(pdf: PDFDocument, url: string) {
-  try {
-    const buf   = await (await fetch(url)).arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    try {
-      return (url.match(/\.jpe?g/i) || url.startsWith('data:image/jpeg'))
-        ? await pdf.embedJpg(bytes)
-        : await pdf.embedPng(bytes);
-    } catch {
-      try { return await pdf.embedJpg(bytes); } catch { return await pdf.embedPng(bytes); }
-    }
-  } catch { return null; }
-}
-
-async function drawImg(
-  pdf: PDFDocument, page: PDFPage,
-  url: string, xMm: number, yMm: number, wMm: number, hMm: number,
-) {
-  const img = await embedImg(pdf, url);
-  if (!img) return;
-  const d     = img.scale(1);
-  const scale = Math.max(wMm * MM / d.width, hMm * MM / d.height);
-  const iw    = d.width * scale;
-  const ih    = d.height * scale;
-  page.drawImage(img, {
-    x:      xMm * MM + (wMm * MM - iw) / 2,
-    y:      yMm * MM + (hMm * MM - ih) / 2,
-    width:  iw,
-    height: ih,
-  });
-}
-
-// ─── Rotated text helpers ─────────────────────────────────────────────────────
-//
-// The J-card preview uses CSS `rotate(90deg)` which is CW.
-// In pdf-lib (y-up coords), the equivalent is degrees(-90).
-//
-// With degrees(-90):
-//   • The text baseline runs DOWNWARD from the anchor point.
-//   • First character is at (x, y); subsequent characters are at lower y values.
-//   • To place a text block that STARTS at the top of the card:
-//       y_anchor = pageHeight - topMargin
-//   • To place a text block that ENDS at the bottom:
-//       y_anchor = bottomMargin + textWidth
-//   • To centre text at a given y:
-//       y_anchor = targetY + textWidth / 2
-
-function drawRotatedText(
-  page: PDFPage,
-  text: string,
-  font: PDFFont,
-  size: number,
-  x: number,      // page x in pts
-  yAnchor: number, // page y in pts (first-char baseline; text flows down from here)
-  rotDeg: number, // -90 normal, +90 reversed
-) {
-  if (!text.trim()) return;
-  page.drawText(text, {
-    x,
-    y:      yAnchor,
-    font,
-    size,
-    color:  rgb(0, 0, 0),
-    rotate: degrees(rotDeg),
-  });
-}
-
-// Draw a multi-line block of rotated text.
-// Each visual "line" (paragraph) is drawn as a separate drawText call offset in x.
-// In the CW-rotated view, moving LEFT in PDF space = moving DOWN visually.
-// The first line (index 0) is the rightmost column (appears at top in reading order).
-// ─── Export ───────────────────────────────────────────────────────────────────
-
+/**
+ * Mount `JCardPrintable` into a hidden, exact-size DOM node, snapshot it
+ * with html-to-image at high DPI, and embed the PNG in a one-page PDF
+ * sized to the j-card's real-world dimensions.
+ *
+ * This replaces the previous hand-rolled pdf-lib drawing code: whatever
+ * the on-screen designer renders is what ends up in the PDF, with no
+ * parallel layout engine to keep in sync.
+ */
 export async function exportJCardToPDF(content: JCardContent, filename = 'jcard') {
-  const pdf  = await PDFDocument.create();
-  const H    = JCARD_HEIGHT_MM;         // mm
-  const W    = computeWidthMm(content); // mm
-  const page = pdf.addPage([W * MM, H * MM]);
+  const widthMm  = computeWidthMm(content);
+  const heightMm = JCARD_HEIGHT_MM;
+  const widthPx  = widthMm  * MM_TO_PX;
+  const heightPx = heightMm * MM_TO_PX;
 
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const reg  = await pdf.embedFont(StandardFonts.Helvetica);
-  const { r, g, b } = hexToRgb(content.backgroundColor);
+  // Off-screen host. Positioned far off the viewport so it never flashes
+  // or steals focus. Sized to the exact CSS-mm footprint of the card.
+  const host = document.createElement('div');
+  host.style.cssText = [
+    'position: fixed',
+    'left: -100000px',
+    'top: 0',
+    'pointer-events: none',
+    `width: ${widthMm}mm`,
+    `height: ${heightMm}mm`,
+    'background: transparent',
+    // make sure browser print/zoom features don't mess with the layout
+    'zoom: 1',
+    'transform: none',
+  ].join(';');
+  document.body.appendChild(host);
 
-  // Font sizes (pt)
-  const FS_BACK  = 5.5;
-  const FS_SPINE = 6.5;
-  const FS_COVER = 7;
-
-  // Line height for back panel multi-line columns
-  const LINE_H = FS_BACK * 1.45;
-
-  // Margins (pt)
-  const MY = 3.5 * MM; // vertical margin from card top/bottom
-  const MX = 1.2 * MM; // horizontal margin from column edges
-
-  // Y anchor for text that STARTS reading at the top of the card
-  const Y_TOP = H * MM - MY;
-
-  // Rotation: CSS rotate(90deg) CW = pdf-lib degrees(-90)
-  const ROT = content.isReversed ? 90 : -90;
-
-  // Build ordered parts
-  interface Part { type: 'back' | 'spine' | 'flap'; index?: number; wMm: number; }
-  const partsLtr: Part[] = [
-    { type: 'back',  wMm: content.shortBack ? BACK_SHORT_MM : BACK_FULL_MM },
-    { type: 'spine', wMm: SPINE_MM },
-    ...Array.from({ length: content.flaps }, (_, i) =>
-      ({ type: 'flap' as const, index: i, wMm: FLAPS_MM[i] })),
-  ];
-  const parts = content.isReversed ? [...partsLtr].reverse() : partsLtr;
-
-  let cxPt = 0; // current x cursor in pts
-
-  for (const part of parts) {
-    const wPt = part.wMm * MM;
-
-    // Fill background
-    page.drawRectangle({ x: cxPt, y: 0, width: wPt, height: H * MM, color: rgb(r, g, b) });
-    if (content.backgroundImageUrl) {
-      await drawImg(pdf, page, content.backgroundImageUrl, cxPt / MM, 0, part.wMm, H);
-    }
-
-    // ── Back panel ──────────────────────────────────────────────────────────
-    if (part.type === 'back') {
-      const rawA = content.isReversed ? content.backRightContent : content.backLeftContent;
-      const rawB = content.isReversed ? content.backLeftContent  : content.backRightContent;
-      const linesA = stripHtml(rawA).split('\n').filter(l => l.trim());
-      const linesB = stripHtml(rawB).split('\n').filter(l => l.trim());
-
-      // Right half of back panel → Side A
-      // Line[0] is rightmost (x = right edge − MX), each subsequent line is further left.
-      // Clamp so lines don't cross into the left half.
-      const rightEdge = cxPt + wPt - MX;
-      const halfEdge  = cxPt + wPt / 2;
-      linesA.forEach((line, i) => {
-        const x = rightEdge - i * LINE_H;
-        if (x < halfEdge) return; // overflow guard
-        drawRotatedText(page, line, i === 0 ? bold : reg, FS_BACK, x, Y_TOP, ROT);
-      });
-
-      // Left half → Side B
-      const halfRight = cxPt + wPt / 2 - MX;
-      linesB.forEach((line, i) => {
-        const x = halfRight - i * LINE_H;
-        if (x < cxPt) return; // overflow guard
-        drawRotatedText(page, line, i === 0 ? bold : reg, FS_BACK, x, Y_TOP, ROT);
-      });
-
-      // Dashed centre fold line
-      page.drawLine({
-        start:     { x: cxPt + wPt / 2, y: 0 },
-        end:       { x: cxPt + wPt / 2, y: H * MM },
-        thickness: 0.35,
-        color:     rgb(0.75, 0, 0),
-        dashArray: [2, 3],
-        dashPhase: 0,
-      });
-    }
-
-    // ── Spine ────────────────────────────────────────────────────────────────
-    if (part.type === 'spine') {
-      const xSp  = cxPt + wPt / 2; // centre of spine strip
-      const top  = stripHtml(content.spineTopContent).split('\n').filter(Boolean)[0] ?? '';
-      const ctr  = stripHtml(content.spineCenterContent).split('\n').filter(Boolean)[0] ?? '';
-      const bot  = stripHtml(content.spineBottomContent).split('\n').filter(Boolean)[0] ?? '';
-
-      // Top item: anchor near top, text flows downward
-      if (top) drawRotatedText(page, top, bold, FS_SPINE, xSp, Y_TOP, ROT);
-
-      // Centre item: anchor so text is centred at H/2
-      if (ctr) {
-        const tw = reg.widthOfTextAtSize(ctr, FS_SPINE);
-        drawRotatedText(page, ctr, reg, FS_SPINE, xSp, (H / 2) * MM + tw / 2, ROT);
-      }
-
-      // Bottom item: anchor so text ends at bottom margin
-      if (bot) {
-        const tw = reg.widthOfTextAtSize(bot, FS_SPINE);
-        drawRotatedText(page, bot, reg, FS_SPINE, xSp, MY + tw, ROT);
-      }
-    }
-
-    // ── Cover flap (index 0) ─────────────────────────────────────────────────
-    if (part.type === 'flap' && part.index === 0) {
-      if (content.coverImageUrl) {
-        const imgHmm = content.isFullCoverImage ? H : part.wMm;
-        const imgYmm = content.isFullCoverImage ? 0 : H - imgHmm;
-        await drawImg(pdf, page, content.coverImageUrl, cxPt / MM, imgYmm, part.wMm, imgHmm);
-      }
-
-      const txt = stripHtml(content.coverContent);
-      const showText = txt && (!content.isFullCoverImage || content.coverImageBehindContent);
-      if (showText) {
-        const lineH = (FS_COVER + 1) * 1.35;
-        txt.split('\n').slice(0, 10).forEach((line, i) => {
-          if (!line.trim()) return;
-          page.drawText(line.trim(), {
-            x:     cxPt + 2 * MM,
-            y:     H * MM - 4 * MM - i * lineH,
-            font:  i === 0 ? bold : reg,
-            size:  FS_COVER,
-            color: rgb(0, 0, 0),
-          });
-        });
-      }
-    }
-
-    // ── Blank flaps ───────────────────────────────────────────────────────────
-    // (nothing to draw beyond background already filled above)
-
-    // ── Part fold line (right edge of each part except the last) ─────────────
-    page.drawLine({
-      start:     { x: cxPt + wPt, y: 0 },
-      end:       { x: cxPt + wPt, y: H * MM },
-      thickness: 0.35,
-      color:     rgb(0.75, 0, 0),
-      dashArray: [2, 3],
-      dashPhase: 0,
+  let root: Root | null = null;
+  try {
+    // Render the printable card synchronously, then wait one frame so
+    // layout, fonts, and images have a chance to settle before snapshot.
+    root = createRoot(host);
+    await new Promise<void>(resolve => {
+      root!.render(React.createElement(JCardPrintable, { content }));
+      // Two RAFs ≈ "after the next paint", which is enough for layout.
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
 
-    cxPt += wPt;
-  }
+    // Make sure web fonts have loaded — if the user's CSS uses custom
+    // typefaces, html-to-image will otherwise rasterize them as fallback.
+    if ((document as any).fonts?.ready) {
+      try { await (document as any).fonts.ready; } catch { /* ignore */ }
+    }
 
-  const bytes = await pdf.save();
-  const blob  = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-  const url   = URL.createObjectURL(blob);
-  const a     = document.createElement('a');
-  a.href = url;
-  a.download = `${filename.toLowerCase().replace(/\s+/g, '-')}-jcard.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
+    // Make sure any background images have actually finished decoding.
+    await waitForImages(content);
+
+    // The element html-to-image should snapshot is the `.jcard` itself,
+    // not the host (the host has the off-screen positioning).
+    const cardEl = host.firstElementChild as HTMLElement | null;
+    if (!cardEl) throw new Error('JCardPrintable failed to mount');
+
+    const pngDataUrl = await toPng(cardEl, {
+      pixelRatio: SNAPSHOT_PIXEL_RATIO,
+      cacheBust: true,
+      // Force the canvas to the exact CSS size of the card so the
+      // resulting bitmap has predictable mm-aligned dimensions.
+      width:  widthPx,
+      height: heightPx,
+      style: {
+        // html-to-image clones with the live computed styles; clear any
+        // outer transforms so the clone renders at scale=1.
+        transform: 'none',
+        margin: '0',
+      },
+      backgroundColor: content.backgroundColor || '#ffffff',
+    });
+
+    // Build the PDF. Page size is in PDF points = mm × 72/25.4.
+    const pdf  = await PDFDocument.create();
+    const page = pdf.addPage([widthMm * MM_TO_PT, heightMm * MM_TO_PT]);
+    const pngBytes = dataUrlToUint8Array(pngDataUrl);
+    const pngImage = await pdf.embedPng(pngBytes);
+    page.drawImage(pngImage, {
+      x: 0,
+      y: 0,
+      width:  widthMm  * MM_TO_PT,
+      height: heightMm * MM_TO_PT,
+    });
+
+    const bytes = await pdf.save();
+    const blob  = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    a.href      = url;
+    a.download  = `${filename.toLowerCase().replace(/\s+/g, '-')}-jcard.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    // Always clean up — the off-screen host must not leak into the DOM.
+    try { root?.unmount(); } catch { /* ignore */ }
+    if (host.parentNode) host.parentNode.removeChild(host);
+  }
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+  const comma = dataUrl.indexOf(',');
+  const b64   = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const bin   = atob(b64);
+  const out   = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/**
+ * Pre-load each image referenced by the card content. html-to-image will
+ * also fetch them, but pre-loading guarantees they're in the browser cache
+ * (and decoded) by the time we snapshot, and surfaces CORS errors early.
+ */
+function waitForImages(content: JCardContent): Promise<void> {
+  const urls = [content.backgroundImageUrl, content.coverImageUrl].filter(
+    (u): u is string => typeof u === 'string' && u.length > 0,
+  );
+  if (urls.length === 0) return Promise.resolve();
+
+  return Promise.all(urls.map(url => new Promise<void>(resolve => {
+    const img = new Image();
+    // Allow tainted-canvas-free reuse in html-to-image when the host serves CORS.
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve();
+    img.onerror = () => resolve(); // don't block export on a bad image URL
+    img.src = url;
+  }))).then(() => undefined);
 }

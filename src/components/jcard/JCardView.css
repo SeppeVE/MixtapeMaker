@@ -32,38 +32,35 @@
   margin: 0;
 }
 
-/* 3-column body */
+/* 2-column body */
 .jcard-view-body {
   display: grid;
-  grid-template-columns: 300px 1fr 270px;
+  grid-template-columns: 1fr 500px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Left: settings */
-.jcard-view-sidebar {
-  border-right: 2px solid var(--color-text);
-  overflow-y: auto;
-  padding: 14px 12px;
+/* Main: preview + front panel stacked */
+.jcard-view-main {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: var(--color-paper);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-text) transparent;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* Center: preview */
+/* Top: live preview */
 .jcard-view-preview {
+  flex: 1;
   overflow: auto;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
 }
 
-/* Right: tracklist / liner notes */
+/* Right: all settings + content */
 .jcard-view-right {
   border-left: 2px solid var(--color-text);
   overflow-y: auto;

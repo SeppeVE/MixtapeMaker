@@ -41,6 +41,24 @@
 }
 
 /* =====================================================
+   Printable variant — used by the PDF export pipeline.
+   Strips screen-only chrome (outer border + offset shadow)
+   so the snapshot is the actual card surface.
+   ===================================================== */
+.jcard.jcard-printable {
+  border: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.jcard.jcard-printable .jcard-part {
+  /* Hide cut-line dashes in the export — they aren't part of the
+     printed card. (Re-enable here if you ever want crop marks.) */
+  border-right: none;
+  border-left: none;
+}
+
+/* =====================================================
    Parts — no individual border; use a subtle separator
    ===================================================== */
 .jcard-part {

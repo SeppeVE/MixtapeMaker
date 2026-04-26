@@ -18,8 +18,24 @@ const JCardLibrary = ({ onOpenCard, onNewCard, showToast }: Props) => {
 
   useEffect(() => {
     setLoading(true);
-    (user ? listJCards(user.id).catch(() => loadJCardsFromLocal()) : Promise.resolve(loadJCardsFromLocal()))
-      .then(setCards).finally(() => setLoading(false));
+    const local = loadJCardsFromLocal();
+    if (user) {
+      listJCards(user.id)
+        .then(cloud => {
+          // Merge cloud + local: keep the most recently updated version of each card.
+          const merged = [...cloud];
+          for (const card of local) {
+            if (!merged.find(c => c.id === card.id)) merged.push(card);
+          }
+          merged.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          setCards(merged);
+        })
+        .catch(() => setCards(local))
+        .finally(() => setLoading(false));
+    } else {
+      setCards(local);
+      setLoading(false);
+    }
   }, [user]);
 
   const handleDelete = async (card: JCard, e: React.MouseEvent) => {

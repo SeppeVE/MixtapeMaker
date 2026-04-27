@@ -54,8 +54,9 @@
   box-shadow: none;
 }
 
+.ce-bold      { font-weight: bold; }
 .ce-italic    { font-style: italic; }
-.ce-underline { text-decoration: underline; }
+.ce-ul        { text-decoration: underline; }
 
 .ce-sep {
   display: inline-block;
@@ -151,6 +152,13 @@
   opacity: 0.4;
   pointer-events: none;
 }
+
+/* Explicit weight/style rules so macOS renders them even on single-variant fonts */
+.ce-area strong,
+.ce-area b                { font-weight: bold; font-synthesis: weight; }
+.ce-area em,
+.ce-area i                { font-style: italic; font-synthesis: style; }
+.ce-area u                { text-decoration: underline; }
 
 .ce-area p                { margin: 0 0 2px; }
 .ce-area h1,

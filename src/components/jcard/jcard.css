@@ -52,11 +52,28 @@
 }
 
 .jcard.jcard-printable .jcard-part {
-  /* Hide cut-line dashes in the export — they aren't part of the
-     printed card. (Re-enable here if you ever want crop marks.) */
+  /* Hide cut-line dashes by default — re-enabled via .show-guides */
   border-right: none;
   border-left: none;
 }
+
+/* =====================================================
+   Cut / fold guides — only shown when showCutGuides=true
+   ===================================================== */
+.jcard.jcard-printable.show-guides .jcard-part {
+  border-right: 1px dashed rgba(180, 0, 0, 0.4);
+}
+.jcard.jcard-printable.show-guides .jcard-part:last-child {
+  border-right: none;
+}
+.jcard.jcard-printable.show-guides.reversed .jcard-part {
+  border-right: none;
+  border-left: 1px dashed rgba(180, 0, 0, 0.4);
+}
+.jcard.jcard-printable.show-guides.reversed .jcard-part:last-child {
+  border-left: none;
+}
+
 
 /* =====================================================
    Parts — no individual border; use a subtle separator

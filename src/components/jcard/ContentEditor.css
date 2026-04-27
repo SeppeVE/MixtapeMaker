@@ -144,6 +144,10 @@
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-white);
+  /* Allow the browser to synthesize bold/italic even for fonts that lack
+     those variants (e.g. Geneva on macOS has no bold face). Without this,
+     bold appears identical to normal on macOS WebKit. */
+  font-synthesis: weight style;
 }
 
 .ce-area:empty::before {

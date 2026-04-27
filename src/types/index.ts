@@ -46,15 +46,22 @@ export interface JCardContent {
   shortBack: boolean;
   backgroundColor: string;
   backgroundImageUrl?: string;
+  /** When true a single background image/color spans the whole card instead of repeating per-panel */
+  continuousBackground?: boolean;
   coverImageUrl?: string;
   coverImageBehindContent: boolean;
   isFullCoverImage: boolean;
-  coverContent: string;
+  /** @deprecated migrated to flapContents[0] — kept for backward-compat with existing saved cards */
+  coverContent?: string;
+  /** HTML content for each flap (index 0 = cover/front flap). Always length 6. */
+  flapContents: string[];
   spineTopContent: string;
   spineCenterContent: string;
   spineBottomContent: string;
   backLeftContent: string;
   backRightContent: string;
+  /** Show dashed fold/cut guides on the printable export */
+  showCutGuides?: boolean;
 }
 
 export interface JCard {

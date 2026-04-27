@@ -15,6 +15,9 @@ const MM_TO_PX = 96 / 25.4;
 // PDF but larger file. 4 ≈ 384 dpi at 96 css-dpi, more than enough for print.
 const SNAPSHOT_PIXEL_RATIO = 4;
 
+// White margin added around the card on the printed page (mm).
+const MARGIN_MM = 6;
+
 /**
  * Mount `JCardPrintable` into a hidden, exact-size DOM node, snapshot it
  * with html-to-image at high DPI, and embed the PNG in a one-page PDF
@@ -88,14 +91,18 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       backgroundColor: content.backgroundColor || '#ffffff',
     });
 
-    // Build the PDF. Page size is in PDF points = mm × 72/25.4.
+    // Build the PDF. Page size includes margin on all four sides.
+    // pdf-lib uses bottom-left origin, so y=MARGIN_MM places the card
+    // MARGIN_MM above the bottom of the page.
+    const pageW = (widthMm  + 2 * MARGIN_MM) * MM_TO_PT;
+    const pageH = (heightMm + 2 * MARGIN_MM) * MM_TO_PT;
     const pdf  = await PDFDocument.create();
-    const page = pdf.addPage([widthMm * MM_TO_PT, heightMm * MM_TO_PT]);
+    const page = pdf.addPage([pageW, pageH]);
     const pngBytes = dataUrlToUint8Array(pngDataUrl);
     const pngImage = await pdf.embedPng(pngBytes);
     page.drawImage(pngImage, {
-      x: 0,
-      y: 0,
+      x: MARGIN_MM * MM_TO_PT,
+      y: MARGIN_MM * MM_TO_PT,
       width:  widthMm  * MM_TO_PT,
       height: heightMm * MM_TO_PT,
     });

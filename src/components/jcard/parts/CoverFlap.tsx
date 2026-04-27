@@ -4,8 +4,12 @@ interface Props { content: JCardContent; sanitizedCover: string; }
 
 const CoverFlap = ({ content, sanitizedCover }: Props) => {
   const bg: React.CSSProperties = {
-    backgroundColor: content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
-    backgroundImage: content.backgroundImageUrl ? `url(${content.backgroundImageUrl})` : undefined,
+    backgroundColor: content.continuousBackground
+      ? 'transparent'
+      : content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
+    backgroundImage: !content.continuousBackground && content.backgroundImageUrl
+      ? `url(${content.backgroundImageUrl})`
+      : undefined,
     backgroundSize: 'cover', backgroundPosition: 'center',
     width: '100%', height: '100%', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
   };

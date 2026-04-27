@@ -111,7 +111,7 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'layout', 'background', 'cover', 'export', 'mixtape', 'spine', 'back']}
+            sections={['info', 'layout', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']}
           />
         </aside>
 

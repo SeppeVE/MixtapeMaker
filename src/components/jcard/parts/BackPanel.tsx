@@ -5,8 +5,12 @@ interface Props { content: JCardContent; sanitizedLeft: string; sanitizedRight: 
 const BackPanel = ({ content, sanitizedLeft, sanitizedRight }: Props) => {
   const rot = content.isReversed ? 'rotate(-90deg)' : 'rotate(90deg)';
   const bg: React.CSSProperties = {
-    backgroundColor: content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
-    backgroundImage: content.backgroundImageUrl ? `url(${content.backgroundImageUrl})` : undefined,
+    backgroundColor: content.continuousBackground
+      ? 'transparent'
+      : content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
+    backgroundImage: !content.continuousBackground && content.backgroundImageUrl
+      ? `url(${content.backgroundImageUrl})`
+      : undefined,
     backgroundSize: 'cover', backgroundPosition: 'center',
     width: '100%', height: '100%', position: 'relative', overflow: 'hidden',
   };

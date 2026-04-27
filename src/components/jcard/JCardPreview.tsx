@@ -2,10 +2,11 @@ import { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { JCardContent } from '../../types';
 import { FLAPS_MM, BACK_FULL_MM, BACK_SHORT_MM, SPINE_MM } from './dimensions';
+import { migrateJCardContent } from '../../utils/jcardDefaults';
 import BackPanel from './parts/BackPanel';
 import Spine from './parts/Spine';
 import CoverFlap from './parts/CoverFlap';
-import BlankFlap from './parts/BlankFlap';
+import ContentFlap from './parts/ContentFlap';
 import './jcard.css';
 import './JCardPreview.css';
 
@@ -24,10 +25,11 @@ const FLAP_WIDTHS = ['65mm','63.5mm','61.5mm','61.5mm','62mm','63.5mm'];
 
 interface Props { content: JCardContent; }
 
-const JCardPreview = ({ content }: Props) => {
-  const wrapperRef   = useRef<HTMLDivElement>(null);
-  const [scale, setScale]       = useState(1);
-  const [actual, setActual]     = useState(false);
+const JCardPreview = ({ content: rawContent }: Props) => {
+  const content = migrateJCardContent(rawContent);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [actual, setActual] = useState(false);
 
   const totalWidthMm =
     (content.shortBack ? BACK_SHORT_MM : BACK_FULL_MM) +
@@ -38,7 +40,7 @@ const JCardPreview = ({ content }: Props) => {
     const el = wrapperRef.current;
     if (!el || actual) return;
     const compute = () => {
-      const px = el.offsetWidth - 48; // subtract padding
+      const px = el.offsetWidth - 48;
       const natural = totalWidthMm * (96 / 25.4);
       setScale(Math.min(px / natural, 1));
     };
@@ -48,17 +50,35 @@ const JCardPreview = ({ content }: Props) => {
     return () => obs.disconnect();
   }, [totalWidthMm, actual]);
 
-  const [s, setS] = useState({ cover: '', spineTop: '', spineMid: '', spineBot: '', backLeft: '', backRight: '' });
+  const [s, setS] = useState({
+    flaps: Array(6).fill('') as string[],
+    spineTop: '', spineMid: '', spineBot: '', backLeft: '', backRight: '',
+  });
+
   useEffect(() => {
     setS({
-      cover:    san(content.coverContent),
+      flaps: content.flapContents.map(san),
       spineTop: san(content.spineTopContent),
       spineMid: san(content.spineCenterContent),
       spineBot: san(content.spineBottomContent),
       backLeft: san(content.backLeftContent),
-      backRight:san(content.backRightContent),
+      backRight: san(content.backRightContent),
     });
-  }, [content.coverContent, content.spineTopContent, content.spineCenterContent, content.spineBottomContent, content.backLeftContent, content.backRightContent]);
+  }, [
+    // join so deps are stable primitives
+    content.flapContents.join('||'),
+    content.spineTopContent, content.spineCenterContent, content.spineBottomContent,
+    content.backLeftContent, content.backRightContent,
+  ]);
+
+  const continuousBgStyle: React.CSSProperties | undefined = content.continuousBackground
+    ? {
+        position: 'absolute', inset: 0, zIndex: 0,
+        backgroundColor: content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
+        backgroundImage: content.backgroundImageUrl ? `url(${content.backgroundImageUrl})` : undefined,
+        backgroundSize: 'cover', backgroundPosition: 'center',
+      }
+    : undefined;
 
   return (
     <div className="jcard-preview-root">
@@ -79,17 +99,18 @@ const JCardPreview = ({ content }: Props) => {
           className={`jcard${content.isReversed ? ' reversed' : ''}`}
           style={{ transform: actual ? 'none' : `scale(${scale})`, transformOrigin: 'top left' }}
         >
-          <div className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`}>
+          {content.continuousBackground && <div style={continuousBgStyle} />}
+          <div className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`} style={{ position: 'relative', zIndex: 1 }}>
             <BackPanel content={content} sanitizedLeft={s.backLeft} sanitizedRight={s.backRight} />
           </div>
-          <div className="jcard-part jcard-spine">
+          <div className="jcard-part jcard-spine" style={{ position: 'relative', zIndex: 1 }}>
             <Spine content={content} sanitizedTop={s.spineTop} sanitizedCenter={s.spineMid} sanitizedBottom={s.spineBot} />
           </div>
           {Array.from({ length: content.flaps }, (_, i) => (
-            <div key={i} className="jcard-part" style={{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+            <div key={i} className="jcard-part" style={{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
               {i === 0
-                ? <CoverFlap content={content} sanitizedCover={s.cover} />
-                : <BlankFlap content={content} flapNumber={i + 1} />}
+                ? <CoverFlap content={content} sanitizedCover={s.flaps[0]} />
+                : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapNumber={i + 1} />}
             </div>
           ))}
         </div>

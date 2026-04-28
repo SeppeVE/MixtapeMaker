@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import { toPng } from 'html-to-image';
 import { JCardContent } from '../types';
 import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
@@ -16,7 +16,13 @@ const MM_TO_PX = 96 / 25.4;
 const SNAPSHOT_PIXEL_RATIO = 4;
 
 // White margin added around the card on the printed page (mm).
-const MARGIN_MM = 6;
+const MARGIN_MM = 10;
+
+// Crop mark settings (mm). The gap keeps the mark off the card edge;
+// the arm length is how long each tick line extends outward.
+const CROP_GAP_MM  = 1.5;
+const CROP_LEN_MM  = 5;
+const CROP_WIDTH_PT = 0.5; // line thickness in PDF points
 
 /**
  * Mount `JCardPrintable` into a hidden, exact-size DOM node, snapshot it
@@ -106,6 +112,38 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       width:  widthMm  * MM_TO_PT,
       height: heightMm * MM_TO_PT,
     });
+
+    // ── Crop marks ────────────────────────────────────────────────────────
+    // pdf-lib uses bottom-left origin. Convert all measurements to points.
+    const mPt   = MARGIN_MM  * MM_TO_PT;   // margin in pt
+    const wPt   = widthMm    * MM_TO_PT;   // card width in pt
+    const hPt   = heightMm   * MM_TO_PT;   // card height in pt
+    const gPt   = CROP_GAP_MM * MM_TO_PT;  // gap from card edge
+    const lPt   = CROP_LEN_MM * MM_TO_PT;  // arm length
+    const markColor = rgb(0, 0, 0);
+    const lineOpts = { thickness: CROP_WIDTH_PT, color: markColor };
+
+    // Helper: card edges in PDF coordinates
+    const left   = mPt;
+    const right  = mPt + wPt;
+    const bottom = mPt;
+    const top    = mPt + hPt;
+
+    // Bottom-left
+    page.drawLine({ start: { x: left - gPt - lPt, y: bottom }, end: { x: left - gPt, y: bottom }, ...lineOpts });
+    page.drawLine({ start: { x: left, y: bottom - gPt - lPt }, end: { x: left, y: bottom - gPt }, ...lineOpts });
+
+    // Bottom-right
+    page.drawLine({ start: { x: right + gPt, y: bottom }, end: { x: right + gPt + lPt, y: bottom }, ...lineOpts });
+    page.drawLine({ start: { x: right, y: bottom - gPt - lPt }, end: { x: right, y: bottom - gPt }, ...lineOpts });
+
+    // Top-left
+    page.drawLine({ start: { x: left - gPt - lPt, y: top }, end: { x: left - gPt, y: top }, ...lineOpts });
+    page.drawLine({ start: { x: left, y: top + gPt }, end: { x: left, y: top + gPt + lPt }, ...lineOpts });
+
+    // Top-right
+    page.drawLine({ start: { x: right + gPt, y: top }, end: { x: right + gPt + lPt, y: top }, ...lineOpts });
+    page.drawLine({ start: { x: right, y: top + gPt }, end: { x: right, y: top + gPt + lPt }, ...lineOpts });
 
     const bytes = await pdf.save();
     const blob  = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });

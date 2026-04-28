@@ -152,6 +152,7 @@ function App() {
           onLoadMixtape={handleLoadMixtape}
           onOpenLibrary={() => setIsLibraryOpen(true)}
           onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenJCards={() => setView('cards')}
         />
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         <Library isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} onLoadMixtape={handleLoadMixtape} />

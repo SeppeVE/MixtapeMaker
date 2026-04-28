@@ -6,7 +6,7 @@ import ContentEditor from './ContentEditor';
 import MixtapeLinkPicker from './MixtapeLinkPicker';
 import ImageUpload from './ImageUpload';
 import { exportJCardToPDF } from '../../utils/jcardPdf';
-import './JCardSettings.css';
+import '../../styles/jcard/JCardSettings.css';
 
 export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'spine' | 'back' | 'mixtape' | 'export';
 

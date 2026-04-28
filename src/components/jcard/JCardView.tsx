@@ -7,7 +7,7 @@ import { createJCard, updateJCard, loadJCard } from '../../utils/jcardDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import JCardPreview from './JCardPreview';
 import JCardSettings from './JCardSettings';
-import './JCardView.css';
+import '../../styles/jcard/JCardView.css';
 
 interface Props {
   initialCard: JCard | null;

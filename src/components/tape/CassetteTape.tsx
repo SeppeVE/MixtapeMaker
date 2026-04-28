@@ -1,6 +1,6 @@
-import { Mixtape, Side, Song, CassetteLength } from '../types';
+import { Mixtape, Side, Song, CassetteLength } from '../../types';
 import TapeSide from './TapeSide';
-import '../../assets/styles/CassetteTape.css';
+import '../../styles/CassetteTape.css';
 
 interface CassetteTapeProps {
   mixtape: Mixtape;

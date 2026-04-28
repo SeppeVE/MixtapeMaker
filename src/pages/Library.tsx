@@ -3,7 +3,7 @@ import { Mixtape } from '../types';
 import { loadMixtapes, deleteMixtape } from '../utils/database';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDuration } from '../utils/timeUtils';
-import '../../assets/styles/Library.css';
+import '../styles/Library.css';
 
 interface LibraryProps {
   isOpen: boolean;

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Song, Side } from '../types';
+import { Song, Side } from '../../types';
 import {
   formatTime,
   calculateTotalDuration,
-} from '../utils/timeUtils';
-import '../../assets/styles/TapeSide.css';
+} from '../../utils/timeUtils';
+import '../../styles/TapeSide.css';
 
 interface TapeSideProps {
   side: Side;

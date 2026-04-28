@@ -3,7 +3,7 @@ import { JCard } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { listJCards, deleteJCard } from '../utils/jcardDatabase';
 import { loadJCardsFromLocal, deleteJCardFromLocal } from '../utils/localStorage';
-import './JCardLibrary.css';
+import '../styles/JCardLibrary.css';
 
 interface Props {
   onOpenCard: (card: JCard) => void;

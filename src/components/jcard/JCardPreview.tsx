@@ -7,8 +7,8 @@ import BackPanel from './parts/BackPanel';
 import Spine from './parts/Spine';
 import CoverFlap from './parts/CoverFlap';
 import ContentFlap from './parts/ContentFlap';
-import './jcard.css';
-import './JCardPreview.css';
+import '../../styles/jcard/jcard.css';
+import '../../styles/jcard/JCardPreview.css';
 
 const ALLOWED_TAGS = ['p','h1','h2','h3','h4','h5','h6','ul','ol','li','strong','em','u','s','br','span'];
 const ALLOWED_ATTR = ['style','class'];

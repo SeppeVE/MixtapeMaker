@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Song, Side } from '../types';
-import { searchSpotify } from '../utils/spotify';
-import { formatTime } from '../utils/timeUtils';
-import '../../assets/styles/SearchBar.css';
+import { Song, Side } from '../../types';
+import { searchSpotify } from '../../utils/spotify';
+import { formatTime } from '../../utils/timeUtils';
+import '../../styles/SearchBar.css';
 
 interface SearchBarProps {
   clientId: string;

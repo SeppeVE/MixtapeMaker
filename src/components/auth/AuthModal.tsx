@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import '../../assets/styles/AuthModal.css';
+import { useAuth } from '../../contexts/AuthContext';
+import '../../styles/AuthModal.css';
 
 interface AuthModalProps {
   isOpen: boolean;

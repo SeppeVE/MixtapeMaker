@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import pencilIcon from '../../assets/images/icons/pencil.svg';
-import '../../assets/styles/Header.css';
+import { useAuth } from '../../contexts/AuthContext';
+import pencilIcon from '../../../assets/images/icons/pencil.svg';
+import '../../styles/Header.css';
 
 interface HeaderProps {
   title: string;

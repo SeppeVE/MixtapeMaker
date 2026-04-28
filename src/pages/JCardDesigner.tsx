@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mixtape } from '../types';
 import JCardCanvas from './JCardCanvas';
 import JCardEditor from './JCardEditor';
-import '../../assets/styles/JCardDesigner.css';
+import '../styles/JCardDesigner.css';
 
 interface JCardDesignerProps {
   mixtape: Mixtape;

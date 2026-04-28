@@ -1,4 +1,4 @@
-import '../../assets/styles/Floaters.css';
+import '../../styles/Floaters.css';
 
 const INK = '#2A1E28';
 

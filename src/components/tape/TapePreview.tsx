@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Mixtape, CassetteLength } from '../types';
-import { calculateTotalDuration, formatTime } from '../utils/timeUtils';
-import '../../assets/styles/TapePreview.css';
+import { Mixtape, CassetteLength } from '../../types';
+import { calculateTotalDuration, formatTime } from '../../utils/timeUtils';
+import '../../styles/TapePreview.css';
 
 interface TapePreviewProps {
   mixtape: Mixtape;

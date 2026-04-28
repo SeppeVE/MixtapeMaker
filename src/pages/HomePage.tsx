@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Mixtape } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { loadMixtapes } from '../utils/database';
-import Floaters from './Floaters';
-import '../../assets/styles/HomePage.css';
+import Floaters from '../components/ui/Floaters';
+import '../styles/HomePage.css';
 
 interface HomePageProps {
   onNewMixtape: () => void;

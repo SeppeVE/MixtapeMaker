@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle, Color, FontSize } from '@tiptap/extension-text-style';
-import './ContentEditor.css';
+import '../../styles/jcard/ContentEditor.css';
 
 const FONT_SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
 

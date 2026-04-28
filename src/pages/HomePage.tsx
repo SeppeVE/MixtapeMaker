@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Mixtape } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { loadMixtapes } from '../utils/database';
+import NavBar from '../components/ui/NavBar';
 import '../styles/LandingPage.css';
 
 interface HomePageProps {
@@ -65,26 +66,30 @@ const CassetteSVG = () => (
         className="lp-tape-line"
       />
 
-      {/* Left reel - animated with transform-box fix applied via className */}
-      <g transform="translate(44 148)" className="lp-reel">
-        <circle r="26" fill="#DDD2B8" stroke="#2A1E28" strokeWidth="2.5" />
-        <circle r="10" fill="#D4A935" stroke="#2A1E28" strokeWidth="2" />
-        <line x1="0" y1="-24" x2="0"  y2="24"  stroke="#2A1E28" strokeWidth="2" />
-        <line x1="-24" y1="0" x2="24" y2="0"   stroke="#2A1E28" strokeWidth="2" />
-        <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" strokeWidth="2" />
-        <line x1="17"  y1="-17" x2="-17" y2="17" stroke="#2A1E28" strokeWidth="2" />
-        <circle r="4" fill="#5B2838" stroke="#2A1E28" strokeWidth="1.5" />
+      {/* Left reel — outer g positions, inner g rotates */}
+      <g transform="translate(44 148)">
+        <g className="lp-reel">
+          <circle r="26" fill="#DDD2B8" stroke="#2A1E28" strokeWidth="2.5" />
+          <circle r="10" fill="#D4A935" stroke="#2A1E28" strokeWidth="2" />
+          <line x1="0" y1="-24" x2="0"  y2="24"  stroke="#2A1E28" strokeWidth="2" />
+          <line x1="-24" y1="0" x2="24" y2="0"   stroke="#2A1E28" strokeWidth="2" />
+          <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" strokeWidth="2" />
+          <line x1="17"  y1="-17" x2="-17" y2="17" stroke="#2A1E28" strokeWidth="2" />
+          <circle r="4" fill="#5B2838" stroke="#2A1E28" strokeWidth="1.5" />
+        </g>
       </g>
 
-      {/* Right reel - animated */}
-      <g transform="translate(256 148)" className="lp-reel">
-        <circle r="26" fill="#DDD2B8" stroke="#2A1E28" strokeWidth="2.5" />
-        <circle r="10" fill="#D4A935" stroke="#2A1E28" strokeWidth="2" />
-        <line x1="0" y1="-24" x2="0"  y2="24"  stroke="#2A1E28" strokeWidth="2" />
-        <line x1="-24" y1="0" x2="24" y2="0"   stroke="#2A1E28" strokeWidth="2" />
-        <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" strokeWidth="2" />
-        <line x1="17"  y1="-17" x2="-17" y2="17" stroke="#2A1E28" strokeWidth="2" />
-        <circle r="4" fill="#5B2838" stroke="#2A1E28" strokeWidth="1.5" />
+      {/* Right reel — outer g positions, inner g rotates */}
+      <g transform="translate(256 148)">
+        <g className="lp-reel">
+          <circle r="26" fill="#DDD2B8" stroke="#2A1E28" strokeWidth="2.5" />
+          <circle r="10" fill="#D4A935" stroke="#2A1E28" strokeWidth="2" />
+          <line x1="0" y1="-24" x2="0"  y2="24"  stroke="#2A1E28" strokeWidth="2" />
+          <line x1="-24" y1="0" x2="24" y2="0"   stroke="#2A1E28" strokeWidth="2" />
+          <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" strokeWidth="2" />
+          <line x1="17"  y1="-17" x2="-17" y2="17" stroke="#2A1E28" strokeWidth="2" />
+          <circle r="4" fill="#5B2838" stroke="#2A1E28" strokeWidth="1.5" />
+        </g>
       </g>
 
       {/* Bottom rail */}
@@ -463,7 +468,7 @@ const JCardMock = () => (
 // ═══════════════════════════════════════════════════════
 
 const HomePage = ({ onNewMixtape, onLoadMixtape, onOpenLibrary, onOpenAuth, onOpenJCards }: HomePageProps) => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [recentTapes, setRecentTapes] = useState<Mixtape[]>([]);
 
   useEffect(() => {
@@ -477,37 +482,17 @@ const HomePage = ({ onNewMixtape, onLoadMixtape, onOpenLibrary, onOpenAuth, onOp
     <div className="lp-page">
 
       {/* ── NAV ── */}
-      <nav className="lp-nav">
-        <button className="lp-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
-            <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
-            <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
-            <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
-            <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28" />
-          </svg>
-          CASSETTE
-        </button>
-
-        <div className="lp-nav-links">
-          <a href="#mixtape" className="lp-nav-link">Mixtape</a>
-          <a href="#jcard"   className="lp-nav-link">J-Card</a>
-          <a href="#how-it-works" className="lp-nav-link">How it works</a>
-        </div>
-
-        <div className="lp-nav-ctas">
-          {user ? (
-            <>
-              <span className="lp-nav-user">●● {user.email?.split('@')[0]}</span>
-              <button className="lp-btn lp-btn-paper" onClick={onOpenLibrary}>Library</button>
-              <button className="lp-btn lp-btn-paper" onClick={signOut}>Sign Out</button>
-            </>
-          ) : (
-            <button className="lp-btn lp-btn-paper" onClick={onOpenAuth}>Sign In</button>
-          )}
-          <button className="lp-btn lp-btn-paper"  onClick={onNewMixtape}>Make a Tape</button>
-          <button className="lp-btn lp-btn-plum"   onClick={onOpenJCards}>Design a J-Card</button>
-        </div>
-      </nav>
+      <NavBar
+        onGoHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onOpenAuth={onOpenAuth}
+        onNewMixtape={onNewMixtape}
+        onOpenLibrary={onOpenLibrary}
+        onOpenJCards={onOpenJCards}
+      >
+        <a href="#mixtape"      className="lp-nav-link">Mixtape</a>
+        <a href="#jcard"        className="lp-nav-link">J-Card</a>
+        <a href="#how-it-works" className="lp-nav-link">How it works</a>
+      </NavBar>
 
       <TapeStrip />
 

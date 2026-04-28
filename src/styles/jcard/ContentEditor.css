@@ -68,6 +68,21 @@
   flex-shrink: 0;
 }
 
+/* Font family dropdown */
+.ce-font-select {
+  padding: 2px 4px;
+  height: 24px;
+  border: 1.5px solid var(--color-text);
+  background: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: 1px 1px 0 var(--color-text);
+  width: 110px;
+  flex-shrink: 0;
+}
+
 /* Font size dropdown */
 .ce-size-select {
   padding: 2px 4px;

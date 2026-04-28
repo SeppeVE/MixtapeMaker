@@ -10,6 +10,24 @@ import ContentFlap from './parts/ContentFlap';
 import '../../styles/jcard/jcard.css';
 import '../../styles/jcard/JCardPreview.css';
 
+/** Wait for all image URLs and document fonts to be ready. */
+function waitForAssets(content: JCardContent): Promise<void> {
+  const urls = [content.backgroundImageUrl, content.coverImageUrl]
+    .filter((u): u is string => typeof u === 'string' && u.length > 0);
+
+  const imagePromises = urls.map(url => new Promise<void>(resolve => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = url;
+  }));
+
+  const fontPromise: Promise<void> =
+    (document as any).fonts?.ready?.then(() => undefined) ?? Promise.resolve();
+
+  return Promise.all([fontPromise, ...imagePromises]).then(() => undefined);
+}
+
 const ALLOWED_TAGS = ['p','h1','h2','h3','h4','h5','h6','ul','ol','li','strong','em','u','s','br','span'];
 const ALLOWED_ATTR = ['style','class'];
 
@@ -30,6 +48,18 @@ const JCardPreview = ({ content: rawContent }: Props) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [actual, setActual] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  // Wait for fonts + images before revealing the card so it never flashes
+  // a half-loaded state. The card stays mounted so scale calculation works.
+  useEffect(() => {
+    let cancelled = false;
+    setIsReady(false);
+    waitForAssets(content).then(() => { if (!cancelled) setIsReady(true); });
+    return () => { cancelled = true; };
+  // Only re-gate when the actual image URLs change, not on every edit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.backgroundImageUrl, content.coverImageUrl]);
 
   const totalWidthMm =
     (content.shortBack ? BACK_SHORT_MM : BACK_FULL_MM) +
@@ -95,9 +125,23 @@ const JCardPreview = ({ content: rawContent }: Props) => {
         className="jcard-preview-wrapper"
         style={{ height: actual ? undefined : `calc(102mm * ${scale} + 48px)` }}
       >
+        {!isReady && (
+          <div className="jcard-loader">
+            <svg className="jcard-loader-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                strokeDasharray="40 20" />
+            </svg>
+            <span className="jcard-loader-label">Loading card…</span>
+          </div>
+        )}
         <div
           className={`jcard${content.isReversed ? ' reversed' : ''}`}
-          style={{ transform: actual ? 'none' : `scale(${scale})`, transformOrigin: 'top left' }}
+          style={{
+            transform: actual ? 'none' : `scale(${scale})`,
+            transformOrigin: 'top left',
+            opacity: isReady ? 1 : 0,
+            transition: isReady ? 'opacity 0.35s ease' : 'none',
+          }}
         >
           {content.continuousBackground && <div style={continuousBgStyle} />}
           <div className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`} style={{ position: 'relative', zIndex: 1 }}>

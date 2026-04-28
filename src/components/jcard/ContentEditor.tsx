@@ -3,7 +3,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
-import { TextStyle, Color, FontSize } from '@tiptap/extension-text-style';
+import { TextStyle, Color, FontSize, FontFamily } from '@tiptap/extension-text-style';
+import { CURATED_FONTS } from '../../utils/fontManager';
 import '../../styles/jcard/ContentEditor.css';
 
 const FONT_SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
@@ -18,9 +19,11 @@ interface ContentEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: string;
+  /** Custom font names (uploaded by the user) to append after the curated list. */
+  customFontNames?: string[];
 }
 
-const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeight = '60px' }: ContentEditorProps) => {
+const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeight = '60px', customFontNames = [] }: ContentEditorProps) => {
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -30,6 +33,7 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
       TextStyle,
       Color,
       FontSize,
+      FontFamily,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: value,
@@ -54,8 +58,13 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
     >{label}</button>
   );
 
-  const currentSize = editor.getAttributes('textStyle').fontSize?.replace('px', '') ?? '';
+  const currentSize   = editor.getAttributes('textStyle').fontSize?.replace('px', '') ?? '';
   const currentColor: string = editor.getAttributes('textStyle').color ?? '#000000';
+  // Tiptap stores the value we passed to setFontFamily verbatim. We always
+  // pass quoted names ("My Font"), so strip quotes here for comparison with
+  // the plain-name option values in the select.
+  const currentFamily: string = (editor.getAttributes('textStyle').fontFamily ?? '')
+    .replace(/^["']|["']$/g, '');
 
   return (
     <div className="ce-root">
@@ -71,6 +80,35 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
         {btn(editor.isActive({ textAlign: 'center' }), () => editor.chain().focus().setTextAlign('center').run(), '☰', 'Center')}
         {btn(editor.isActive({ textAlign: 'right' }),  () => editor.chain().focus().setTextAlign('right').run(),  '➡', 'Align right')}
         <span className="ce-sep" />
+
+        {/* Font family */}
+        <select
+          className="ce-font-select"
+          value={currentFamily}
+          title="Font family"
+          onMouseDown={e => e.stopPropagation()}
+          onChange={e => {
+            const v = e.target.value;
+            const chain = editor.chain().focus() as any;
+            // Always quote the name so multi-word families ("IBM Plex Sans")
+            // produce valid CSS: font-family: "IBM Plex Sans", not font-family: IBM Plex Sans.
+            v ? chain.setFontFamily(`"${v}"`).run() : chain.unsetFontFamily().run();
+          }}
+        >
+          <option value="">Default</option>
+          <optgroup label="Curated">
+            {CURATED_FONTS.map(f => (
+              <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+            ))}
+          </optgroup>
+          {customFontNames.length > 0 && (
+            <optgroup label="Uploaded">
+              {customFontNames.map(f => (
+                <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
+              ))}
+            </optgroup>
+          )}
+        </select>
 
         {/* Font size */}
         <select

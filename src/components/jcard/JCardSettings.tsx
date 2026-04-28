@@ -1,20 +1,22 @@
 import React from 'react';
-import { JCardContent, JCard, Mixtape } from '../../types';
+import { JCardContent, JCard, Mixtape, CustomFont } from '../../types';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
 import { JCARD_PRESETS } from '../../utils/jcardPresets';
 import ContentEditor from './ContentEditor';
 import MixtapeLinkPicker from './MixtapeLinkPicker';
 import ImageUpload from './ImageUpload';
 import { exportJCardToPDF } from '../../utils/jcardPdf';
+import { readFileAsBase64, fontNameFromFile, mimeTypeFromFile, registerCustomFonts } from '../../utils/fontManager';
 import '../../styles/jcard/JCardSettings.css';
 
-export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'spine' | 'back' | 'mixtape' | 'export';
+export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'spine' | 'back' | 'mixtape' | 'export';
 
 const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   info:       { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
   layout:     { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   flaps:      { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   background: { bg: 'var(--color-mustard)', fg: 'var(--color-text)'  },
+  fonts:      { bg: 'var(--color-mustard)', fg: 'var(--color-text)'  },
   spine:      { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   back:       { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   mixtape:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
@@ -88,11 +90,59 @@ const JCardSettings = ({
   };
 
   const [openSections, setOpenSections] = React.useState<Set<Section>>(
-    new Set(['info', 'layout', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export'] as Section[]),
+    new Set(['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export'] as Section[]),
   );
   const [activeFlap, setActiveFlap] = React.useState(0);
   const [exporting, setExporting] = React.useState(false);
   const [showPresets, setShowPresets] = React.useState(false);
+  const [fontUploading, setFontUploading] = React.useState(false);
+  const fontInputRef = React.useRef<HTMLInputElement>(null);
+
+  const customFonts: CustomFont[] = content.customFonts ?? [];
+  const customFontNames = customFonts.map(f => f.name);
+
+  const MAX_FONTS     = 3;
+  const WARN_SIZE_KB  = 200;
+  const [fontWarning, setFontWarning] = React.useState<string | null>(null);
+
+  const handleFontUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-uploaded after deletion
+    e.target.value = '';
+    setFontWarning(null);
+
+    if (customFonts.length >= MAX_FONTS) {
+      setFontWarning(`Max ${MAX_FONTS} fonts per card. Remove one first.`);
+      return;
+    }
+
+    const sizeKb = file.size / 1024;
+    if (sizeKb > WARN_SIZE_KB) {
+      setFontWarning(`${file.name} is ${Math.round(sizeKb)} KB — large fonts increase save size.`);
+      // Not a hard block, just a heads-up; continue uploading.
+    }
+
+    setFontUploading(true);
+    try {
+      const name     = fontNameFromFile(file);
+      const data     = await readFileAsBase64(file);
+      const mimeType = mimeTypeFromFile(file);
+      const newFont: CustomFont = { name, data, mimeType };
+      // Register immediately so it's available in the editor right away
+      await registerCustomFonts([newFont]);
+      patch({ customFonts: [...customFonts, newFont] });
+    } catch (err) {
+      console.error('Font upload failed:', err);
+      setFontWarning('Upload failed — the file may be corrupt.');
+    } finally {
+      setFontUploading(false);
+    }
+  };
+
+  const removeFont = (name: string) => {
+    patch({ customFonts: customFonts.filter(f => f.name !== name) });
+  };
 
   // Keep activeFlap in bounds if user reduces flap count
   React.useEffect(() => {
@@ -227,6 +277,7 @@ const JCardSettings = ({
           onChange={(html) => patchFlap(activeFlap, html)}
           placeholder={activeFlap === 0 ? 'Title, artist, year…' : `Flap ${activeFlap + 1} content…`}
           minHeight={activeFlap === 0 ? '80px' : '60px'}
+          customFontNames={customFontNames}
         />
       </Block>
 
@@ -267,22 +318,76 @@ const JCardSettings = ({
         </label>
       </Block>
 
+      {/* ── 4b. Fonts ────────────────────────────────────────── */}
+      <Block id="fonts" label="Aa Fonts" {...blockProps}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+          9 curated fonts are always available in the text editors.
+          Upload your own <strong>.woff2</strong>, <strong>.otf</strong>, or <strong>.ttf</strong> files to add more.
+        </p>
+
+        {/* Uploaded fonts list */}
+        {customFonts.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+            {customFonts.map(f => (
+              <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', border: '1.5px solid var(--color-text)', background: 'var(--color-paper)' }}>
+                <span style={{ fontFamily: f.name, fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {f.name}
+                </span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, opacity: 0.5, flexShrink: 0 }}>
+                  custom
+                </span>
+                <button
+                  className="btn"
+                  style={{ fontSize: 10, padding: '1px 5px', minWidth: 0, flexShrink: 0 }}
+                  onClick={() => removeFont(f.name)}
+                  title={`Remove ${f.name}`}
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Warning / error message */}
+        {fontWarning && (
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, margin: '0 0 6px', color: 'var(--color-accent)' }}>
+            ⚠ {fontWarning}
+          </p>
+        )}
+
+        {/* Upload button */}
+        <input
+          ref={fontInputRef}
+          type="file"
+          accept=".woff2,.woff,.otf,.ttf"
+          style={{ display: 'none' }}
+          onChange={handleFontUpload}
+        />
+        <button
+          className="btn"
+          style={{ width: '100%', justifyContent: 'center' }}
+          disabled={fontUploading || customFonts.length >= MAX_FONTS}
+          onClick={() => { setFontWarning(null); fontInputRef.current?.click(); }}
+        >
+          {fontUploading ? 'Loading…' : `+ Upload font (.woff2 / .otf / .ttf)${customFonts.length >= MAX_FONTS ? ' — limit reached' : ''}`}
+        </button>
+      </Block>
+
       {/* ── 5. Spine ─────────────────────────────────────────── */}
       <Block id="spine" label="✉ Spine" {...blockProps}>
         <label className="settings-label">Top</label>
-        <ContentEditor value={content.spineTopContent} onChange={(html) => patch({ spineTopContent: html })} placeholder="Mixtape title" minHeight="40px" />
+        <ContentEditor value={content.spineTopContent} onChange={(html) => patch({ spineTopContent: html })} placeholder="Mixtape title" minHeight="40px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Center</label>
-        <ContentEditor value={content.spineCenterContent} onChange={(html) => patch({ spineCenterContent: html })} placeholder="Side A / Side B" minHeight="40px" />
+        <ContentEditor value={content.spineCenterContent} onChange={(html) => patch({ spineCenterContent: html })} placeholder="Side A / Side B" minHeight="40px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Bottom</label>
-        <ContentEditor value={content.spineBottomContent} onChange={(html) => patch({ spineBottomContent: html })} placeholder="90 min" minHeight="40px" />
+        <ContentEditor value={content.spineBottomContent} onChange={(html) => patch({ spineBottomContent: html })} placeholder="90 min" minHeight="40px" customFontNames={customFontNames} />
       </Block>
 
       {/* ── 6. Back panel ────────────────────────────────────── */}
       <Block id="back" label="◫ Back panel" {...blockProps}>
         <label className="settings-label">Left column (Side A)</label>
-        <ContentEditor value={content.backLeftContent} onChange={(html) => patch({ backLeftContent: html })} placeholder="Side A tracks…" minHeight="80px" />
+        <ContentEditor value={content.backLeftContent} onChange={(html) => patch({ backLeftContent: html })} placeholder="Side A tracks…" minHeight="80px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Right column (Side B)</label>
-        <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks…" minHeight="80px" />
+        <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks…" minHeight="80px" customFontNames={customFontNames} />
       </Block>
 
       {/* ── 7. Tracklist (linked mixtape) ────────────────────── */}

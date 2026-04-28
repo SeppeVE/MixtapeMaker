@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { JCard, JCardContent, Mixtape } from '../../types';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '../../utils/jcardDefaults';
 import { generateId } from '../../utils/timeUtils';
 import { saveJCardToLocal } from '../../utils/localStorage';
 import { createJCard, updateJCard, loadJCard } from '../../utils/jcardDatabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { registerCustomFonts } from '../../utils/fontManager';
 import JCardPreview from './JCardPreview';
 import JCardSettings from './JCardSettings';
 import '../../styles/jcard/JCardView.css';
@@ -35,6 +36,14 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
   const [isSaving, setIsSaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persisted = useRef(!!initialCard);
+
+  // Re-register custom fonts whenever the card's font list changes so the
+  // preview and editors always have them available (e.g. after opening an
+  // existing card that has stored fonts).
+  useEffect(() => {
+    const fonts = card.content.customFonts;
+    if (fonts?.length) registerCustomFonts(fonts).catch(console.error);
+  }, [card.content.customFonts]);
 
   const doSave = useCallback(async (target: JCard, feedback: boolean) => {
     setIsSaving(true);
@@ -111,7 +120,7 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'layout', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']}
+            sections={['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export']}
           />
         </aside>
 

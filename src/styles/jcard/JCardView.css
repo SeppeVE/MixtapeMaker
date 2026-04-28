@@ -21,6 +21,17 @@
   z-index: 2;
 }
 
+.jcard-history-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.jcard-history-btns .btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .jcard-view-title {
   flex: 1;
   font-family: var(--font-display);

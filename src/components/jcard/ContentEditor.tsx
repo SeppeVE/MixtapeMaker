@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -6,6 +6,24 @@ import Underline from '@tiptap/extension-underline';
 import { TextStyle, Color, FontSize, FontFamily } from '@tiptap/extension-text-style';
 import { CURATED_FONTS } from '../../utils/fontManager';
 import '../../styles/jcard/ContentEditor.css';
+
+// CSS `::marker` inherits color from the <li> element itself, NOT from
+// descendant <span> elements (where Tiptap's Color extension puts it).
+// syncListColors propagates the first colored <span> up to its <li> so that
+// ::marker picks up the right color.
+function syncListColors(dom: HTMLElement) {
+  dom.querySelectorAll<HTMLLIElement>('li').forEach(li => {
+    let foundColor = '';
+    for (const span of li.querySelectorAll<HTMLElement>('span')) {
+      if (span.style.color) { foundColor = span.style.color; break; }
+    }
+    if (foundColor) {
+      li.style.setProperty('color', foundColor, 'important');
+    } else {
+      li.style.removeProperty('color');
+    }
+  });
+}
 
 const FONT_SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
 
@@ -46,6 +64,18 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
       },
     },
   });
+
+  // Wire up list-color sync via the stable editor event API.
+  // editor.on('update') is the guaranteed post-DOM-write hook in Tiptap v2;
+  // requestAnimationFrame defers past ProseMirror's own reconciliation pass.
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom as HTMLElement;
+    const run = () => requestAnimationFrame(() => syncListColors(dom));
+    editor.on('update', run);
+    run(); // initial pass for pre-filled content
+    return () => { editor.off('update', run); };
+  }, [editor]);
 
   if (!editor) return null;
 

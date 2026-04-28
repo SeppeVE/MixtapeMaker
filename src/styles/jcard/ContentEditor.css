@@ -158,7 +158,9 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-white);
+  /* Neutral mid-tone so both dark and white text are legible while editing.
+     The card's actual background colour is set separately in the preview. */
+  background: #b5aa98;
   /* Allow the browser to synthesize bold/italic even for fonts that lack
      those variants (e.g. Geneva on macOS has no bold face). Without this,
      bold appears identical to normal on macOS WebKit. */

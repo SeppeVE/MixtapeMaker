@@ -38,14 +38,16 @@ function esc(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function toListWithDuration(songs: Song[]): string {
+function buildTrackList(songs: Song[], showDuration: boolean): string {
   if (!songs.length) return '';
   return (
     '<ol>' +
     songs
       .map(s => {
-        const dur = s.duration ? `<span style="float:right;opacity:0.7">${formatDuration(s.duration)}</span>` : '';
-        return `<li>${dur}${esc(s.title)} — ${esc(s.artist)}</li>`;
+        const dur = showDuration && s.duration
+          ? ` <span style="opacity:0.6">${formatDuration(s.duration)}</span>`
+          : '';
+        return `<li>${esc(s.title)} — ${esc(s.artist)}${dur}</li>`;
       })
       .join('') +
     '</ol>'
@@ -55,16 +57,17 @@ function toListWithDuration(songs: Song[]): string {
 export function applyMixtapeToJCard(
   content: JCardContent,
   mixtape: Mixtape,
-  opts: { overwriteCover?: boolean } = {},
+  opts: { overwriteCover?: boolean; showDuration?: boolean } = {},
 ): JCardContent {
+  const { overwriteCover = false, showDuration = false } = opts;
   const flapContents = [...content.flapContents];
-  if (opts.overwriteCover) flapContents[0] = `<h2>${esc(mixtape.title)}</h2>`;
+  if (overwriteCover) flapContents[0] = `<h2>${esc(mixtape.title)}</h2>`;
   return {
     ...content,
     flapContents,
     spineTopContent: `<strong>${esc(mixtape.title)}</strong>`,
     spineBottomContent: `${mixtape.cassetteLength} min`,
-    backLeftContent: `<h4>Side A</h4>${toListWithDuration(mixtape.sideA)}`,
-    backRightContent: `<h4>Side B</h4>${toListWithDuration(mixtape.sideB)}`,
+    backLeftContent:  `<h4>Side A</h4>${buildTrackList(mixtape.sideA, showDuration)}`,
+    backRightContent: `<h4>Side B</h4>${buildTrackList(mixtape.sideB, showDuration)}`,
   };
 }

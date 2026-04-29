@@ -16,6 +16,7 @@ const MixtapeLinkPicker = ({ mixtapeId, currentMixtape, content, onLinkChange, o
   const { user } = useAuth();
   const [mixtapes, setMixtapes] = useState<Mixtape[]>([]);
   const [overwriteCover, setOverwriteCover] = useState(false);
+  const [showDuration, setShowDuration] = useState(false);
 
   useEffect(() => {
     if (user) loadMixtapes(user.id).then(setMixtapes).catch(console.error);
@@ -41,7 +42,11 @@ const MixtapeLinkPicker = ({ mixtapeId, currentMixtape, content, onLinkChange, o
             <input type="checkbox" checked={overwriteCover} onChange={e => setOverwriteCover(e.target.checked)} />
             Also overwrite cover panel
           </label>
-          <button className="btn" style={{ fontSize: 12 }} onClick={() => onContentChange(applyMixtapeToJCard(content, linked, { overwriteCover }))}>
+          <label className="settings-checkbox-label">
+            <input type="checkbox" checked={showDuration} onChange={e => setShowDuration(e.target.checked)} />
+            Include track duration
+          </label>
+          <button className="btn" style={{ fontSize: 12 }} onClick={() => onContentChange(applyMixtapeToJCard(content, linked, { overwriteCover, showDuration }))}>
             ↺ Pull tracks from mixtape
           </button>
           <button className="btn" style={{ fontSize: 12 }} onClick={() => onLinkChange(null)}>

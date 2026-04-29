@@ -65,6 +65,19 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
     },
   });
 
+  // Keep the editor in sync when `value` is updated externally (e.g. "Pull
+  // tracks from mixtape"). Tiptap owns its own document state after mount, so
+  // prop changes are ignored unless we push them in explicitly.
+  // We compare first to avoid clobbering the cursor when the change originated
+  // from the editor itself (typed text → onChange → parent setState → value).
+  useEffect(() => {
+    if (!editor) return;
+    if (editor.getHTML() !== value) {
+      // emitUpdate: false prevents the onChange callback from firing → no loop
+      editor.commands.setContent(value, { emitUpdate: false });
+    }
+  }, [editor, value]);
+
   // Wire up list-color sync via the stable editor event API.
   // editor.on('update') is the guaranteed post-DOM-write hook in Tiptap v2;
   // requestAnimationFrame defers past ProseMirror's own reconciliation pass.

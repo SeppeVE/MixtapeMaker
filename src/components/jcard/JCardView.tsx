@@ -36,7 +36,7 @@ const MAX_HISTORY = 20;
 
 // ────────────────────────────────────────────────────────────────────────────
 
-const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) => {
+const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: Props) => {
   const { user } = useAuth();
   const seed = useMemo(() => initialCard ?? makeBlank(user?.id ?? 'local', currentMixtape), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [card, setCard] = useState<JCard>(seed);
@@ -165,7 +165,6 @@ const JCardView = ({ initialCard, currentMixtape, onBack, showToast }: Props) =>
 
       {/* Sub-toolbar */}
       <div className="jcard-view-toolbar">
-        <button className="btn" onClick={onBack}>← Cards</button>
         <h2 className="jcard-view-title">{card.title || 'Untitled J-Card'}</h2>
         <div className="jcard-history-btns">
           <button className="btn" onClick={undo} disabled={!canUndo} title="Undo (⌘Z)">↩</button>

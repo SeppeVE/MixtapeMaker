@@ -73,6 +73,14 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       try { await (document as any).fonts.ready; } catch { /* ignore */ }
     }
 
+    // html-to-image tries to read cssRules from every linked stylesheet so it
+    // can inline them. Cross-origin sheets (Google Fonts) throw a SecurityError
+    // when cssRules is accessed. We work around this by fetching those CSS
+    // files ourselves via fetch() (which respects CORS headers and succeeds),
+    // then injecting them as a same-origin <style> element in the off-screen
+    // host — html-to-image will read our injected copy instead.
+    await inlineCrossOriginFonts(host);
+
     // Make sure any background images have actually finished decoding.
     await waitForImages(content);
 
@@ -169,6 +177,52 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   const out   = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
+}
+
+/**
+ * Fetch every cross-origin font stylesheet linked in the document (e.g.
+ * fonts.googleapis.com) and inject the CSS as a same-origin <style> element
+ * inside the off-screen host.
+ *
+ * Problem: html-to-image reads `sheet.cssRules` on every linked stylesheet
+ * to inline fonts before snapshotting. The browser blocks that property on
+ * cross-origin sheets with a SecurityError, so Google Fonts stylesheets
+ * can't be inlined and the fonts may fall back in the PNG.
+ *
+ * Solution: fetch() honours CORS response headers and succeeds where
+ * cssRules access fails. We retrieve the CSS text, create a <style> element
+ * (same-origin by definition), and prepend it to the host. html-to-image
+ * finds our injected copy and reads it without error.
+ */
+async function inlineCrossOriginFonts(host: HTMLElement): Promise<void> {
+  const externalLinks = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+  ).filter(l => {
+    try { return new URL(l.href).origin !== window.location.origin; }
+    catch { return false; }
+  });
+
+  if (externalLinks.length === 0) return;
+
+  const results = await Promise.allSettled(
+    externalLinks.map(l =>
+      fetch(l.href, { mode: 'cors' }).then(r => {
+        if (!r.ok) throw new Error(`${r.status} ${l.href}`);
+        return r.text();
+      }),
+    ),
+  );
+
+  const combined = results
+    .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+    .map(r => r.value)
+    .join('\n');
+
+  if (combined) {
+    const style = document.createElement('style');
+    style.textContent = combined;
+    host.prepend(style);
+  }
 }
 
 /**

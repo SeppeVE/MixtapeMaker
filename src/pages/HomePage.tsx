@@ -337,8 +337,8 @@ const JCardMock = () => (
               Summer Drive '94
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '3px' }}>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: '9px', color: 'var(--color-text-light)', opacity: 0.7 }}>Mixed by Seppe</span>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '13px', background: 'var(--color-mustard)', color: 'var(--color-text)', padding: '0px 5px', border: '1px solid var(--color-text)' }}>C-60</span>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '9px', color: 'var(--color-text-light)', opacity: 0.7 }}>Mixed by me</span>
+              {/* <span style={{ fontFamily: 'var(--font-display)', fontSize: '13px', background: 'var(--color-mustard)', color: 'var(--color-text)', padding: '0px 5px', border: '1px solid var(--color-text)' }}>C-60</span> */}
             </div>
           </div>
         </div>
@@ -364,7 +364,7 @@ const JCardMock = () => (
             '3. The Chain — 4:30',
             '4. Running Up That Hill — 5:02',
           ].map((t, i) => (
-            <div key={i} style={{ borderBottom: '1px solid var(--color-paper-dk)', paddingBottom: '2px' }}>{t}</div>
+            <div key={i} style={{ paddingBottom: '2px' }}>{t}</div>
           ))}
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '13px', letterSpacing: '1px', marginTop: '5px', marginBottom: '3px', color: 'var(--color-plum)' }}>
             SIDE B (18:05)
@@ -375,11 +375,11 @@ const JCardMock = () => (
             '3. Maps — 3:40',
             '4. Lovefool — 3:01',
           ].map((t, i) => (
-            <div key={i} style={{ borderBottom: '1px solid var(--color-paper-dk)', paddingBottom: '2px' }}>{t}</div>
+            <div key={i} style={{ paddingBottom: '2px' }}>{t}</div>
           ))}
           <div style={{ marginTop: 'auto', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', opacity: 0.4, fontSize: '9px' }}>
             <span>Apr 2026</span>
-            <span>🅼 CASSETTE</span>
+            <span>CASSETTE</span>
           </div>
         </div>
       </div>

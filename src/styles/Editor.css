@@ -181,4 +181,14 @@
 
 
 /* ── Transition on side flip ── */
-.flipping .col-deck { opacity: 0.4; transition: opacity 0.24s; }
+@keyframes tape-flip {
+  0%   { opacity: 1;   transform: translateY(0)    scaleY(1);    }
+  42%  { opacity: 0;   transform: translateY(-10px) scaleY(0.97); }
+  50%  { opacity: 0;   transform: translateY(10px)  scaleY(0.97); }
+  100% { opacity: 1;   transform: translateY(0)    scaleY(1);    }
+}
+
+.flipping .col-deck {
+  animation: tape-flip 0.48s cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}

@@ -215,7 +215,6 @@ function App() {
                   <button className="btn deck-tool-btn" onClick={doFlip} title="Flip tape">↻ Flip</button>
                 </div>
                 <TapeSide
-                  key={activeSide}
                   side={activeSide}
                   songs={activeSongs}
                   maxDuration={maxDuration}

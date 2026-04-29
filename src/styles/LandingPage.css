@@ -570,3 +570,193 @@
   color: var(--color-text-light);
   opacity: 0.6;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Responsive — tablet  (≤ 900px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+  /* Hero */
+  .lp-hero {
+    padding: 56px 28px 48px;
+    min-height: auto;
+  }
+  .lp-hero-inner {
+    flex-direction: column;
+    gap: 40px;
+    align-items: flex-start;
+  }
+  .lp-hero-right {
+    align-self: center;
+  }
+  .lp-hero-headline {
+    font-size: 72px;
+  }
+
+  /* Feature bar — wrap into 2-column grid */
+  .lp-feature-bar-inner {
+    flex-wrap: wrap;
+  }
+  .lp-feature-pill {
+    flex: 0 0 50%;
+    border-bottom: 2.5px solid var(--color-text);
+    font-size: 17px;
+    padding: 12px 18px;
+  }
+  /* Remove right border on every 2nd pill (right edge) */
+  .lp-feature-pill:nth-child(2n) {
+    border-right: none;
+  }
+  /* Last row: kill the bottom border */
+  .lp-feature-pill:nth-last-child(-n+2):nth-child(odd),
+  .lp-feature-pill:last-child {
+    border-bottom: none;
+  }
+
+  /* Section inner padding */
+  .lp-section-inner {
+    padding: 56px 28px;
+  }
+
+  /* Split sections — stack */
+  .lp-split,
+  .lp-split-reverse {
+    flex-direction: column;
+    gap: 40px;
+  }
+  .lp-split-visual {
+    width: 100%;
+  }
+
+  /* Scale down mock windows so they don't overflow */
+  .lp-split-visual > * {
+    transform: scale(0.82);
+    transform-origin: top left;
+    /* Compensate for the shrinkage so it doesn't leave a gap */
+    margin-bottom: calc((0.82 - 1) * 100%);
+  }
+
+  /* Section titles */
+  .lp-section-title {
+    font-size: 52px;
+  }
+
+  /* How it works — single column */
+  .lp-steps-grid {
+    grid-template-columns: 1fr;
+  }
+  .lp-step {
+    border-right: none;
+    border-bottom: 2.5px solid rgba(255, 255, 255, 0.08);
+    padding: 32px 28px;
+  }
+  .lp-step:last-child { border-bottom: none; }
+  .lp-step-number { font-size: 60px; }
+
+  /* CTA */
+  .lp-cta-headline {
+    font-size: 60px;
+  }
+
+  /* Footer — stack */
+  .lp-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 28px;
+    gap: 14px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Responsive — mobile  (≤ 600px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* Hero */
+  .lp-hero {
+    padding: 40px 20px 40px;
+  }
+  .lp-hero-inner {
+    gap: 32px;
+  }
+  .lp-hero-headline {
+    font-size: 52px;
+    text-shadow: 4px 4px 0 var(--color-text);
+  }
+  .lp-hero-eyebrow {
+    font-size: 14px;
+  }
+  .lp-hero-sub {
+    font-size: 14px;
+  }
+  .lp-hero-ctas {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lp-btn-lg {
+    font-size: 22px;
+    padding: 7px 20px 5px;
+  }
+  /* Hide the cassette on very small screens to save vertical space */
+  .lp-hero-right {
+    display: none;
+  }
+
+  /* Feature bar — single column */
+  .lp-feature-pill {
+    flex: 0 0 100%;
+    border-right: none;
+    border-bottom: 2.5px solid var(--color-text);
+  }
+  .lp-feature-pill:last-child {
+    border-bottom: none;
+  }
+
+  /* Section inner */
+  .lp-section-inner {
+    padding: 44px 20px;
+  }
+
+  /* Section titles */
+  .lp-section-title {
+    font-size: 42px;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  /* Hide mock windows on small mobile — text is enough */
+  .lp-split-visual {
+    display: none;
+  }
+
+  /* How it works */
+  .lp-step {
+    padding: 28px 20px;
+  }
+  .lp-step-number { font-size: 52px; }
+  .lp-step-title  { font-size: 26px; }
+
+  /* CTA */
+  .lp-cta-headline {
+    font-size: 46px;
+  }
+  .lp-cta-cards {
+    flex-direction: column;
+    max-width: 100%;
+  }
+  .lp-cta-card-title {
+    font-size: 30px;
+  }
+
+  /* Recent tapes */
+  .lp-recent {
+    max-width: 100%;
+  }
+  .lp-tape-card {
+    min-width: 140px;
+  }
+
+  /* Footer */
+  .lp-footer {
+    padding: 18px 20px;
+  }
+}

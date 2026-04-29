@@ -138,3 +138,35 @@
   box-shadow: 5px 5px 0 var(--color-text);
 }
 .lp-btn-lg:hover { box-shadow: 8px 8px 0 var(--color-text); }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .lp-nav {
+    padding: 7px 20px;
+    gap: 16px;
+  }
+  /* Hide section anchor links — they're a nice-to-have on desktop */
+  .lp-nav-links {
+    display: none;
+  }
+  .lp-nav-ctas {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .lp-nav {
+    padding: 6px 16px;
+    gap: 10px;
+  }
+  .lp-logo {
+    font-size: 22px;
+  }
+  /* Shrink nav buttons on small screens */
+  .lp-btn {
+    font-size: 15px;
+    padding: 4px 12px 2px;
+    box-shadow: 2px 2px 0 var(--color-text);
+  }
+  .lp-btn:hover { box-shadow: 4px 4px 0 var(--color-text); }
+}

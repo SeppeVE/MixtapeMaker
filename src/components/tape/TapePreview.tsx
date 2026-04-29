@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Mixtape, CassetteLength } from '../../types';
 import { calculateTotalDuration, formatTime } from '../../utils/timeUtils';
+import CassetteSVG from './CassetteSVG';
 import '../../styles/TapePreview.css';
 
 interface TapePreviewProps {
@@ -12,13 +13,35 @@ interface TapePreviewProps {
   onNewMixtape: () => void;
 }
 
+function getSideStatus(totalDur: number, maxDur: number) {
+  if (totalDur === 0) return { color: 'rgba(42,30,40,.25)', label: 'empty' };
+  if (totalDur > maxDur) return { color: '#d4524a', label: `+${formatTime(totalDur - maxDur)} over` };
+  const pct = Math.round((totalDur / maxDur) * 100);
+  if (pct < 70) return { color: '#C4962A', label: `${pct}% · gap` };
+  return { color: '#4a7c5e', label: `${pct}%` };
+}
+
 export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave, onNewMixtape }: TapePreviewProps) {
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleText, setTitleText] = useState(mixtape.title);
   const [editingFor, setEditingFor] = useState(false);
   const [forText, setForText] = useState(mixtape.dedicatedTo ?? '');
 
   const totalA = calculateTotalDuration(mixtape.sideA);
   const totalB = calculateTotalDuration(mixtape.sideB);
+  const maxDur = (mixtape.cassetteLength / 2) * 60;
   const accentColor = sideA ? '#8FC9B7' : '#B4A0C7';
+
+  const sideAStatus = getSideStatus(totalA, maxDur);
+  const sideBStatus = getSideStatus(totalB, maxDur);
+
+  const isUntitled = mixtape.title === 'Untitled Mixtape';
+
+  const saveTitle = () => {
+    const trimmed = titleText.trim();
+    if (trimmed) onUpdate({ title: trimmed });
+    setEditingTitle(false);
+  };
 
   const saveFor = () => {
     onUpdate({ dedicatedTo: forText.trim() || undefined });
@@ -32,26 +55,74 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
       <div className="preview-panel">
         <div className="panel-titlebar panel-sage">▧ Preview</div>
         <div className="panel-body">
-          <div className="cassette-face">
-            {/* Dither overlay */}
-            <div className="cassette-dither" />
-            {/* Spinning reels */}
-            <div className="cassette-reels">
-              <div className="reel" style={{ '--reel-color': accentColor } as React.CSSProperties} />
-              <div className="reel" style={{ '--reel-color': accentColor } as React.CSSProperties} />
-            </div>
-            {/* Label strip */}
-            <div className="cassette-label-strip">
-              <span className="cassette-label-title">{mixtape.title}</span>
-              <span className={`cassette-side-badge ${sideA ? 'badge-a' : 'badge-b'}`}>
-                SIDE {sideA ? 'A' : 'B'}
-              </span>
-            </div>
-            {/* Tape window */}
-            <div className="cassette-tape-window" />
-          </div>
+          <CassetteSVG
+            title={isUntitled ? undefined : mixtape.title}
+            side={sideA ? 'A' : 'B'}
+            accentColor={accentColor}
+            float={true}
+          />
 
           <div className="cassette-meta">
+
+            {/* ── Title — first, most prominent ── */}
+            <MetaRow label="Title">
+              {editingTitle ? (
+                <input
+                  className="meta-input"
+                  value={titleText}
+                  onChange={e => setTitleText(e.target.value)}
+                  onBlur={saveTitle}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') saveTitle();
+                    if (e.key === 'Escape') setEditingTitle(false);
+                  }}
+                  placeholder="Name your tape…"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className={`meta-value meta-editable${isUntitled ? ' meta-untitled' : ''}`}
+                  onClick={() => { setTitleText(mixtape.title); setEditingTitle(true); }}
+                >
+                  {isUntitled
+                    ? <span className="meta-placeholder">✎ name your tape…</span>
+                    : <>{mixtape.title} <span className="meta-edit-hint">✎</span></>}
+                </span>
+              )}
+            </MetaRow>
+
+            {/* ── Tape length ── */}
+            <MetaRow label="Length">
+              <select
+                className="meta-select"
+                value={mixtape.cassetteLength}
+                onChange={e => onUpdate({ cassetteLength: Number(e.target.value) as CassetteLength })}
+              >
+                <option value={60}>C60 · 30m / side</option>
+                <option value={90}>C90 · 45m / side</option>
+                <option value={120}>C120 · 60m / side</option>
+              </select>
+            </MetaRow>
+
+            {/* ── Side A with fill status ── */}
+            <MetaRow label="Side A">
+              <span className="meta-value side-meta">
+                <span className="side-status-dot" style={{ background: sideAStatus.color }} />
+                <span>{mixtape.sideA.length} trk · {formatTime(totalA)}</span>
+                <span className="side-status-label" style={{ color: sideAStatus.color }}>{sideAStatus.label}</span>
+              </span>
+            </MetaRow>
+
+            {/* ── Side B with fill status ── */}
+            <MetaRow label="Side B">
+              <span className="meta-value side-meta">
+                <span className="side-status-dot" style={{ background: sideBStatus.color }} />
+                <span>{mixtape.sideB.length} trk · {formatTime(totalB)}</span>
+                <span className="side-status-label" style={{ color: sideBStatus.color }}>{sideBStatus.label}</span>
+              </span>
+            </MetaRow>
+
+            {/* ── For — deprioritised, last ── */}
             <MetaRow label="For">
               {editingFor ? (
                 <input
@@ -69,23 +140,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
                 </span>
               )}
             </MetaRow>
-            <MetaRow label="Length">
-              <select
-                className="meta-select"
-                value={mixtape.cassetteLength}
-                onChange={e => onUpdate({ cassetteLength: Number(e.target.value) as CassetteLength })}
-              >
-                <option value={60}>C60 · 30m / side</option>
-                <option value={90}>C90 · 45m / side</option>
-                <option value={120}>C120 · 60m / side</option>
-              </select>
-            </MetaRow>
-            <MetaRow label="Side A">
-              <span className="meta-value">{mixtape.sideA.length} trk · {formatTime(totalA)}</span>
-            </MetaRow>
-            <MetaRow label="Side B">
-              <span className="meta-value">{mixtape.sideB.length} trk · {formatTime(totalB)}</span>
-            </MetaRow>
+
           </div>
         </div>
       </div>

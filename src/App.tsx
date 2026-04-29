@@ -184,7 +184,11 @@ function App() {
                   autoFocus
                 />
               ) : (
-                <button className="lp-nav-title" onClick={startEditTitle}>
+                <button
+                  className={`lp-nav-title${mixtape.title === 'Untitled Mixtape' ? ' lp-nav-title--untitled' : ''}`}
+                  onClick={startEditTitle}
+                  title="Click to rename"
+                >
                   {mixtape.title}
                 </button>
               )}
@@ -205,14 +209,10 @@ function App() {
 
               <div className="col-deck">
                 <div className="deck-toolbar">
-                  <div className={`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`}>▸ Side {activeSide}</div>
+                  <button className={`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`} onClick={doFlip} title={`Flip to Side ${sideA ? 'B' : 'A'}`}>▸ Side {activeSide}</button>
                   <div className="deck-toolbar-spacer" />
                   <button className="btn deck-tool-btn" onClick={handleShuffle} title="Shuffle this side">⤨ Shuffle</button>
                   <button className="btn deck-tool-btn" onClick={doFlip} title="Flip tape">↻ Flip</button>
-                  <div className="side-toggle">
-                    <button className={`side-toggle-btn${sideA ? ' active' : ''}`} onClick={() => !sideA && doFlip()}>A</button>
-                    <button className={`side-toggle-btn${!sideA ? ' active' : ''}`} onClick={() => sideA && doFlip()}>B</button>
-                  </div>
                 </div>
                 <TapeSide
                   key={activeSide}

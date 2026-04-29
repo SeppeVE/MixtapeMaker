@@ -130,6 +130,11 @@
   color: var(--color-text);
 }
 
+.cassette-label-untitled {
+  opacity: 0.4;
+  font-style: italic;
+}
+
 .cassette-side-badge {
   font-family: var(--font-display);
   font-size: 11px;
@@ -281,4 +286,41 @@
 @keyframes dub-progress {
   from { background-position: 0 0; }
   to   { background-position: 18px 0; }
+}
+
+/* ── Title meta row ── */
+.meta-untitled {
+  opacity: 0.75;
+}
+
+.meta-edit-hint {
+  opacity: 0;
+  font-size: 9px;
+  transition: opacity 0.15s;
+  margin-left: 2px;
+}
+.meta-editable:hover .meta-edit-hint { opacity: 0.5; }
+
+/* ── Side status (dot + label) ── */
+.side-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.side-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+  border: 1px solid rgba(42,30,40,.2);
+}
+
+.side-status-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.2px;
+  opacity: 0.9;
 }

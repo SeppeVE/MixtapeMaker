@@ -63,6 +63,23 @@
   background: none;
   border: none;
   padding: 0;
+  position: relative;
+}
+.lp-nav-title:hover::after {
+  content: ' ✎';
+  opacity: 0.45;
+  font-size: 11px;
+}
+
+/* Untitled — nudge the user to rename */
+.lp-nav-title--untitled {
+  opacity: 0.55;
+  font-style: italic;
+  border-bottom: 1.5px dashed rgba(42,30,40,.4);
+}
+.lp-nav-title--untitled:hover {
+  opacity: 1;
+  color: var(--color-primary);
 }
 
 .lp-nav-title-input {

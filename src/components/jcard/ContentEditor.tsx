@@ -1,11 +1,41 @@
 import { useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
-import { TextStyle, Color, FontSize, FontFamily } from '@tiptap/extension-text-style';
+import { TextStyle, Color, FontSize, FontFamily, LineHeight } from '@tiptap/extension-text-style';
 import { CURATED_FONTS } from '../../utils/fontManager';
 import '../../styles/jcard/ContentEditor.css';
+
+// LetterSpacing — same pattern as FontSize from @tiptap/extension-text-style
+const LetterSpacing = Extension.create({
+  name: 'letterSpacing',
+  addOptions() { return { types: ['textStyle'] }; },
+  addGlobalAttributes() {
+    return [{
+      types: this.options.types,
+      attributes: {
+        letterSpacing: {
+          default: null,
+          parseHTML: (el: HTMLElement) => el.style.letterSpacing || null,
+          renderHTML: (attrs: Record<string, string | null>) => {
+            if (!attrs.letterSpacing) return {};
+            return { style: `letter-spacing: ${attrs.letterSpacing}` };
+          },
+        },
+      },
+    }];
+  },
+  addCommands() {
+    return {
+      setLetterSpacing: (v: string) => ({ chain }: any) =>
+        chain().setMark('textStyle', { letterSpacing: v }).run(),
+      unsetLetterSpacing: () => ({ chain }: any) =>
+        chain().setMark('textStyle', { letterSpacing: null }).removeEmptyTextStyle().run(),
+    } as any;
+  },
+});
 
 // CSS `::marker` inherits color from the <li> element itself, NOT from
 // descendant <span> elements (where Tiptap's Color extension puts it).
@@ -25,7 +55,9 @@ function syncListColors(dom: HTMLElement) {
   });
 }
 
-const FONT_SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
+const FONT_SIZES        = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
+const LETTER_SPACINGS   = ['0px', '0.5px', '1px', '1.5px', '2px', '3px', '5px'];
+const LINE_HEIGHTS      = ['1', '1.1', '1.2', '1.3', '1.5', '1.8', '2', '2.5', '3'];
 
 const COLOR_PRESETS = [
   '#000000', '#ffffff', '#555555', '#d4524a',
@@ -52,6 +84,8 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
       Color,
       FontSize,
       FontFamily,
+      LetterSpacing,
+      LineHeight,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: value,
@@ -105,13 +139,15 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
     >{label}</button>
   );
 
-  const currentSize   = editor.getAttributes('textStyle').fontSize?.replace('px', '') ?? '';
+  const currentSize          = editor.getAttributes('textStyle').fontSize?.replace('px', '') ?? '';
   const currentColor: string = editor.getAttributes('textStyle').color ?? '#000000';
   // Tiptap stores the value we passed to setFontFamily verbatim. We always
   // pass quoted names ("My Font"), so strip quotes here for comparison with
   // the plain-name option values in the select.
   const currentFamily: string = (editor.getAttributes('textStyle').fontFamily ?? '')
     .replace(/^["']|["']$/g, '');
+  const currentLetterSpacing = editor.getAttributes('textStyle').letterSpacing ?? '';
+  const currentLineHeight    = editor.getAttributes('textStyle').lineHeight    ?? '';
 
   return (
     <div className="ce-root">
@@ -171,6 +207,38 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
         >
           <option value="">px</option>
           {FONT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        {/* Letter spacing */}
+        <select
+          className="ce-size-select"
+          value={currentLetterSpacing}
+          title="Letter spacing"
+          onMouseDown={e => e.stopPropagation()}
+          onChange={e => {
+            const v = e.target.value;
+            const chain = editor.chain().focus() as any;
+            v ? chain.setLetterSpacing(v).run() : chain.unsetLetterSpacing().run();
+          }}
+        >
+          <option value="">LS</option>
+          {LETTER_SPACINGS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        {/* Line height */}
+        <select
+          className="ce-size-select"
+          value={currentLineHeight}
+          title="Line height"
+          onMouseDown={e => e.stopPropagation()}
+          onChange={e => {
+            const v = e.target.value;
+            const chain = editor.chain().focus() as any;
+            v ? chain.setLineHeight(v).run() : chain.unsetLineHeight().run();
+          }}
+        >
+          <option value="">LH</option>
+          {LINE_HEIGHTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
         <span className="ce-sep" />

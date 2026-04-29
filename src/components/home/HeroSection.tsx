@@ -31,7 +31,7 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
         <div className="lp-hero-eyebrow">◆ FOR CASSETTE ENTHUSIASTS</div>
 
         <div className="lp-hero-headline">
-          MIX.<br />DESIGN.<br /><em>REWIND.</em>
+          MIX.<br />DESIGN.<br /><span className='lp-hero-headline-accent'>ENJOY.</span>
         </div>
 
         <p className="lp-hero-sub">

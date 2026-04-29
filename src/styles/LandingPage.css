@@ -120,7 +120,7 @@
   text-shadow: 6px 6px 0 var(--color-text);
 }
 
-.lp-hero-headline em {
+.lp-hero-headline-accent {
   font-style: normal;
   color: var(--color-mustard);
 }

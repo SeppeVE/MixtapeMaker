@@ -10,8 +10,8 @@ import TapeSide from './components/tape/TapeSide';
 import TapePreview from './components/tape/TapePreview';
 import Floaters from './components/ui/Floaters';
 import AuthModal from './components/auth/AuthModal';
-import Library from './pages/Library';
 import HomePage from './pages/HomePage';
+import LibraryPage from './pages/LibraryPage';
 import NavBar from './components/ui/NavBar';
 import Toast from './components/ui/Toast';
 import JCardView from './components/jcard/JCardView';
@@ -27,7 +27,6 @@ function App() {
   const { user } = useAuth();
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [sideA, setSideA] = useState(true);
   const [flipping, setFlipping] = useState(false);
@@ -120,7 +119,6 @@ function App() {
 
   const handleLoadMixtape = (loaded: Mixtape) => {
     setMixtape(loaded);
-    setIsLibraryOpen(false);
     setSideA(true);
     navigate('/editor');
     setToast({ message: 'Mixtape loaded', type: 'success' });
@@ -154,9 +152,25 @@ function App() {
           <HomePage
             onNewMixtape={handleNewMixtape}
             onLoadMixtape={handleLoadMixtape}
-            onOpenLibrary={() => setIsLibraryOpen(true)}
+            onOpenLibrary={() => navigate('/library')}
             onOpenAuth={() => setIsAuthModalOpen(true)}
-            onOpenJCards={() => navigate('/cards')}
+            onOpenJCards={() => navigate('/library')}
+          />
+        } />
+
+        {/* ── Library ── */}
+        <Route path="/library" element={
+          <LibraryPage
+            currentDraft={mixtape}
+            onLoadMixtape={handleLoadMixtape}
+            onSaveDraftToCloud={handleSave}
+            isSavingDraft={isSaving}
+            onGoHome={() => navigate('/')}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenCard={openDesigner}
+            onNewCard={() => openDesigner(null)}
+            onNewMixtape={handleNewMixtape}
+            showToast={showToast}
           />
         } />
 
@@ -168,7 +182,7 @@ function App() {
             <NavBar
               onGoHome={() => navigate('/')}
               onOpenAuth={() => setIsAuthModalOpen(true)}
-              onOpenJCards={() => navigate('/cards')}
+              onOpenLibrary={() => navigate('/library')}
               onSave={handleSave}
               isSaving={isSaving}
             >
@@ -290,9 +304,8 @@ function App() {
 
       </Routes>
 
-      {/* Shared modals — rendered outside Routes so they work on every page */}
+      {/* Shared modals */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      <Library isOpen={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} onLoadMixtape={handleLoadMixtape} />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );

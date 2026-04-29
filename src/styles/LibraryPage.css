@@ -1,0 +1,484 @@
+/* ═══════════════════════════════════════════════════════
+   Library Page
+   ═══════════════════════════════════════════════════════ */
+
+.lib-page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-paper);
+}
+
+/* ── Header ── */
+.lib-header {
+  background: var(--color-text);
+  border-bottom: 3px solid var(--color-text);
+  padding: 0 40px;
+}
+
+.lib-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 36px 0 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.lib-page-eyebrow {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--color-mustard);
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.lib-page-title {
+  font-family: var(--font-display);
+  font-size: 64px;
+  color: var(--color-paper);
+  letter-spacing: 3px;
+  line-height: 0.9;
+  font-weight: normal;
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ── Tabs ── */
+.lib-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.lib-tab {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  padding: 10px 24px 8px;
+  border: 2px solid transparent;
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-sage);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.1s, color 0.1s;
+  position: relative;
+  bottom: -3px; /* overlap the header border */
+}
+
+.lib-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-paper);
+}
+
+.lib-tab--active {
+  background: var(--color-paper);
+  color: var(--color-text);
+  border-color: var(--color-text);
+  border-bottom-color: var(--color-paper);
+}
+
+.lib-tab-count {
+  background: var(--color-mustard);
+  color: var(--color-text);
+  font-size: 14px;
+  padding: 1px 7px 0;
+  border: 1.5px solid var(--color-text);
+  line-height: 1.4;
+}
+.lib-tab--active .lib-tab-count {
+  border-color: var(--color-text);
+}
+
+/* ── Content area ── */
+.lib-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.lib-section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* ── Section ── */
+.lib-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lib-section-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--color-text);
+  padding-bottom: 12px;
+  border-bottom: 2.5px solid var(--color-text);
+}
+
+.lib-section-sub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-light);
+  opacity: 0.6;
+  margin-left: auto;
+  letter-spacing: 0;
+}
+
+/* ── Storage badges ── */
+.lib-badge {
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 2px 8px 1px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.lib-badge-local {
+  background: var(--color-mustard);
+  color: var(--color-text);
+  border-color: rgba(42, 30, 40, 0.4);
+}
+
+.lib-badge-cloud {
+  background: var(--color-forest);
+  color: var(--color-paper);
+  border-color: var(--color-text);
+}
+
+.lib-badge-synced {
+  background: var(--color-plum);
+  color: var(--color-paper);
+  border-color: var(--color-text);
+}
+
+/* ── Sign-in gate ── */
+.lib-sign-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 52px 40px;
+  border: 2px dashed rgba(42, 30, 40, 0.25);
+  background: var(--color-white);
+  text-align: center;
+}
+
+.lib-sign-gate-icon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+.lib-sign-gate-text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-light);
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+/* ── Sync banner (signed-out with local cards) ── */
+.lib-sync-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  background: var(--color-seafoam);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
+  flex-wrap: wrap;
+}
+
+/* ── Loading / empty states ── */
+.lib-loading {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+  opacity: 0.4;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.lib-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 52px 40px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+  opacity: 0.65;
+}
+
+.lib-empty-icon { font-size: 48px; opacity: 0.6; }
+
+.lib-empty-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ── Cards grid (shared by both tabs) ── */
+.lib-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* ── Draft card ── */
+.lib-draft-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  background: var(--color-white);
+  border: 2px dashed var(--color-text);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.lib-draft-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lib-draft-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+}
+
+.lib-draft-meta {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-light);
+  opacity: 0.75;
+}
+
+.lib-draft-card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Tape cards ── */
+.lib-tape-card {
+  background: var(--color-mustard);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.07s, box-shadow 0.07s;
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-tape-card:hover  { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+.lib-tape-card:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.lib-tape-card-header {
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
+  padding: 7px 10px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: var(--bevel-out);
+}
+
+.lib-tape-card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.lib-tape-card-body {
+  padding: 8px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.lib-tape-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.lib-tape-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--color-text);
+  opacity: 0.75;
+}
+
+.lib-tape-value {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text);
+}
+
+.lib-tape-card-footer {
+  padding: 5px 10px 7px;
+  border-top: 1px solid rgba(42, 30, 40, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lib-tape-length {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--color-forest);
+}
+
+.lib-tape-date {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+/* ── J-Card cards ── */
+.lib-jcard-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.07s, box-shadow 0.07s;
+  position: relative;
+}
+
+.lib-jcard-card:hover  { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+.lib-jcard-card:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.lib-jcard-swatch {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.lib-jcard-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-jcard-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-jcard-meta {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin-top: 3px;
+}
+
+.lib-jcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.lib-jcard-card:hover .lib-jcard-actions {
+  opacity: 1;
+}
+
+/* ── Shared action buttons ── */
+.lib-delete-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-text-light);
+  line-height: 1;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.lib-delete-btn:hover { color: var(--color-primary); }
+
+.lib-upload-btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  padding: 2px 8px 1px;
+  background: var(--color-forest);
+  color: var(--color-paper);
+  border: 1.5px solid var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.1s;
+}
+.lib-upload-btn:disabled { opacity: 0.5; cursor: default; }
+.lib-upload-btn:not(:disabled):hover { opacity: 0.85; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .lib-header { padding: 0 28px; }
+  .lib-page-title { font-size: 48px; }
+  .lib-content { padding: 32px 28px; }
+  .lib-header-inner { gap: 24px; }
+  .lib-tabs { margin-left: 0; width: 100%; }
+  .lib-tab { flex: 1; justify-content: center; font-size: 18px; padding: 10px 16px 8px; }
+}
+
+@media (max-width: 600px) {
+  .lib-header { padding: 0 20px; }
+  .lib-page-title { font-size: 38px; }
+  .lib-content { padding: 24px 20px; }
+  .lib-cards-grid { grid-template-columns: 1fr; }
+  .lib-tab { font-size: 16px; }
+  .lib-section-head { font-size: 22px; flex-wrap: wrap; gap: 8px; }
+  .lib-draft-card { flex-direction: column; align-items: flex-start; }
+  .lib-sync-banner { flex-direction: column; align-items: flex-start; }
+  .lib-jcard-actions { opacity: 1; } /* always visible on touch */
+}

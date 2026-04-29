@@ -266,11 +266,11 @@ const JCardSettings = ({
                 </label>
               </div>
             )}
-            <label className="settings-label" style={{ marginTop: 10 }}>Cover text</label>
           </>
         )}
 
         {/* Editor for whichever flap is active */}
+        <label className="settings-label" style={{ marginTop: 10 }}>Text &#40;shift + enter for new line&#41;</label>
         <ContentEditor
           key={activeFlap}
           value={content.flapContents[activeFlap] ?? ''}

@@ -8,6 +8,20 @@ import { TextStyle, Color, FontSize, FontFamily, LineHeight } from '@tiptap/exte
 import { CURATED_FONTS } from '../../utils/fontManager';
 import '../../styles/jcard/ContentEditor.css';
 
+// Enter → <br> instead of a new <p>.
+// In list context we fall through so ProseMirror can handle list-item splitting.
+const EnterAsBr = Extension.create({
+  name: 'enterAsBr',
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => {
+        if (this.editor.isActive('listItem')) return false;
+        return this.editor.commands.setHardBreak();
+      },
+    };
+  },
+});
+
 // LetterSpacing — same pattern as FontSize from @tiptap/extension-text-style
 const LetterSpacing = Extension.create({
   name: 'letterSpacing',
@@ -79,6 +93,7 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
   const editor = useEditor({
     extensions: [
       StarterKit,
+      EnterAsBr,
       Underline,
       TextStyle,
       Color,

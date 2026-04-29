@@ -586,8 +586,7 @@ const HomePage = ({ onNewMixtape, onLoadMixtape, onOpenLibrary, onOpenAuth, onOp
               <div className="lp-step-number">01</div>
               <div className="lp-step-title">Build your tracklist</div>
               <p className="lp-step-desc">
-                Add songs to Side A and Side B, enter their run times, and watch the tape fill
-                meter update as you go. Cassette flags you when a side is full.
+                Search for songs to add using Spotify results. Adding the songs will automatically calculate the time left on the cassette making it easy to fill the list with the perfect amount and length of songs
               </p>
               <div className="lp-step-tag">Mixtape Editor</div>
             </div>

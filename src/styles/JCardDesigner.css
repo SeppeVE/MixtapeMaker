@@ -660,3 +660,7 @@
   background: var(--color-text);
   color: var(--color-paper);
 }
+
+.ce-area li::marker {
+  color: currentColor !important;
+}

@@ -75,16 +75,20 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
     if (editor.getHTML() !== value) {
       // emitUpdate: false prevents the onChange callback from firing → no loop
       editor.commands.setContent(value, { emitUpdate: false });
+      // setContent with emitUpdate: false suppresses the 'update' event, so
+      // syncListColors won't fire automatically — call it manually here.
+      syncListColors(editor.view.dom as HTMLElement);
     }
   }, [editor, value]);
 
-  // Wire up list-color sync via the stable editor event API.
-  // editor.on('update') is the guaranteed post-DOM-write hook in Tiptap v2;
-  // requestAnimationFrame defers past ProseMirror's own reconciliation pass.
+  // Wire up list-color sync. ProseMirror fires 'update' after its own DOM
+  // reconciliation is complete, so we can run syncListColors synchronously
+  // right here — no RAF needed. Using RAF caused a race: ProseMirror would
+  // do a second reconciliation pass and wipe the inline style we had just set.
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
-    const run = () => requestAnimationFrame(() => syncListColors(dom));
+    const run = () => syncListColors(dom);
     editor.on('update', run);
     run(); // initial pass for pre-filled content
     return () => { editor.off('update', run); };

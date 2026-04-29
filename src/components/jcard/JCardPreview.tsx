@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import { JCardContent } from '../../types';
 import { FLAPS_MM, BACK_FULL_MM, BACK_SHORT_MM, SPINE_MM } from './dimensions';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
+import { liftListColors } from '../../utils/htmlUtils';
 import BackPanel from './parts/BackPanel';
 import Spine from './parts/Spine';
 import CoverFlap from './parts/CoverFlap';
@@ -33,10 +34,11 @@ const ALLOWED_ATTR = ['style','class'];
 
 function san(html: string) {
   if (typeof window === 'undefined') return html;
-  return DOMPurify.sanitize(
+  const clean = DOMPurify.sanitize(
     html.replace(/<p>\s*<\/p>/g, '<p><br></p>').replace(/<p>\u00a0<\/p>/g, '<p><br></p>'),
     { ALLOWED_TAGS, ALLOWED_ATTR, KEEP_CONTENT: true },
   );
+  return liftListColors(clean);
 }
 
 const FLAP_WIDTHS = ['65mm','63.5mm','61.5mm','61.5mm','62mm','63.5mm'];

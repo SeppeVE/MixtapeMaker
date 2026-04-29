@@ -134,7 +134,7 @@
 
 .lp-btn-lg {
   font-size: 26px;
-  padding: 8px 26px 5px;
+  padding: 8px 26px;
   box-shadow: 5px 5px 0 var(--color-text);
 }
 .lp-btn-lg:hover { box-shadow: 8px 8px 0 var(--color-text); }

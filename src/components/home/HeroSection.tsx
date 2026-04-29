@@ -28,7 +28,7 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
     <div className="lp-hero-inner">
       {/* Left: copy */}
       <div className="lp-hero-left">
-        <div className="lp-hero-eyebrow">◆ FOR CASSETTE ENTHUSIASTS</div>
+        <div className="lp-hero-eyebrow icon-button"><span className='icon'>◆</span><span>MIXTAPE MAKER</span></div>
 
         <div className="lp-hero-headline">
           MIX.<br />DESIGN.<br /><span className='lp-hero-headline-accent'>ENJOY.</span>
@@ -40,8 +40,8 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
         </p>
 
         <div className="lp-hero-ctas">
-          <button className="lp-btn lp-btn-mustard lp-btn-lg" onClick={onNewMixtape}>▶ Make a Tape</button>
-          <button className="lp-btn lp-btn-paper   lp-btn-lg" onClick={onOpenJCards}>✦ Design a J-Card</button>
+          <button className="lp-btn lp-btn-mustard lp-btn-lg icon-button" onClick={onNewMixtape}><span className='icon'>▶</span><span>Make a Tape</span></button>
+          <button className="lp-btn lp-btn-paper lp-btn-lg icon-button" onClick={onOpenJCards}><span className='icon'>✦</span><span>Design a J-Card</span></button>
         </div>
 
         <div className="lp-hero-note">Free to use · No sign-in · Works in your browser</div>

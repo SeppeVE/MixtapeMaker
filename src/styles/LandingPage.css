@@ -99,7 +99,6 @@
 }
 
 .lp-hero-eyebrow {
-  display: inline-flex;
   background: var(--color-mustard);
   color: var(--color-text);
   border: 2px solid var(--color-text);
@@ -695,7 +694,7 @@
   }
   .lp-btn-lg {
     font-size: 22px;
-    padding: 7px 20px 5px;
+    padding: 7px 20px;
   }
   /* Hide the cassette on very small screens to save vertical space */
   .lp-hero-right {

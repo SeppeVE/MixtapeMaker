@@ -137,3 +137,14 @@ body {
   font-weight: bold;
   box-shadow: var(--shadow-sm);
 }
+
+.icon-button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+
+  .icon {
+    margin-top: 2px;
+  }
+}

@@ -145,6 +145,67 @@
   flex-shrink: 0;
 }
 
+/* Range slider */
+.settings-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  box-shadow: var(--bevel-in);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+}
+
+.settings-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.settings-range::-webkit-slider-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.settings-range::-moz-range-thumb {
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.settings-range::-moz-range-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.settings-range::-moz-range-track {
+  background: var(--color-white);
+  border: none;
+}
+
+.settings-range-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--color-text);
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
 .settings-swatch.selected {
   outline: 2px solid var(--color-mustard);
   outline-offset: 1px;

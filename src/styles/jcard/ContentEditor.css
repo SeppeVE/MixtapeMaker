@@ -94,7 +94,7 @@
   color: var(--color-text);
   cursor: pointer;
   box-shadow: 1px 1px 0 var(--color-text);
-  width: 46px;
+  width: max-content;
   flex-shrink: 0;
 }
 

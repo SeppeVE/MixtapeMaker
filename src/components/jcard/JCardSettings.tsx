@@ -1,7 +1,6 @@
 import React from 'react';
 import { JCardContent, JCard, Mixtape, CustomFont } from '../../types';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
-import { JCARD_PRESETS } from '../../utils/jcardPresets';
 import ContentEditor from './ContentEditor';
 import MixtapeLinkPicker from './MixtapeLinkPicker';
 import ImageUpload from './ImageUpload';
@@ -94,7 +93,6 @@ const JCardSettings = ({
   );
   const [activeFlap, setActiveFlap] = React.useState(0);
   const [exporting, setExporting] = React.useState(false);
-  const [showPresets, setShowPresets] = React.useState(false);
   const [fontUploading, setFontUploading] = React.useState(false);
   const fontInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -166,13 +164,6 @@ const JCardSettings = ({
     finally { setExporting(false); }
   };
 
-  const applyPreset = (presetId: string) => {
-    const preset = JCARD_PRESETS.find(p => p.id === presetId);
-    if (!preset) return;
-    onContentChange({ ...content, ...preset.content });
-    setShowPresets(false);
-  };
-
   const blockProps = { isVisible, isOpen, onToggle: toggle };
   const flapLabel = (i: number) => i === 0 ? 'Cover' : `Flap ${i + 1}`;
 
@@ -188,22 +179,6 @@ const JCardSettings = ({
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="My J-Card"
         />
-
-        <label className="settings-label" style={{ marginTop: 10 }}>Template</label>
-        {showPresets ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {JCARD_PRESETS.map(p => (
-              <button key={p.id} className="btn" style={{ justifyContent: 'flex-start', gap: 8 }} onClick={() => applyPreset(p.id)}>
-                <span>{p.emoji}</span><span>{p.label}</span>
-              </button>
-            ))}
-            <button className="btn" style={{ fontSize: 11, opacity: 0.7 }} onClick={() => setShowPresets(false)}>Cancel</button>
-          </div>
-        ) : (
-          <button className="btn" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowPresets(true)}>
-            ✦ Apply a preset…
-          </button>
-        )}
       </Block>
 
       {/* ── 2. Layout ────────────────────────────────────────── */}
@@ -220,9 +195,9 @@ const JCardSettings = ({
         <input
           type="range" min={1} max={6} value={content.flaps}
           onChange={(e) => patch({ flaps: parseInt(e.target.value, 10) as 1|2|3|4|5|6 })}
-          style={{ width: '100%' }}
+          className="settings-range"
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-body)', fontSize: 10, opacity: 0.6 }}>
+        <div className="settings-range-ticks">
           {[1,2,3,4,5,6].map(n => <span key={n}>{n}</span>)}
         </div>
       </Block>
@@ -230,13 +205,13 @@ const JCardSettings = ({
       {/* ── 3. Flap editors ──────────────────────────────────── */}
       <Block id="flaps" label="✎ Flaps" {...blockProps}>
         {/* Tab strip */}
-        <div style={{ display: 'flex', gap: 2, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
           {Array.from({ length: content.flaps }, (_, i) => (
             <button
               key={i}
               type="button"
               className={`btn${activeFlap === i ? ' active' : ''}`}
-              style={{ fontSize: 11, padding: '2px 8px', minWidth: 0 }}
+              style={{ fontSize: '0.8rem', padding: '4px 8px', minWidth: 0 }}
               onClick={() => setActiveFlap(i)}
             >
               {flapLabel(i)}
@@ -321,8 +296,8 @@ const JCardSettings = ({
       {/* ── 4b. Fonts ────────────────────────────────────────── */}
       <Block id="fonts" label="Aa Fonts" {...blockProps}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
-          9 curated fonts are always available in the text editors.
-          Upload your own <strong>.woff2</strong>, <strong>.otf</strong>, or <strong>.ttf</strong> files to add more.
+          9 default fonts are always available in the text editors.
+          Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
         </p>
 
         {/* Uploaded fonts list */}
@@ -330,7 +305,7 @@ const JCardSettings = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
             {customFonts.map(f => (
               <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', border: '1.5px solid var(--color-text)', background: 'var(--color-paper)' }}>
-                <span style={{ fontFamily: f.name, fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: f.name, fontSize: '1.25rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {f.name}
                 </span>
                 <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, opacity: 0.5, flexShrink: 0 }}>

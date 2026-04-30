@@ -236,7 +236,7 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
             v ? chain.setLetterSpacing(v).run() : chain.unsetLetterSpacing().run();
           }}
         >
-          <option value="">LS</option>
+          <option value="">Letter spacing</option>
           {LETTER_SPACINGS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
@@ -252,7 +252,7 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
             v ? chain.setLineHeight(v).run() : chain.unsetLineHeight().run();
           }}
         >
-          <option value="">LH</option>
+          <option value="">Line height</option>
           {LINE_HEIGHTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 

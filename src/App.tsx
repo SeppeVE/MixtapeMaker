@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Mixtape, CassetteLength, JCard } from './types';
 import { generateId } from './utils/timeUtils';
-import { saveMixtapeToLocal, loadMixtapeFromLocal } from './utils/localStorage';
+import { saveMixtapeToLocal, loadMixtapeFromLocal, saveActiveCardToLocal, loadActiveCardFromLocal } from './utils/localStorage';
 import { saveMixtape } from './utils/database';
 import { useAuth } from './contexts/AuthContext';
 import AuthModal from './components/auth/AuthModal';
@@ -23,7 +23,7 @@ function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeCard, setActiveCard] = useState<JCard | null>(null);
+  const [activeCard, setActiveCard] = useState<JCard | null>(() => loadActiveCardFromLocal());
 
   const [mixtape, setMixtape] = useState<Mixtape>(() =>
     loadMixtapeFromLocal() ?? {
@@ -39,6 +39,9 @@ function App() {
 
   // Persist every change to localStorage so the draft survives a refresh
   useEffect(() => { saveMixtapeToLocal(mixtape); }, [mixtape]);
+
+  // Persist active card so the designer survives a refresh
+  useEffect(() => { saveActiveCardToLocal(activeCard); }, [activeCard]);
 
   // ── Shared handlers ───────────────────────────────────────────────────────
 
@@ -81,6 +84,7 @@ function App() {
 
   const openDesigner = (card: JCard | null) => {
     setActiveCard(card);
+    saveActiveCardToLocal(card);
     navigate('/cards/designer');
   };
 

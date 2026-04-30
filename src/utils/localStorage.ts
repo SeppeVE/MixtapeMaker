@@ -38,6 +38,27 @@ export const clearMixtapeFromLocal = (): void => {
   }
 };
 
+// ── Active (designer) JCard local storage ────────────────────────────────────
+const ACTIVE_CARD_KEY = 'jcard-active';
+
+export const saveActiveCardToLocal = (card: JCard | null): void => {
+  try {
+    if (card) {
+      localStorage.setItem(ACTIVE_CARD_KEY, JSON.stringify(card));
+    } else {
+      localStorage.removeItem(ACTIVE_CARD_KEY);
+    }
+  } catch { /* ignore */ }
+};
+
+export const loadActiveCardFromLocal = (): JCard | null => {
+  try {
+    const stored = localStorage.getItem(ACTIVE_CARD_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored);
+  } catch { return null; }
+};
+
 // ── JCard local storage ──────────────────────────────────────────────────────
 const JCARDS_KEY = 'jcards';
 

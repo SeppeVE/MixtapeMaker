@@ -73,6 +73,13 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       try { await (document as any).fonts.ready; } catch { /* ignore */ }
     }
 
+    // Grab the card element BEFORE inlineCrossOriginFonts, which calls
+    // host.prepend(<style>) — that would shift host.firstElementChild away
+    // from the .jcard element onto the injected <style> tag.
+    // querySelector('.jcard') is explicit and order-independent.
+    const cardEl = host.querySelector<HTMLElement>('.jcard');
+    if (!cardEl) throw new Error('JCardPrintable failed to mount');
+
     // html-to-image tries to read cssRules from every linked stylesheet so it
     // can inline them. Cross-origin sheets (Google Fonts) throw a SecurityError
     // when cssRules is accessed. We work around this by fetching those CSS
@@ -83,11 +90,6 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
 
     // Make sure any background images have actually finished decoding.
     await waitForImages(content);
-
-    // The element html-to-image should snapshot is the `.jcard` itself,
-    // not the host (the host has the off-screen positioning).
-    const cardEl = host.firstElementChild as HTMLElement | null;
-    if (!cardEl) throw new Error('JCardPrintable failed to mount');
 
     const pngDataUrl = await toPng(cardEl, {
       pixelRatio: SNAPSHOT_PIXEL_RATIO,

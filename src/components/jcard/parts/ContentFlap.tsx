@@ -31,7 +31,7 @@ const ContentFlap = ({ content, sanitizedContent, flapNumber: _flapNumber }: Pro
     <div style={bg}>
       {!isEmpty ? (
         <div
-          style={{ padding: '1mm', fontSize: '2.8mm', lineHeight: 1.3, overflow: 'hidden', height: '100%' }}
+          style={{ padding: '1.5mm', fontSize: '2.8mm', lineHeight: 1.3, overflow: 'hidden', height: '100%' }}
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       ) : (

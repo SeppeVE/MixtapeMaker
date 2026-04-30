@@ -15,12 +15,12 @@ const BackPanel = ({ content, sanitizedLeft, sanitizedRight }: Props) => {
     width: '100%', height: '100%', position: 'relative', overflow: 'hidden',
   };
   const topStyle: React.CSSProperties = {
-    position: 'absolute', top: 0, left: '50%', whiteSpace: 'nowrap', fontSize: '2.5mm', lineHeight: 1.3,
+    position: 'absolute', top: '1.5mm', left: '50%', whiteSpace: 'nowrap', fontSize: '2.5mm', lineHeight: 1.3,
     transformOrigin: content.isReversed ? 'right center' : 'left center',
     transform: content.isReversed ? `translateX(-100%) ${rot}` : `translateX(0) ${rot}`,
   };
   const btmStyle: React.CSSProperties = {
-    position: 'absolute', bottom: 0, left: '50%', whiteSpace: 'nowrap', fontSize: '2.5mm', lineHeight: 1.3,
+    position: 'absolute', bottom: '1.5mm', left: '50%', whiteSpace: 'nowrap', fontSize: '2.5mm', lineHeight: 1.3,
     transformOrigin: content.isReversed ? 'left center' : 'right center',
     transform: content.isReversed ? `translateX(0) ${rot}` : `translateX(-100%) ${rot}`,
   };

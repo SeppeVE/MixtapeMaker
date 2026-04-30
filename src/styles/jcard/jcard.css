@@ -76,6 +76,23 @@
 
 
 /* =====================================================
+   Lists — bullets/numbers sit inside the text flow so
+   they aren't clipped by the panel's overflow: hidden.
+   Rich-text editors wrap li content in <p> tags; making
+   those inline keeps the marker and text on the same line.
+   ===================================================== */
+.jcard ul,
+.jcard ol {
+  list-style-position: inside;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.jcard li > p {
+  display: inline;
+}
+
+/* =====================================================
    Parts — no individual border; use a subtle separator
    ===================================================== */
 .jcard-part {

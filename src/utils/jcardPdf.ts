@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { JCardContent } from '../types';
 import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
 import JCardPrintable from '../components/jcard/JCardPrintable';
+import JCardInsidePrintable from '../components/jcard/JCardInsidePrintable';
 
 const MM_TO_PT = 72 / 25.4;
 const MM_TO_PX = 96 / 25.4;
@@ -99,31 +100,60 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
     page.drawLine({ start: { x: right + gPt, y: top }, end: { x: right + gPt + lPt, y: top }, ...lineOpts });
     page.drawLine({ start: { x: right, y: top + gPt }, end: { x: right, y: top + gPt + lPt }, ...lineOpts });
 
-    // ── Page 2: inside content (double-sided print) ──────────────────────
-    if (content.insideContent && content.insideContent.trim()) {
-      const insidePngUrl = await renderInsideContent(
-        content.insideContent,
-        content.backgroundColor || '#ffffff',
-        widthMm, heightMm,
-      );
-      if (insidePngUrl) {
-        const page2 = pdf.addPage([pageW, pageH]);
-        const insideBytes = dataUrlToUint8Array(insidePngUrl);
-        const insideImage = await pdf.embedPng(insideBytes);
-        page2.drawImage(insideImage, {
-          x: MARGIN_MM * MM_TO_PT,
-          y: MARGIN_MM * MM_TO_PT,
-          width:  widthMm  * MM_TO_PT,
-          height: heightMm * MM_TO_PT,
+    // ── Page 2: inside panels (double-sided print, reverse order) ────────
+    const hasInsideContent =
+      content.insideFlapContents?.some(f => f.trim()) ||
+      !!content.insideSpineContent?.trim() ||
+      !!content.insideBackContent?.trim();
+
+    if (hasInsideContent) {
+      const insideHost = document.createElement('div');
+      insideHost.style.cssText = [
+        'position: fixed', 'left: -100000px', 'top: 0',
+        'pointer-events: none',
+        `width: ${widthMm}mm`, `height: ${heightMm}mm`,
+        'background: transparent', 'zoom: 1', 'transform: none',
+      ].join(';');
+      document.body.appendChild(insideHost);
+      let insideRoot: Root | null = null;
+      try {
+        insideRoot = createRoot(insideHost);
+        await new Promise<void>(resolve => {
+          insideRoot!.render(React.createElement(JCardInsidePrintable, { content }));
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
-        page2.drawLine({ start: { x: left - gPt - lPt, y: bottom }, end: { x: left - gPt, y: bottom }, ...lineOpts });
-        page2.drawLine({ start: { x: left, y: bottom - gPt - lPt }, end: { x: left, y: bottom - gPt }, ...lineOpts });
-        page2.drawLine({ start: { x: right + gPt, y: bottom }, end: { x: right + gPt + lPt, y: bottom }, ...lineOpts });
-        page2.drawLine({ start: { x: right, y: bottom - gPt - lPt }, end: { x: right, y: bottom - gPt }, ...lineOpts });
-        page2.drawLine({ start: { x: left - gPt - lPt, y: top }, end: { x: left - gPt, y: top }, ...lineOpts });
-        page2.drawLine({ start: { x: left, y: top + gPt }, end: { x: left, y: top + gPt + lPt }, ...lineOpts });
-        page2.drawLine({ start: { x: right + gPt, y: top }, end: { x: right + gPt + lPt, y: top }, ...lineOpts });
-        page2.drawLine({ start: { x: right, y: top + gPt }, end: { x: right, y: top + gPt + lPt }, ...lineOpts });
+        if ((document as any).fonts?.ready) {
+          try { await (document as any).fonts.ready; } catch { /* ignore */ }
+        }
+        const insideCardEl = insideHost.querySelector<HTMLElement>('.jcard');
+        if (insideCardEl) {
+          await inlineCrossOriginFonts(insideHost);
+          const insidePngUrl = await toPng(insideCardEl, {
+            pixelRatio: SNAPSHOT_PIXEL_RATIO,
+            cacheBust: true,
+            width: widthPx, height: heightPx,
+            style: { transform: 'none', margin: '0' },
+            backgroundColor: content.backgroundColor || '#ffffff',
+          });
+          const page2 = pdf.addPage([pageW, pageH]);
+          const insideBytes = dataUrlToUint8Array(insidePngUrl);
+          const insideImage = await pdf.embedPng(insideBytes);
+          page2.drawImage(insideImage, {
+            x: MARGIN_MM * MM_TO_PT, y: MARGIN_MM * MM_TO_PT,
+            width: widthMm * MM_TO_PT, height: heightMm * MM_TO_PT,
+          });
+          page2.drawLine({ start: { x: left - gPt - lPt, y: bottom }, end: { x: left - gPt, y: bottom }, ...lineOpts });
+          page2.drawLine({ start: { x: left, y: bottom - gPt - lPt }, end: { x: left, y: bottom - gPt }, ...lineOpts });
+          page2.drawLine({ start: { x: right + gPt, y: bottom }, end: { x: right + gPt + lPt, y: bottom }, ...lineOpts });
+          page2.drawLine({ start: { x: right, y: bottom - gPt - lPt }, end: { x: right, y: bottom - gPt }, ...lineOpts });
+          page2.drawLine({ start: { x: left - gPt - lPt, y: top }, end: { x: left - gPt, y: top }, ...lineOpts });
+          page2.drawLine({ start: { x: left, y: top + gPt }, end: { x: left, y: top + gPt + lPt }, ...lineOpts });
+          page2.drawLine({ start: { x: right + gPt, y: top }, end: { x: right + gPt + lPt, y: top }, ...lineOpts });
+          page2.drawLine({ start: { x: right, y: top + gPt }, end: { x: right, y: top + gPt + lPt }, ...lineOpts });
+        }
+      } finally {
+        try { insideRoot?.unmount(); } catch { /* ignore */ }
+        if (insideHost.parentNode) insideHost.parentNode.removeChild(insideHost);
       }
     }
 
@@ -143,63 +173,6 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-async function renderInsideContent(
-  html: string,
-  backgroundColor: string,
-  widthMm: number,
-  heightMm: number,
-): Promise<string | null> {
-  const widthPx  = widthMm  * MM_TO_PX;
-  const heightPx = heightMm * MM_TO_PX;
-
-  const host = document.createElement('div');
-  host.style.cssText = [
-    'position: fixed',
-    'left: -100000px',
-    'top: 0',
-    'pointer-events: none',
-    `width: ${widthMm}mm`,
-    `height: ${heightMm}mm`,
-    `background: ${backgroundColor}`,
-    'display: flex',
-    'align-items: flex-start',
-    'justify-content: flex-start',
-    'padding: 4mm',
-    'box-sizing: border-box',
-    'font-size: 3mm',
-    'line-height: 1.5',
-    'color: #000',
-    'zoom: 1',
-    'transform: none',
-  ].join(';');
-
-  const { default: DOMPurify } = await import('dompurify');
-  host.innerHTML = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p','h1','h2','h3','h4','h5','h6','ul','ol','li','strong','em','u','s','br','span'],
-    ALLOWED_ATTR: ['style','class'],
-    KEEP_CONTENT: true,
-  });
-
-  document.body.appendChild(host);
-  try {
-    await inlineCrossOriginFonts(host);
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    const png = await toPng(host, {
-      pixelRatio: SNAPSHOT_PIXEL_RATIO,
-      cacheBust: true,
-      width: widthPx,
-      height: heightPx,
-      style: { transform: 'none', margin: '0' },
-      backgroundColor,
-    });
-    return png;
-  } catch (err) {
-    console.error('renderInsideContent failed:', err);
-    return null;
-  } finally {
-    if (host.parentNode) host.parentNode.removeChild(host);
-  }
-}
 
 function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   const comma = dataUrl.indexOf(',');

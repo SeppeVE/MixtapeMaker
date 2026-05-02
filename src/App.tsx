@@ -160,4 +160,3 @@ function App() {
 }
 
 export default App;
-t App;

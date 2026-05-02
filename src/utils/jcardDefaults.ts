@@ -32,11 +32,22 @@ export function buildBlankJCardContent(): JCardContent {
  * field instead of `flapContents`. Safe to call on already-migrated cards.
  */
 export function migrateJCardContent(c: JCardContent): JCardContent {
-  if (c.flapContents && c.flapContents.length === FLAP_COUNT) return c;
-  // Legacy card: build flapContents from coverContent
-  const flapContents = Array(FLAP_COUNT).fill('');
-  if ((c as any).coverContent) flapContents[0] = (c as any).coverContent;
-  return { ...c, flapContents };
+  let out = c;
+
+  // ── flapContents migration ─────────────────────────────────────────────
+  if (!out.flapContents || out.flapContents.length !== FLAP_COUNT) {
+    const flapContents = Array(FLAP_COUNT).fill('') as string[];
+    if ((out as any).coverContent) flapContents[0] = (out as any).coverContent;
+    out = { ...out, flapContents };
+  }
+
+  // ── insideFlapContents migration ───────────────────────────────────────
+  if (!out.insideFlapContents || out.insideFlapContents.length !== FLAP_COUNT) {
+    const insideFlapContents = Array(FLAP_COUNT).fill('') as string[];
+    out = { ...out, insideFlapContents };
+  }
+
+  return out;
 }
 
 function esc(str: string): string {

@@ -7,6 +7,7 @@ import { createJCard, updateJCard, loadJCard } from '../../utils/jcardDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { registerCustomFonts } from '../../utils/fontManager';
 import JCardPreview from './JCardPreview';
+import JCardInsidePreview from './JCardInsidePreview';
 import JCardSettings from './JCardSettings';
 import '../../styles/jcard/JCardView.css';
 
@@ -180,11 +181,13 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
       {/* 2-column body */}
       <div className="jcard-view-body">
 
-        {/* MAIN — preview */}
+        {/* MAIN — outside + inside previews */}
         <div className="jcard-view-main">
           <div className="jcard-view-preview">
-            <span className="jcard-col-label">▧ Live preview</span>
+            <span className="jcard-col-label">▧ Outside</span>
             <JCardPreview content={card.content} />
+            <span className="jcard-col-label" style={{ marginTop: 8 }}>◧ Inside</span>
+            <JCardInsidePreview content={card.content} />
           </div>
         </div>
 
@@ -197,7 +200,7 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'presets', 'layout', 'fonts', 'flaps', 'background', 'spine', 'back', 'inside', 'mixtape', 'export']}
+            sections={['info', 'presets', 'layout', 'fonts', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']}
           />
         </aside>
 
@@ -208,3 +211,4 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
 };
 
 export default JCardView;
+         

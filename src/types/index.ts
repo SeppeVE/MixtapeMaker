@@ -57,6 +57,8 @@ export interface JCardContent {
   backgroundImageUrl?: string;
   /** When true a single background image/color spans the whole card instead of repeating per-panel */
   continuousBackground?: boolean;
+  /** Separate background image for the inside panels (flaps, spine, back). Falls back to backgroundColor when absent. */
+  insideBackgroundImageUrl?: string;
   coverImageUrl?: string;
   coverImageBehindContent: boolean;
   isFullCoverImage: boolean;
@@ -73,8 +75,14 @@ export interface JCardContent {
   showCutGuides?: boolean;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
-  /** HTML content for the inside face of the card (printed on page 2 when exporting). */
+  /** @deprecated Use insideFlapContents / insideSpineContent / insideBackContent for per-panel inside content. */
   insideContent?: string;
+  /** HTML content for the inside face of each flap (index 0 = cover). Always length 6. */
+  insideFlapContents?: string[];
+  /** HTML content for the inside of the spine panel. */
+  insideSpineContent?: string;
+  /** HTML content for the inside of the back panel. */
+  insideBackContent?: string;
 }
 
 export interface JCard {

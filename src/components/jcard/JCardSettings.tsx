@@ -31,7 +31,7 @@ const COLOR_PRESETS = [
   '#5B2838', '#D4A935', '#B4A0C7',
 ];
 
-// ─── Block must live at module level — never inside a render function ─────────
+// Block must live at module level -- never inside a render function
 interface BlockProps {
   id: Section;
   label: string;
@@ -59,7 +59,7 @@ const Block = ({ id, label, children, isVisible, isOpen, onToggle }: BlockProps)
   );
 };
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// Main component
 
 interface JCardSettingsProps {
   card: JCard;
@@ -91,10 +91,18 @@ const JCardSettings = ({
     patch({ flapContents: next });
   };
 
+  const patchInsideFlap = (index: number, html: string) => {
+    const next = [...(content.insideFlapContents ?? Array(6).fill('') as string[])];
+    while (next.length < 6) next.push('');
+    next[index] = html;
+    patch({ insideFlapContents: next });
+  };
+
   const [openSections, setOpenSections] = React.useState<Set<Section>>(
     new Set(['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'inside', 'mixtape', 'export'] as Section[]),
   );
   const [activeFlap, setActiveFlap] = React.useState(0);
+  const [activeInsideFlap, setActiveInsideFlap] = React.useState(0);
   const [exporting, setExporting] = React.useState(false);
   const [fontUploading, setFontUploading] = React.useState(false);
   const fontInputRef = React.useRef<HTMLInputElement>(null);
@@ -145,10 +153,11 @@ const JCardSettings = ({
     patch({ customFonts: customFonts.filter(f => f.name !== name) });
   };
 
-  // Keep activeFlap in bounds if user reduces flap count
+  // Keep activeFlap / activeInsideFlap in bounds if user reduces flap count
   React.useEffect(() => {
     if (activeFlap >= content.flaps) setActiveFlap(content.flaps - 1);
-  }, [content.flaps, activeFlap]);
+    if (activeInsideFlap >= content.flaps) setActiveInsideFlap(content.flaps - 1);
+  }, [content.flaps, activeFlap, activeInsideFlap]);
 
   const toggle = React.useCallback((s: Section) =>
     setOpenSections(prev => {
@@ -180,7 +189,7 @@ const JCardSettings = ({
   return (
     <div className="jcard-settings">
 
-      {/* ── 1. Card info ─────────────────────────────────────── */}
+      {/* 1. Card info */}
       <Block id="info" label="✎ Card info" {...blockProps}>
         <label className="settings-label">Title</label>
         <input
@@ -191,10 +200,10 @@ const JCardSettings = ({
         />
       </Block>
 
-      {/* ── 1b. Presets ──────────────────────────────────────── */}
+      {/* 1b. Presets */}
       <Block id="presets" label="✦ Presets" {...blockProps}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
-          Applying a preset overwrites your current design. Use ↩ Undo to revert.
+          Applying a preset overwrites your current design. Use Undo to revert.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {JCARD_PRESETS.map(preset => (
@@ -211,7 +220,7 @@ const JCardSettings = ({
         </div>
       </Block>
 
-      {/* ── 2. Layout ────────────────────────────────────────── */}
+      {/* 2. Layout */}
       <Block id="layout" label="▣ Layout" {...blockProps}>
         <label className="settings-checkbox-label">
           <input type="checkbox" checked={content.isReversed} onChange={(e) => patch({ isReversed: e.target.checked })} />
@@ -232,12 +241,12 @@ const JCardSettings = ({
         </div>
         {!content.shortBack && content.flaps > 2 && (
           <p style={{ margin: '8px 0 0', fontSize: 10, color: 'var(--color-accent)', fontFamily: 'var(--font-body)' }}>
-            ⚠ Tall back + {content.flaps} flaps — this card may not fit a standard cassette case. Consider enabling "Short back panel" or reducing flap count.
+            Tall back + {content.flaps} flaps — this card may not fit a standard cassette case. Consider enabling "Short back panel" or reducing flap count.
           </p>
         )}
       </Block>
 
-      {/* ── 3. Fonts ─────────────────────────────────────────── */}
+      {/* 3. Fonts */}
       <Block id="fonts" label="Aa Fonts" {...blockProps}>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
           9 default fonts are always available in the text editors.
@@ -260,7 +269,7 @@ const JCardSettings = ({
                   style={{ fontSize: 10, padding: '1px 5px', minWidth: 0, flexShrink: 0 }}
                   onClick={() => removeFont(f.name)}
                   title={`Remove ${f.name}`}
-                >✕</button>
+                >x</button>
               </div>
             ))}
           </div>
@@ -269,7 +278,7 @@ const JCardSettings = ({
         {/* Warning / error message */}
         {fontWarning && (
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, margin: '0 0 6px', color: 'var(--color-accent)' }}>
-            ⚠ {fontWarning}
+            {fontWarning}
           </p>
         )}
 
@@ -287,11 +296,11 @@ const JCardSettings = ({
           disabled={fontUploading || customFonts.length >= MAX_FONTS}
           onClick={() => { setFontWarning(null); fontInputRef.current?.click(); }}
         >
-          {fontUploading ? 'Loading…' : `+ Upload font (.woff2 / .otf / .ttf)${customFonts.length >= MAX_FONTS ? ' — limit reached' : ''}`}
+          {fontUploading ? 'Loading...' : `+ Upload font (.woff2 / .otf / .ttf)${customFonts.length >= MAX_FONTS ? ' — limit reached' : ''}`}
         </button>
       </Block>
 
-      {/* ── 4. Flap editors ──────────────────────────────────── */}
+      {/* 4. Flap editors */}
       <Block id="flaps" label="✎ Flaps" {...blockProps}>
         {/* Tab strip */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -308,7 +317,7 @@ const JCardSettings = ({
           ))}
         </div>
 
-        {/* Cover flap (index 0) — includes image options */}
+        {/* Cover flap (index 0) -- includes image options */}
         {activeFlap === 0 && (
           <>
             <ImageUpload
@@ -334,19 +343,44 @@ const JCardSettings = ({
         )}
 
         {/* Editor for whichever flap is active */}
-        <label className="settings-label" style={{ marginTop: 10 }}>Text &#40;shift + enter for new line&#41;</label>
+        <label className="settings-label" style={{ marginTop: 10 }}>Text (shift + enter for new line)</label>
         <ContentEditor
           key={activeFlap}
           value={content.flapContents[activeFlap] ?? ''}
           onChange={(html) => patchFlap(activeFlap, html)}
-          placeholder={activeFlap === 0 ? 'Title, artist, year…' : `Flap ${activeFlap + 1} content…`}
+          placeholder={activeFlap === 0 ? 'Title, artist, year...' : `Flap ${activeFlap + 1} content...`}
           minHeight={activeFlap === 0 ? '80px' : '60px'}
+          customFontNames={customFontNames}
+        />
+
+        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginTop: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          {Array.from({ length: content.flaps }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`btn${activeInsideFlap === i ? ' active' : ''}`}
+              style={{ fontSize: '0.8rem', padding: '4px 8px', minWidth: 0 }}
+              onClick={() => setActiveInsideFlap(i)}
+            >
+              {flapLabel(i)}
+            </button>
+          ))}
+        </div>
+        <ContentEditor
+          key={`inside-flap-${activeInsideFlap}`}
+          value={(content.insideFlapContents ?? [])[activeInsideFlap] ?? ''}
+          onChange={(html) => patchInsideFlap(activeInsideFlap, html)}
+          placeholder={activeInsideFlap === 0 ? 'Inside cover...' : `Inside flap ${activeInsideFlap + 1}...`}
+          minHeight="80px"
           customFontNames={customFontNames}
         />
       </Block>
 
-      {/* ── 4. Background ────────────────────────────────────── */}
-      <Block id="background" label="▢ Background" {...blockProps}>
+      {/* 4. Background */}
+      <Block id="background" label="Background" {...blockProps}>
         <label className="settings-label">Color</label>
         <div className="settings-swatch-row" style={{ marginBottom: 6 }}>
           {COLOR_PRESETS.map((c) => (
@@ -380,43 +414,52 @@ const JCardSettings = ({
           />
           Stretch image across all panels
         </label>
+
+        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        </div>
+        <ImageUpload
+          label="Inside background image"
+          currentUrl={content.insideBackgroundImageUrl}
+          imageType="background"
+          cardId={card.id}
+          onChange={(url) => patch({ insideBackgroundImageUrl: url ?? undefined })}
+        />
       </Block>
 
-      {/* ── 5. Spine ─────────────────────────────────────────── */}
-      <Block id="spine" label="✉ Spine" {...blockProps}>
+      {/* 5. Spine */}
+      <Block id="spine" label="Spine" {...blockProps}>
         <label className="settings-label">Top</label>
         <ContentEditor value={content.spineTopContent} onChange={(html) => patch({ spineTopContent: html })} placeholder="Mixtape title" minHeight="40px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Center</label>
         <ContentEditor value={content.spineCenterContent} onChange={(html) => patch({ spineCenterContent: html })} placeholder="Side A / Side B" minHeight="40px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Bottom</label>
         <ContentEditor value={content.spineBottomContent} onChange={(html) => patch({ spineBottomContent: html })} placeholder="90 min" minHeight="40px" customFontNames={customFontNames} />
+
+        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        </div>
+        <label className="settings-label" style={{ marginTop: 8 }}>Center</label>
+        <ContentEditor value={content.insideSpineContent ?? ''} onChange={(html) => patch({ insideSpineContent: html })} placeholder="Spine inside..." minHeight="40px" customFontNames={customFontNames} />
       </Block>
 
-      {/* ── 6. Back panel ────────────────────────────────────── */}
-      <Block id="back" label="◫ Back panel" {...blockProps}>
+      {/* 6. Back panel */}
+      <Block id="back" label="Back panel" {...blockProps}>
         <label className="settings-label">Left column (Side A)</label>
-        <ContentEditor value={content.backLeftContent} onChange={(html) => patch({ backLeftContent: html })} placeholder="Side A tracks…" minHeight="80px" customFontNames={customFontNames} />
+        <ContentEditor value={content.backLeftContent} onChange={(html) => patch({ backLeftContent: html })} placeholder="Side A tracks..." minHeight="80px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Right column (Side B)</label>
-        <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks…" minHeight="80px" customFontNames={customFontNames} />
+        <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks..." minHeight="80px" customFontNames={customFontNames} />
+
+        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        </div>
+        <label className="settings-label" style={{ marginTop: 8 }}>Content</label>
+        <ContentEditor value={content.insideBackContent ?? ''} onChange={(html) => patch({ insideBackContent: html })} placeholder="Back panel inside..." minHeight="80px" customFontNames={customFontNames} />
       </Block>
 
-      {/* ── 6b. Inside (double-sided print) ─────────────────── */}
-      <Block id="inside" label="◧ Inside" {...blockProps}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
-          Printed on the reverse side of the card when exporting a double-sided PDF.
-          Great for a full tracklist or liner notes.
-        </p>
-        <ContentEditor
-          value={content.insideContent ?? ''}
-          onChange={(html) => patch({ insideContent: html })}
-          placeholder="Track listing, liner notes…"
-          minHeight="120px"
-          customFontNames={customFontNames}
-        />
-      </Block>
 
-      {/* ── 7. Tracklist (linked mixtape) ────────────────────── */}
-      <Block id="mixtape" label="♯ Tracklist" {...blockProps}>
+      {/* 7. Tracklist (linked mixtape) */}
+      <Block id="mixtape" label="Tracklist" {...blockProps}>
         <MixtapeLinkPicker
           mixtapeId={card.mixtapeId}
           currentMixtape={currentMixtape}
@@ -426,8 +469,8 @@ const JCardSettings = ({
         />
       </Block>
 
-      {/* ── 8. Export ────────────────────────────────────────── */}
-      <Block id="export" label="▧ Export" {...blockProps}>
+      {/* 8. Export */}
+      <Block id="export" label="Export" {...blockProps}>
         <label className="settings-checkbox-label" style={{ marginBottom: 8 }}>
           <input
             type="checkbox"
@@ -442,7 +485,7 @@ const JCardSettings = ({
           onClick={handleExport}
           disabled={exporting}
         >
-          {exporting ? 'Generating…' : '▤ Export PDF'}
+          {exporting ? 'Generating...' : 'Export PDF'}
         </button>
         <p style={{ fontSize: 10, color: 'var(--color-text-light)', marginTop: 6, fontFamily: 'var(--font-body)' }}>
           Print at 100% / Actual size for correct dimensions.
@@ -453,4 +496,4 @@ const JCardSettings = ({
   );
 };
 
-export default JCardSettings;
+export default JCardSettings;

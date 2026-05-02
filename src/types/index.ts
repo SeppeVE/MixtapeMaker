@@ -73,6 +73,8 @@ export interface JCardContent {
   showCutGuides?: boolean;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
+  /** HTML content for the inside face of the card (printed on page 2 when exporting). */
+  insideContent?: string;
 }
 
 export interface JCard {

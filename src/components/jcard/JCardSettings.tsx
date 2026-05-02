@@ -9,7 +9,7 @@ import { exportJCardToPDF } from '../../utils/jcardPdf';
 import { readFileAsBase64, fontNameFromFile, mimeTypeFromFile, registerCustomFonts } from '../../utils/fontManager';
 import '../../styles/jcard/JCardSettings.css';
 
-export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'spine' | 'back' | 'mixtape' | 'export' | 'presets';
+export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'spine' | 'back' | 'inside' | 'mixtape' | 'export' | 'presets';
 
 const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   info:       { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
@@ -19,6 +19,7 @@ const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   fonts:      { bg: 'var(--color-mustard)', fg: 'var(--color-text)'  },
   spine:      { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   back:       { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
+  inside:     { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   mixtape:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
   export:     { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
   presets:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
@@ -91,7 +92,7 @@ const JCardSettings = ({
   };
 
   const [openSections, setOpenSections] = React.useState<Set<Section>>(
-    new Set(['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export'] as Section[]),
+    new Set(['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'inside', 'mixtape', 'export'] as Section[]),
   );
   const [activeFlap, setActiveFlap] = React.useState(0);
   const [exporting, setExporting] = React.useState(false);
@@ -399,6 +400,21 @@ const JCardSettings = ({
         <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks…" minHeight="80px" customFontNames={customFontNames} />
       </Block>
 
+      {/* ── 6b. Inside (double-sided print) ─────────────────── */}
+      <Block id="inside" label="◧ Inside" {...blockProps}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+          Printed on the reverse side of the card when exporting a double-sided PDF.
+          Great for a full tracklist or liner notes.
+        </p>
+        <ContentEditor
+          value={content.insideContent ?? ''}
+          onChange={(html) => patch({ insideContent: html })}
+          placeholder="Track listing, liner notes…"
+          minHeight="120px"
+          customFontNames={customFontNames}
+        />
+      </Block>
+
       {/* ── 7. Tracklist (linked mixtape) ────────────────────── */}
       <Block id="mixtape" label="♯ Tracklist" {...blockProps}>
         <MixtapeLinkPicker
@@ -437,4 +453,4 @@ const JCardSettings = ({
   );
 };
 
-export default JCardSettings;
+export default JCardSettings;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { JCardContent, JCard, Mixtape, CustomFont } from '../../types';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
+import { JCARD_PRESETS } from '../../utils/jcardPresets';
 import ContentEditor from './ContentEditor';
 import MixtapeLinkPicker from './MixtapeLinkPicker';
 import ImageUpload from './ImageUpload';
@@ -8,7 +9,7 @@ import { exportJCardToPDF } from '../../utils/jcardPdf';
 import { readFileAsBase64, fontNameFromFile, mimeTypeFromFile, registerCustomFonts } from '../../utils/fontManager';
 import '../../styles/jcard/JCardSettings.css';
 
-export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'spine' | 'back' | 'mixtape' | 'export';
+export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'spine' | 'back' | 'mixtape' | 'export' | 'presets';
 
 const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   info:       { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
@@ -20,6 +21,7 @@ const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   back:       { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   mixtape:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
   export:     { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
+  presets:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
 };
 
 const COLOR_PRESETS = [
@@ -164,6 +166,13 @@ const JCardSettings = ({
     finally { setExporting(false); }
   };
 
+  const handleApplyPreset = (presetId: string) => {
+    const preset = JCARD_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
+    if (!confirm(`Apply the "${preset.label}" preset? This will overwrite your current design.`)) return;
+    onContentChange({ ...content, ...preset.content } as typeof content);
+  };
+
   const blockProps = { isVisible, isOpen, onToggle: toggle };
   const flapLabel = (i: number) => i === 0 ? 'Cover' : `Flap ${i + 1}`;
 
@@ -179,6 +188,26 @@ const JCardSettings = ({
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="My J-Card"
         />
+      </Block>
+
+      {/* ── 1b. Presets ──────────────────────────────────────── */}
+      <Block id="presets" label="✦ Presets" {...blockProps}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+          Applying a preset overwrites your current design. Use ↩ Undo to revert.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {JCARD_PRESETS.map(preset => (
+            <button
+              key={preset.id}
+              className="btn"
+              style={{ justifyContent: 'flex-start', gap: 8, padding: '5px 10px' }}
+              onClick={() => handleApplyPreset(preset.id)}
+            >
+              <span>{preset.emoji}</span>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>{preset.label}</span>
+            </button>
+          ))}
+        </div>
       </Block>
 
       {/* ── 2. Layout ────────────────────────────────────────── */}
@@ -200,6 +229,11 @@ const JCardSettings = ({
         <div className="settings-range-ticks">
           {[1,2,3,4,5,6].map(n => <span key={n}>{n}</span>)}
         </div>
+        {!content.shortBack && content.flaps > 2 && (
+          <p style={{ margin: '8px 0 0', fontSize: 10, color: 'var(--color-accent)', fontFamily: 'var(--font-body)' }}>
+            ⚠ Tall back + {content.flaps} flaps — this card may not fit a standard cassette case. Consider enabling "Short back panel" or reducing flap count.
+          </p>
+        )}
       </Block>
 
       {/* ── 3. Flap editors ──────────────────────────────────── */}

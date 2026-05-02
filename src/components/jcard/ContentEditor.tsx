@@ -101,7 +101,7 @@ const ContentEditor = ({ value, onChange, placeholder = 'Type here…', minHeigh
       FontFamily,
       LetterSpacing,
       LineHeight,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({ types: ['heading', 'paragraph', 'listItem'] }),
     ],
     content: value,
     onUpdate({ editor }) { onChange(editor.getHTML()); },

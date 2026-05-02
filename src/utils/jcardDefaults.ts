@@ -1,5 +1,6 @@
 import { JCardContent, Mixtape, Song } from '../types';
 import { formatDuration } from './timeUtils';
+import placeholderCover from '../../assets/images/placeholder.jpg';
 
 const FLAP_COUNT = 6;
 
@@ -10,7 +11,11 @@ export function buildBlankJCardContent(): JCardContent {
     shortBack: false,
     backgroundColor: '#EFE8D6',
     continuousBackground: false,
-    flapContents: Array(FLAP_COUNT).fill(''),
+    flapContents: [
+      '<h2 style="text-align:center;font-size:5mm">My Mixtape</h2>',
+      ...Array(FLAP_COUNT - 1).fill(''),
+    ],
+    coverImageUrl: placeholderCover,
     coverImageBehindContent: false,
     isFullCoverImage: false,
     spineTopContent: '',

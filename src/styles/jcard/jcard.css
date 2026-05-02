@@ -34,6 +34,9 @@
   /* Hard offset shadow — matches app design tokens */
   border: 2px solid #2A1E28;
   box-shadow: 6px 6px 0 #2A1E28;
+  /* Prevent long unbreakable words from overflowing panels */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .jcard.reversed {

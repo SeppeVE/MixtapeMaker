@@ -18,7 +18,9 @@ interface Props {
 }
 
 function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
-  const content = mixtape ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape) : buildBlankJCardContent();
+  const content = mixtape
+    ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape, { overwriteCover: true })
+    : buildBlankJCardContent();
   return {
     id: generateId(),
     title: mixtape ? `${mixtape.title} — J-Card` : 'Untitled J-Card',
@@ -195,7 +197,7 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export']}
+            sections={['info', 'presets', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export']}
           />
         </aside>
 

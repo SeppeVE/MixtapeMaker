@@ -14,7 +14,7 @@ type Tab = 'mixtapes' | 'jcards';
 interface LibraryPageProps {
   currentDraft: Mixtape;
   onLoadMixtape: (mixtape: Mixtape) => void;
-  onSaveDraftToCloud: () => void;
+  onSaveDraftToCloud: () => Promise<void>;
   isSavingDraft: boolean;
   onGoHome: () => void;
   onOpenAuth: () => void;
@@ -124,6 +124,14 @@ const LibraryPage = ({
     if (inCloud && inLocal) return 'synced';
     if (inCloud) return 'cloud';
     return 'local';
+  };
+
+  // ── Save draft + refresh list ──
+  const handleSaveDraftToCloud = async () => {
+    await onSaveDraftToCloud();
+    if (user) {
+      loadMixtapes(user.id).then(setCloudTapes).catch(() => {});
+    }
   };
 
   // ── Tape actions ──
@@ -241,7 +249,14 @@ const LibraryPage = ({
                   <span>Working Draft</span>
                   <span className="lib-section-sub">Not yet saved to cloud</span>
                 </div>
-                <div className="lib-draft-card">
+                <div
+                  className="lib-draft-card"
+                  onClick={() => onLoadMixtape(currentDraft)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && onLoadMixtape(currentDraft)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="lib-draft-card-left">
                     <div className="lib-draft-title">{currentDraft.title}</div>
                     <div className="lib-draft-meta">
@@ -250,12 +265,12 @@ const LibraryPage = ({
                       C-{currentDraft.cassetteLength}
                     </div>
                   </div>
-                  <div className="lib-draft-card-right">
+                  <div className="lib-draft-card-right" onClick={e => e.stopPropagation()}>
                     <Badge status="local" />
                     <button
                       className="lp-btn lp-btn-forest"
                       style={{ fontSize: '16px', padding: '4px 14px 2px' }}
-                      onClick={user ? onSaveDraftToCloud : onOpenAuth}
+                      onClick={user ? handleSaveDraftToCloud : onOpenAuth}
                       disabled={isSavingDraft}
                     >
                       {isSavingDraft ? 'Saving…' : '☁ Save to Cloud'}

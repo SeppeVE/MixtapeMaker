@@ -36,6 +36,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setSuccess(true);
           setEmail('');
           setPassword('');
+          setIsSignUp(false);
         } else {
           // Sign in successful, close modal
           onClose();

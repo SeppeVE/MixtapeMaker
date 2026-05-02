@@ -53,7 +53,7 @@ const SearchBar = ({ onAddSong, sideA, sideB, activeSide }: SearchBarProps) => {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="song, artist… ( / )"
+              placeholder="song, artist…"
               className="search-input"
             />
             <button type="submit" disabled={isLoading} className="btn btn-search">
@@ -102,10 +102,6 @@ const SearchBar = ({ onAddSong, sideA, sideB, activeSide }: SearchBarProps) => {
           })}
         </div>
 
-        <div className="search-hints">
-          <span><kbd className="hint-kbd">⏎</kbd> add to {activeSide}</span>
-          <span><kbd className="hint-kbd">⇧⏎</kbd> other side</span>
-        </div>
       </div>
     </div>
   );

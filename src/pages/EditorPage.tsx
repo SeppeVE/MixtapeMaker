@@ -51,6 +51,7 @@ const EditorPage = ({
   const handleAddSong = (song: Song, side: Side) => {
     const key = side === 'A' ? 'sideA' : 'sideB';
     update({ [key]: [...mixtape[key], song] });
+    if (side !== activeSide) doFlip();
   };
 
   const handleRemoveSong = (songId: string, side: Side) => {

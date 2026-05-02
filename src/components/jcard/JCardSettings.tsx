@@ -236,7 +236,61 @@ const JCardSettings = ({
         )}
       </Block>
 
-      {/* ── 3. Flap editors ──────────────────────────────────── */}
+      {/* ── 3. Fonts ─────────────────────────────────────────── */}
+      <Block id="fonts" label="Aa Fonts" {...blockProps}>
+        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+          9 default fonts are always available in the text editors.
+          Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
+        </p>
+
+        {/* Uploaded fonts list */}
+        {customFonts.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+            {customFonts.map(f => (
+              <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', border: '1.5px solid var(--color-text)', background: 'var(--color-paper)' }}>
+                <span style={{ fontFamily: f.name, fontSize: '1.25rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {f.name}
+                </span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, opacity: 0.5, flexShrink: 0 }}>
+                  custom
+                </span>
+                <button
+                  className="btn"
+                  style={{ fontSize: 10, padding: '1px 5px', minWidth: 0, flexShrink: 0 }}
+                  onClick={() => removeFont(f.name)}
+                  title={`Remove ${f.name}`}
+                >✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Warning / error message */}
+        {fontWarning && (
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, margin: '0 0 6px', color: 'var(--color-accent)' }}>
+            ⚠ {fontWarning}
+          </p>
+        )}
+
+        {/* Upload button */}
+        <input
+          ref={fontInputRef}
+          type="file"
+          accept=".woff2,.woff,.otf,.ttf"
+          style={{ display: 'none' }}
+          onChange={handleFontUpload}
+        />
+        <button
+          className="btn"
+          style={{ width: '100%', justifyContent: 'center' }}
+          disabled={fontUploading || customFonts.length >= MAX_FONTS}
+          onClick={() => { setFontWarning(null); fontInputRef.current?.click(); }}
+        >
+          {fontUploading ? 'Loading…' : `+ Upload font (.woff2 / .otf / .ttf)${customFonts.length >= MAX_FONTS ? ' — limit reached' : ''}`}
+        </button>
+      </Block>
+
+      {/* ── 4. Flap editors ──────────────────────────────────── */}
       <Block id="flaps" label="✎ Flaps" {...blockProps}>
         {/* Tab strip */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -325,60 +379,6 @@ const JCardSettings = ({
           />
           Stretch image across all panels
         </label>
-      </Block>
-
-      {/* ── 4b. Fonts ────────────────────────────────────────── */}
-      <Block id="fonts" label="Aa Fonts" {...blockProps}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
-          9 default fonts are always available in the text editors.
-          Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
-        </p>
-
-        {/* Uploaded fonts list */}
-        {customFonts.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
-            {customFonts.map(f => (
-              <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', border: '1.5px solid var(--color-text)', background: 'var(--color-paper)' }}>
-                <span style={{ fontFamily: f.name, fontSize: '1.25rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {f.name}
-                </span>
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, opacity: 0.5, flexShrink: 0 }}>
-                  custom
-                </span>
-                <button
-                  className="btn"
-                  style={{ fontSize: 10, padding: '1px 5px', minWidth: 0, flexShrink: 0 }}
-                  onClick={() => removeFont(f.name)}
-                  title={`Remove ${f.name}`}
-                >✕</button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Warning / error message */}
-        {fontWarning && (
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, margin: '0 0 6px', color: 'var(--color-accent)' }}>
-            ⚠ {fontWarning}
-          </p>
-        )}
-
-        {/* Upload button */}
-        <input
-          ref={fontInputRef}
-          type="file"
-          accept=".woff2,.woff,.otf,.ttf"
-          style={{ display: 'none' }}
-          onChange={handleFontUpload}
-        />
-        <button
-          className="btn"
-          style={{ width: '100%', justifyContent: 'center' }}
-          disabled={fontUploading || customFonts.length >= MAX_FONTS}
-          onClick={() => { setFontWarning(null); fontInputRef.current?.click(); }}
-        >
-          {fontUploading ? 'Loading…' : `+ Upload font (.woff2 / .otf / .ttf)${customFonts.length >= MAX_FONTS ? ' — limit reached' : ''}`}
-        </button>
       </Block>
 
       {/* ── 5. Spine ─────────────────────────────────────────── */}

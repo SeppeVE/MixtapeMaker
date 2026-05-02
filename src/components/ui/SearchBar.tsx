@@ -5,15 +5,13 @@ import { formatTime } from '../../utils/timeUtils';
 import '../../styles/SearchBar.css';
 
 interface SearchBarProps {
-  clientId: string;
-  clientSecret: string;
   onAddSong: (song: Song, side: Side) => void;
   sideA: Song[];
   sideB: Song[];
   activeSide: Side;
 }
 
-const SearchBar = ({ clientId, clientSecret, onAddSong, sideA, sideB, activeSide }: SearchBarProps) => {
+const SearchBar = ({ onAddSong, sideA, sideB, activeSide }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +23,7 @@ const SearchBar = ({ clientId, clientSecret, onAddSong, sideA, sideB, activeSide
     setIsLoading(true);
     setError(null);
     try {
-      const songs = await searchSpotify(q, clientId, clientSecret);
+      const songs = await searchSpotify(q);
       setResults(songs);
       setRecentSearches(prev => {
         const next = [q, ...prev.filter(r => r !== q)].slice(0, 4);

@@ -8,8 +8,6 @@ import TapeSide from '../components/tape/TapeSide';
 import TapePreview from '../components/tape/TapePreview';
 import '../styles/Editor.css';
 
-const SPOTIFY_CLIENT_ID     = import.meta.env.VITE_SPOTIFY_CLIENT_ID     || '';
-const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || '';
 
 interface EditorPageProps {
   mixtape: Mixtape;
@@ -134,8 +132,6 @@ const EditorPage = ({
         <div className="col-search">
           <div className="col-hello">Search</div>
           <SearchBar
-            clientId={SPOTIFY_CLIENT_ID}
-            clientSecret={SPOTIFY_CLIENT_SECRET}
             onAddSong={handleAddSong}
             sideA={mixtape.sideA}
             sideB={mixtape.sideB}

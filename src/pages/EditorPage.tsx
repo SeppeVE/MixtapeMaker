@@ -8,7 +8,6 @@ import TapeSide from '../components/tape/TapeSide';
 import TapePreview from '../components/tape/TapePreview';
 import '../styles/Editor.css';
 
-
 interface EditorPageProps {
   mixtape: Mixtape;
   onMixtapeChange: (mixtape: Mixtape) => void;

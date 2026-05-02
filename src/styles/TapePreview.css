@@ -1,0 +1,326 @@
+.tape-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Panel (SchWindow) ── */
+.preview-panel {
+  background: var(--color-sage);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+}
+
+.panel-titlebar {
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  padding: 5px 8px 4px;
+  border-bottom: 2px solid var(--color-text);
+}
+.panel-sage { background: var(--color-forest); }
+.panel-plum { background: var(--color-primary); }
+
+.panel-body {
+  padding: 10px;
+  background: var(--color-sage);
+}
+
+.panel-body-actions {
+  background: var(--color-paper);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Cassette face ── */
+.cassette-face {
+  background: var(--color-text);
+  border: 1.5px solid var(--color-text);
+  aspect-ratio: 16 / 10;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.08);
+}
+
+.cassette-dither {
+  position: absolute;
+  inset: 3px;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0px, transparent 1px,
+    rgba(74,58,72,.5) 1px, rgba(74,58,72,.5) 2px
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.cassette-reels {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  height: 100%;
+}
+
+.reel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  position: relative;
+  flex-shrink: 0;
+  animation: reel-spin 2.5s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes reel-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Reel hub (colored by side) */
+.reel::before {
+  content: '';
+  position: absolute;
+  inset: 35%;
+  background: var(--reel-color, #8FC9B7);
+  border: 1.5px solid var(--color-text);
+}
+
+/* Reel spokes (3 lines at 0/60/120 deg) */
+.reel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg,   transparent 49%, #2A1E28 49%, #2A1E28 51%, transparent 51%),
+    linear-gradient(60deg,  transparent 49%, #2A1E28 49%, #2A1E28 51%, transparent 51%),
+    linear-gradient(120deg, transparent 49%, #2A1E28 49%, #2A1E28 51%, transparent 51%);
+}
+
+/* Label strip at top */
+.cassette-label-strip {
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  right: 10px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-text);
+  padding: 3px 6px 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.cassette-label-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  color: var(--color-text);
+}
+
+.cassette-label-untitled {
+  opacity: 0.4;
+  font-style: italic;
+}
+
+.cassette-side-badge {
+  font-family: var(--font-display);
+  font-size: 11px;
+  padding: 1px 4px 0;
+  border: 1px solid var(--color-text);
+  color: var(--color-paper);
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+.badge-a { background: var(--color-primary); }
+.badge-b { background: #7A6090; }
+
+/* Tape window slot at bottom */
+.cassette-tape-window {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 5px;
+  height: 4px;
+  background: var(--color-paper-dk);
+  border-top: 1px solid var(--color-text);
+}
+
+/* ── Metadata ── */
+.cassette-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(42,30,40,.3);
+  font-size: 11px;
+}
+.meta-row:last-child { border-bottom: none; }
+
+.meta-key {
+  font-family: var(--font-display);
+  font-size: 14px;
+  opacity: 0.65;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text);
+}
+
+.meta-editable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.meta-editable:hover { color: var(--color-primary); }
+
+.meta-placeholder { opacity: 0.45; font-style: italic; }
+
+.meta-input {
+  font-family: var(--font-body);
+  font-size: 10px;
+  background: var(--color-white);
+  border: 1.5px solid var(--color-text);
+  color: var(--color-text);
+  padding: 2px 5px;
+  box-shadow: var(--bevel-in);
+  flex: 1;
+  min-width: 0;
+}
+.meta-input:focus { outline: none; background: rgba(212,169,53,.12); }
+
+.meta-select {
+  font-family: var(--font-body);
+  font-size: 10px;
+  background: var(--color-white);
+  border: 1.5px solid var(--color-text);
+  color: var(--color-text);
+  padding: 2px 5px;
+  cursor: pointer;
+}
+.meta-select:focus { outline: none; }
+
+/* ── Actions ── */
+.action-btn {
+  justify-content: flex-start;
+  font-size: 11px;
+  padding: 6px 10px;
+  width: 100%;
+}
+
+/* ── Dubbing progress ── */
+.dubbing-panel {
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.dubbing-reel {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-forest);
+  border: 1.5px solid var(--color-text);
+  flex-shrink: 0;
+  animation: reel-spin 1.5s linear infinite;
+  position: relative;
+}
+.dubbing-reel::before {
+  content: '';
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: var(--color-paper);
+}
+
+.dubbing-info { flex: 1; }
+.dubbing-label { margin-bottom: 3px; }
+
+.dubbing-bar {
+  height: 5px;
+  background: var(--color-paper-dk);
+  border: 1px solid var(--color-text);
+}
+
+.dubbing-fill {
+  height: 100%;
+  width: 60%;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-forest) 0px, var(--color-forest) 3px,
+    var(--color-secondary) 3px, var(--color-secondary) 6px
+  );
+  animation: dub-progress 2s linear infinite;
+}
+
+@keyframes dub-progress {
+  from { background-position: 0 0; }
+  to   { background-position: 18px 0; }
+}
+
+/* ── Title meta row ── */
+.meta-untitled {
+  opacity: 0.75;
+}
+
+.meta-edit-hint {
+  opacity: 0;
+  font-size: 9px;
+  transition: opacity 0.15s;
+  margin-left: 2px;
+}
+.meta-editable:hover .meta-edit-hint { opacity: 0.5; }
+
+/* ── Side status (dot + label) ── */
+.side-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.side-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+  border: 1px solid rgba(42,30,40,.2);
+}
+
+.side-status-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.2px;
+  opacity: 0.9;
+}

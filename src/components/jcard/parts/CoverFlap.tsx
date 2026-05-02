@@ -25,7 +25,7 @@ const CoverFlap = ({ content, sanitizedCover }: Props) => {
   };
   const textStyle: React.CSSProperties = {
     flex: content.isFullCoverImage && !content.coverImageBehindContent ? 0 : 1,
-    padding: '1mm', overflow: 'hidden', fontSize: '2.8mm', lineHeight: 1.3,
+    padding: '1.5mm', overflow: 'hidden', fontSize: '2.8mm', lineHeight: 1.3,
     position: content.coverImageBehindContent ? 'absolute' : 'relative',
     zIndex: content.coverImageBehindContent ? 10 : undefined,
     top: content.coverImageBehindContent ? 0 : undefined, left: content.coverImageBehindContent ? 0 : undefined,

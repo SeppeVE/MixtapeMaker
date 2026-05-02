@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import { toPng } from 'html-to-image';
 import { JCardContent } from '../types';
 import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
@@ -16,7 +16,13 @@ const MM_TO_PX = 96 / 25.4;
 const SNAPSHOT_PIXEL_RATIO = 4;
 
 // White margin added around the card on the printed page (mm).
-const MARGIN_MM = 6;
+const MARGIN_MM = 10;
+
+// Crop mark settings (mm). The gap keeps the mark off the card edge;
+// the arm length is how long each tick line extends outward.
+const CROP_GAP_MM  = 1.5;
+const CROP_LEN_MM  = 5;
+const CROP_WIDTH_PT = 0.5; // line thickness in PDF points
 
 /**
  * Mount `JCardPrintable` into a hidden, exact-size DOM node, snapshot it
@@ -67,13 +73,23 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       try { await (document as any).fonts.ready; } catch { /* ignore */ }
     }
 
+    // Grab the card element BEFORE inlineCrossOriginFonts, which calls
+    // host.prepend(<style>) — that would shift host.firstElementChild away
+    // from the .jcard element onto the injected <style> tag.
+    // querySelector('.jcard') is explicit and order-independent.
+    const cardEl = host.querySelector<HTMLElement>('.jcard');
+    if (!cardEl) throw new Error('JCardPrintable failed to mount');
+
+    // html-to-image tries to read cssRules from every linked stylesheet so it
+    // can inline them. Cross-origin sheets (Google Fonts) throw a SecurityError
+    // when cssRules is accessed. We work around this by fetching those CSS
+    // files ourselves via fetch() (which respects CORS headers and succeeds),
+    // then injecting them as a same-origin <style> element in the off-screen
+    // host — html-to-image will read our injected copy instead.
+    await inlineCrossOriginFonts(host);
+
     // Make sure any background images have actually finished decoding.
     await waitForImages(content);
-
-    // The element html-to-image should snapshot is the `.jcard` itself,
-    // not the host (the host has the off-screen positioning).
-    const cardEl = host.firstElementChild as HTMLElement | null;
-    if (!cardEl) throw new Error('JCardPrintable failed to mount');
 
     const pngDataUrl = await toPng(cardEl, {
       pixelRatio: SNAPSHOT_PIXEL_RATIO,
@@ -107,6 +123,38 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
       height: heightMm * MM_TO_PT,
     });
 
+    // ── Crop marks ────────────────────────────────────────────────────────
+    // pdf-lib uses bottom-left origin. Convert all measurements to points.
+    const mPt   = MARGIN_MM  * MM_TO_PT;   // margin in pt
+    const wPt   = widthMm    * MM_TO_PT;   // card width in pt
+    const hPt   = heightMm   * MM_TO_PT;   // card height in pt
+    const gPt   = CROP_GAP_MM * MM_TO_PT;  // gap from card edge
+    const lPt   = CROP_LEN_MM * MM_TO_PT;  // arm length
+    const markColor = rgb(0, 0, 0);
+    const lineOpts = { thickness: CROP_WIDTH_PT, color: markColor };
+
+    // Helper: card edges in PDF coordinates
+    const left   = mPt;
+    const right  = mPt + wPt;
+    const bottom = mPt;
+    const top    = mPt + hPt;
+
+    // Bottom-left
+    page.drawLine({ start: { x: left - gPt - lPt, y: bottom }, end: { x: left - gPt, y: bottom }, ...lineOpts });
+    page.drawLine({ start: { x: left, y: bottom - gPt - lPt }, end: { x: left, y: bottom - gPt }, ...lineOpts });
+
+    // Bottom-right
+    page.drawLine({ start: { x: right + gPt, y: bottom }, end: { x: right + gPt + lPt, y: bottom }, ...lineOpts });
+    page.drawLine({ start: { x: right, y: bottom - gPt - lPt }, end: { x: right, y: bottom - gPt }, ...lineOpts });
+
+    // Top-left
+    page.drawLine({ start: { x: left - gPt - lPt, y: top }, end: { x: left - gPt, y: top }, ...lineOpts });
+    page.drawLine({ start: { x: left, y: top + gPt }, end: { x: left, y: top + gPt + lPt }, ...lineOpts });
+
+    // Top-right
+    page.drawLine({ start: { x: right + gPt, y: top }, end: { x: right + gPt + lPt, y: top }, ...lineOpts });
+    page.drawLine({ start: { x: right, y: top + gPt }, end: { x: right, y: top + gPt + lPt }, ...lineOpts });
+
     const bytes = await pdf.save();
     const blob  = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
     const url   = URL.createObjectURL(blob);
@@ -131,6 +179,52 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   const out   = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
+}
+
+/**
+ * Fetch every cross-origin font stylesheet linked in the document (e.g.
+ * fonts.googleapis.com) and inject the CSS as a same-origin <style> element
+ * inside the off-screen host.
+ *
+ * Problem: html-to-image reads `sheet.cssRules` on every linked stylesheet
+ * to inline fonts before snapshotting. The browser blocks that property on
+ * cross-origin sheets with a SecurityError, so Google Fonts stylesheets
+ * can't be inlined and the fonts may fall back in the PNG.
+ *
+ * Solution: fetch() honours CORS response headers and succeeds where
+ * cssRules access fails. We retrieve the CSS text, create a <style> element
+ * (same-origin by definition), and prepend it to the host. html-to-image
+ * finds our injected copy and reads it without error.
+ */
+async function inlineCrossOriginFonts(host: HTMLElement): Promise<void> {
+  const externalLinks = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+  ).filter(l => {
+    try { return new URL(l.href).origin !== window.location.origin; }
+    catch { return false; }
+  });
+
+  if (externalLinks.length === 0) return;
+
+  const results = await Promise.allSettled(
+    externalLinks.map(l =>
+      fetch(l.href, { mode: 'cors' }).then(r => {
+        if (!r.ok) throw new Error(`${r.status} ${l.href}`);
+        return r.text();
+      }),
+    ),
+  );
+
+  const combined = results
+    .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+    .map(r => r.value)
+    .join('\n');
+
+  if (combined) {
+    const style = document.createElement('style');
+    style.textContent = combined;
+    host.prepend(style);
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { uploadJCardImage } from '../../utils/supabaseImages';
 import { useAuth } from '../../contexts/AuthContext';
-import './ImageUpload.css';
+import '../../styles/jcard/ImageUpload.css';
 
 interface ImageUploadProps {
   label: string;

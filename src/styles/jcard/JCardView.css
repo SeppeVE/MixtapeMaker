@@ -1,0 +1,101 @@
+/* ── Full-height 3-column designer ── */
+.jcard-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.jcard-view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.jcard-history-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.jcard-history-btns .btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.jcard-view-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* 2-column body */
+.jcard-view-body {
+  display: grid;
+  grid-template-columns: 1fr 500px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Main: preview + front panel stacked */
+.jcard-view-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Top: live preview */
+.jcard-view-preview {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Right: all settings + content */
+.jcard-view-right {
+  border-left: 2px solid var(--color-text);
+  overflow-y: auto;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--color-paper);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text) transparent;
+}
+
+/* Column section labels */
+.jcard-col-label {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-mustard);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 4px 14px 2px;
+  align-self: flex-start;
+}

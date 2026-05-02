@@ -2,21 +2,23 @@ import { forwardRef, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { JCardContent } from '../../types';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
+import { liftListColors } from '../../utils/htmlUtils';
 import BackPanel from './parts/BackPanel';
 import Spine from './parts/Spine';
 import CoverFlap from './parts/CoverFlap';
 import ContentFlap from './parts/ContentFlap';
-import './jcard.css';
+import '../../styles/jcard/jcard.css';
 
 const ALLOWED_TAGS = ['p','h1','h2','h3','h4','h5','h6','ul','ol','li','strong','em','u','s','br','span'];
 const ALLOWED_ATTR = ['style','class'];
 
 function san(html: string): string {
   if (typeof window === 'undefined') return html;
-  return DOMPurify.sanitize(
+  const clean = DOMPurify.sanitize(
     html.replace(/<p>\s*<\/p>/g, '<p><br></p>').replace(/<p> <\/p>/g, '<p><br></p>'),
     { ALLOWED_TAGS, ALLOWED_ATTR, KEEP_CONTENT: true },
   );
+  return liftListColors(clean);
 }
 
 const FLAP_WIDTHS = ['65mm','63.5mm','61.5mm','61.5mm','62mm','63.5mm'];

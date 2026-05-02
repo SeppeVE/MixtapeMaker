@@ -42,3 +42,35 @@ export async function deleteJCard(id: string): Promise<void> {
   const { error } = await supabase.from('jcards').delete().eq('id', id);
   if (error) throw error;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Upload a card to the cloud.
+ * If the card's id is already a UUID (previously cloud-saved) we upsert in-place.
+ * If it's a locally-generated id (timestamp format) we let Supabase create a new UUID,
+ * and the returned card will have the new id — the caller should replace the local copy.
+ */
+export async function upsertJCard(card: JCard, userId: string): Promise<JCard> {
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    mixtape_id: card.mixtapeId ?? null,
+    title: card.title,
+    content: card.content,
+    created_at: card.createdAt,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Only forward the id when it's already a valid UUID — otherwise let Supabase generate one.
+  if (UUID_RE.test(card.id)) {
+    payload.id = card.id;
+  }
+
+  const { data, error } = await supabase
+    .from('jcards')
+    .upsert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return dbToJCard(data as DbJCard);
+}

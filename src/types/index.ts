@@ -40,6 +40,15 @@ export interface SpotifySearchResponse {
 export type CassetteLength = 60 | 90 | 120;
 export type Side = 'A' | 'B';
 
+export interface CustomFont {
+  /** Display name, also used as the CSS font-family value. */
+  name: string;
+  /** Base64-encoded font file data. */
+  data: string;
+  /** MIME type (e.g. "font/woff2", "font/otf"). Used to build the data URL for FontFace. */
+  mimeType: string;
+}
+
 export interface JCardContent {
   flaps: 1 | 2 | 3 | 4 | 5 | 6;
   isReversed: boolean;
@@ -62,6 +71,8 @@ export interface JCardContent {
   backRightContent: string;
   /** Show dashed fold/cut guides on the printable export */
   showCutGuides?: boolean;
+  /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
+  customFonts?: CustomFont[];
 }
 
 export interface JCard {

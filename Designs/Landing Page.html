@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cassette — Make Mixtapes & Design J-Cards</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sage:     #A8C4A2;
+    --seafoam:  #8FC9B7;
+    --forest:   #3D5A47;
+    --plum:     #5B2838;
+    --mustard:  #D4A935;
+    --lavender: #B4A0C7;
+    --paper:    #EFE8D6;
+    --paperDk:  #DDD2B8;
+    --ink:      #2A1E28;
+    --inkSoft:  #4A3A48;
+    --white:    #FAF6EB;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--ink);
+    font-family: "Geneva", "Verdana", system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── utility ── */
+  .pixel { font-family: "VT323", "Silkscreen", monospace; }
+  .hard-shadow { box-shadow: 5px 5px 0 var(--ink); }
+  .hard-shadow-lg { box-shadow: 8px 8px 0 var(--ink); }
+
+  /* ── tape strip ── */
+  .tape-strip {
+    display: flex; width: 100%; height: 7px; flex-shrink: 0;
+  }
+  .tape-strip span {
+    flex: 1;
+    border-right: 1px solid var(--ink);
+  }
+  .tape-strip span:last-child { border-right: none; }
+
+  /* ── nav ── */
+  nav {
+    background: var(--paper);
+    border-bottom: 2.5px solid var(--ink);
+    display: flex; align-items: center; gap: 24px;
+    padding: 7px 28px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  nav .logo {
+    font-family: "VT323", monospace;
+    font-size: 26px;
+    color: var(--ink);
+    letter-spacing: 2px;
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none;
+  }
+  nav .logo .dot { color: var(--plum); }
+  nav .nav-links {
+    display: flex; gap: 20px; flex: 1;
+  }
+  nav .nav-links a {
+    font-size: 13px; color: var(--inkSoft); text-decoration: none;
+    letter-spacing: 0.3px;
+  }
+  nav .nav-links a:hover { color: var(--ink); }
+  nav .nav-ctas { display: flex; gap: 10px; }
+  .btn {
+    font-family: "VT323", monospace;
+    font-size: 19px;
+    padding: 4px 16px 2px;
+    border: 2.5px solid var(--ink);
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: transform .07s, box-shadow .07s;
+    line-height: 1;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn:active { transform: translate(2px,2px); box-shadow: none; }
+  .btn-plum   { background: var(--plum);    color: var(--paper); }
+  .btn-mustard{ background: var(--mustard); color: var(--ink); }
+  .btn-paper  { background: var(--paper);   color: var(--ink); }
+  .btn-forest { background: var(--forest);  color: var(--paper); }
+  .btn-lavender{ background: var(--lavender); color: var(--ink); }
+  .btn-lg { font-size: 28px; padding: 8px 28px 5px; box-shadow: 5px 5px 0 var(--ink); }
+  .btn-lg:hover { box-shadow: 8px 8px 0 var(--ink); }
+
+  /* ── hero ── */
+  #hero {
+    background: var(--plum);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px 60px;
+    min-height: 88vh;
+    gap: 0;
+    border-bottom: 3px solid var(--ink);
+  }
+
+  .hero-inner {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    max-width: 1100px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    background: var(--mustard);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    padding: 3px 14px 1px;
+    font-family: "VT323", monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    width: fit-content;
+  }
+
+  .hero-headline {
+    font-family: "VT323", monospace;
+    font-size: 96px;
+    line-height: 0.9;
+    letter-spacing: 4px;
+    color: var(--paper);
+    text-shadow: 6px 6px 0 var(--ink);
+  }
+
+  .hero-headline em {
+    font-style: normal;
+    color: var(--mustard);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--lavender);
+    line-height: 1.6;
+    max-width: 400px;
+    letter-spacing: 0.2px;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .hero-note {
+    font-size: 12px;
+    color: var(--lavender);
+    opacity: 0.7;
+    letter-spacing: 0.5px;
+  }
+
+  .hero-right {
+    flex-shrink: 0;
+  }
+
+  /* ── cassette SVG animations ── */
+  @keyframes reel-spin  { to   { transform: rotate(360deg); } }
+  @keyframes tape-loop  { to   { stroke-dashoffset: -120; } }
+  @keyframes float-up   {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-10px); }
+  }
+  .reel       { animation: reel-spin 2.4s linear infinite; transform-origin: center; }
+  .tape-line  { animation: tape-loop 1.2s linear infinite; stroke-dasharray: 6 4; stroke-dashoffset: 0; }
+  .cassette-float { animation: float-up 3.2s ease-in-out infinite; }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .cursor::after { content: '_'; animation: blink 1s step-end infinite; }
+
+  /* ── dither bg utility ── */
+  .dither-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.06;
+  }
+
+  /* ── features bar ── */
+  #feature-bar {
+    background: var(--mustard);
+    border-top: 2.5px solid var(--ink);
+    border-bottom: 2.5px solid var(--ink);
+    padding: 0;
+    overflow: hidden;
+  }
+  .feature-bar-inner {
+    display: flex;
+    align-items: stretch;
+  }
+  .feature-pill {
+    flex: 1;
+    padding: 14px 24px;
+    font-family: "VT323", monospace;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 10px;
+    border-right: 2.5px solid var(--ink);
+  }
+  .feature-pill:last-child { border-right: none; }
+  .feature-pill .pill-icon {
+    width: 28px; height: 28px;
+    background: var(--ink);
+    border-radius: 0;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── section shared ── */
+  section {
+    position: relative; overflow: hidden;
+  }
+  .section-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 40px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── split feature section ── */
+  .split-feature {
+    display: flex; align-items: center; gap: 64px;
+  }
+  .split-feature.reverse { flex-direction: row-reverse; }
+  .split-text { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+  .split-visual { flex: 1; }
+
+  .section-label {
+    font-family: "VT323", monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+  .section-title {
+    font-family: "VT323", monospace;
+    font-size: 64px;
+    line-height: 0.95;
+    letter-spacing: 2px;
+    text-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+  }
+  .section-body {
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 420px;
+    opacity: 0.85;
+  }
+  .feature-list {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .feature-list li {
+    font-size: 13px;
+    display: flex; align-items: flex-start; gap: 10px;
+    line-height: 1.5;
+  }
+  .feature-list li::before {
+    content: '◆';
+    font-size: 8px;
+    flex-shrink: 0;
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+
+  /* mock window */
+  .mock-window {
+    border: 2.5px solid var(--ink);
+    background: var(--paper);
+    position: relative;
+  }
+  .mock-titlebar {
+    background: var(--plum);
+    color: var(--paper);
+    border-bottom: 2.5px solid var(--ink);
+    padding: 5px 10px 4px;
+    display: flex; align-items: center; gap: 8px;
+    font-family: "VT323", monospace;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+  .mock-close {
+    width: 12px; height: 12px;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    font-size: 9px; line-height: 12px; text-align: center;
+    color: var(--ink); font-weight: bold;
+    cursor: default;
+  }
+  .mock-body { padding: 14px; }
+
+  /* ── track rows ── */
+  .track-rows { display: flex; flex-direction: column; gap: 6px; }
+  .track-row {
+    display: flex; align-items: center; gap: 8px;
+    font-family: "Geneva", Verdana, sans-serif; font-size: 12px;
+    color: var(--ink);
+  }
+  .track-num {
+    font-family: "VT323", monospace; font-size: 17px;
+    width: 22px; text-align: right; opacity: 0.5; flex-shrink: 0;
+  }
+  .track-bar-bg {
+    flex: 1; height: 18px;
+    background: var(--paperDk);
+    border: 1.5px solid var(--ink);
+    position: relative; overflow: hidden;
+  }
+  .track-bar-fill {
+    position: absolute; inset-y: 0; left: 0;
+    background: var(--seafoam);
+  }
+  .track-name { position: absolute; inset: 0; padding: 2px 6px; font-size: 11px; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track-dur {
+    font-family: "VT323", monospace; font-size: 16px;
+    width: 36px; text-align: right; flex-shrink: 0; opacity: 0.7;
+  }
+
+  .dither-bar-wrap {
+    margin-top: 12px; border-top: 1.5px solid var(--inkSoft); padding-top: 10px;
+  }
+  .dither-bar-label {
+    display: flex; justify-content: space-between;
+    font-family: "VT323", monospace; font-size: 17px; margin-bottom: 5px;
+    color: var(--ink); opacity: 0.7;
+  }
+  .dither-bar-outer {
+    height: 20px;
+    border: 2px solid var(--ink);
+    background: var(--paperDk);
+    position: relative; overflow: hidden;
+  }
+  .dither-bar-fill {
+    position: absolute; inset-y: 0; left: 0; width: 72%;
+    background: var(--plum);
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent, transparent 2px,
+      rgba(255,255,255,0.12) 2px, rgba(255,255,255,0.12) 4px
+    );
+  }
+  .dither-ticks {
+    position: absolute; inset: 0; display: flex;
+  }
+  .dither-ticks span {
+    flex: 1; border-right: 1px solid rgba(42,30,40,0.2);
+  }
+
+  /* ── j-card mock ── */
+  .jcard-mock {
+    position: relative;
+  }
+  .jcard-outer {
+    width: 100%;
+    display: flex;
+    border: 2.5px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .jcard-spine {
+    width: 40px;
+    background: var(--plum);
+    border-right: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl;
+    font-family: "VT323", monospace; font-size: 15px; letter-spacing: 2px;
+    color: var(--paper);
+    padding: 10px 0;
+    flex-shrink: 0;
+  }
+  .jcard-front {
+    flex: 1;
+    background: var(--paperDk);
+    min-height: 200px;
+    display: flex; flex-direction: column;
+    border-right: 2px solid var(--ink);
+  }
+  .jcard-cover {
+    flex: 1;
+    background: var(--inkSoft);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 8px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 8px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px;
+    font-family: "Geneva", Verdana, sans-serif;
+    font-size: 11px; color: rgba(255,255,255,0.3);
+    letter-spacing: 1px; text-transform: uppercase; text-align: center;
+    min-height: 130px;
+  }
+  .jcard-meta {
+    padding: 8px 10px;
+    border-top: 1.5px solid var(--ink);
+    background: var(--paper);
+    font-family: "VT323", monospace;
+    font-size: 16px; letter-spacing: 0.5px;
+  }
+  .jcard-back {
+    flex: 1;
+    background: var(--paper);
+    padding: 10px;
+    font-family: "Geneva", Verdana, sans-serif;
+    font-size: 10px;
+    color: var(--inkSoft);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .jcard-back-track { border-bottom: 1px solid var(--paperDk); padding-bottom: 3px; }
+
+  /* ── how it works ── */
+  #how-it-works {
+    background: var(--ink);
+    border-top: 3px solid var(--ink);
+    border-bottom: 3px solid var(--ink);
+  }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .step {
+    padding: 40px 36px;
+    border-right: 2.5px solid rgba(255,255,255,0.08);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .step:last-child { border-right: none; }
+  .step-number {
+    font-family: "VT323", monospace;
+    font-size: 80px;
+    line-height: 0.8;
+    color: var(--mustard);
+    text-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+  }
+  .step-title {
+    font-family: "VT323", monospace;
+    font-size: 32px;
+    color: var(--paper);
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .step-desc {
+    font-size: 13px;
+    color: var(--sage);
+    line-height: 1.65;
+    opacity: 0.85;
+  }
+  .step-tag {
+    display: inline-flex;
+    background: var(--plum);
+    color: var(--paper);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    padding: 3px 10px 1px;
+    font-family: "VT323", monospace;
+    font-size: 15px;
+    letter-spacing: 1px;
+    width: fit-content;
+  }
+
+  /* ── CTA section ── */
+  #cta {
+    background: var(--seafoam);
+    border-top: 3px solid var(--ink);
+  }
+  .cta-inner {
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 36px;
+  }
+  .cta-headline {
+    font-family: "VT323", monospace;
+    font-size: 76px;
+    letter-spacing: 3px;
+    color: var(--ink);
+    text-shadow: 5px 5px 0 rgba(0,0,0,0.15);
+    line-height: 0.95;
+  }
+  .cta-cards {
+    display: flex; gap: 28px; width: 100%; max-width: 700px;
+  }
+  .cta-card {
+    flex: 1;
+    border: 2.5px solid var(--ink);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform .08s, box-shadow .08s;
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .cta-card:hover { transform: translate(-3px,-3px); box-shadow: 9px 9px 0 var(--ink); }
+  .cta-card:active { transform: translate(3px,3px); box-shadow: none; }
+  .cta-card-head {
+    padding: 20px 20px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cta-card-title {
+    font-family: "VT323", monospace;
+    font-size: 40px; letter-spacing: 1px;
+    color: var(--paper); line-height: 1;
+  }
+  .cta-card-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.55;
+  }
+  .cta-card-foot {
+    padding: 10px 20px;
+    background: var(--paper);
+    border-top: 2px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: "VT323", monospace;
+    font-size: 20px; letter-spacing: 0.5px;
+    color: var(--ink);
+  }
+  .cta-card-foot span { opacity: 0.5; }
+
+  /* ── footer ── */
+  footer {
+    background: var(--paper);
+    border-top: 3px solid var(--ink);
+    padding: 20px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+  }
+  footer .foot-logo {
+    font-family: "VT323", monospace;
+    font-size: 22px; letter-spacing: 2px; color: var(--ink);
+  }
+  footer .foot-note {
+    font-size: 11px; color: var(--inkSoft); opacity: 0.6;
+  }
+
+  /* floaters – subtle geometric bg decorations via CSS */
+  .geo {
+    position: absolute; pointer-events: none;
+    border: 2px solid currentColor;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ NAV ══════════════════════════════════ -->
+<nav>
+  <a href="#" class="logo">
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+      <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28"/>
+    </svg>
+    CASSETTE
+  </a>
+  <div class="nav-links">
+    <a href="#mixtape">Mixtape</a>
+    <a href="#jcard">J-Card</a>
+    <a href="#how-it-works">How it works</a>
+  </div>
+  <div class="nav-ctas">
+    <a href="Scherzo Mixtape.html" class="btn btn-paper">Make a Tape</a>
+    <a href="J-Card Generator.html" class="btn btn-plum">Design a J-Card</a>
+  </div>
+</nav>
+
+<div class="tape-strip">
+  <span style="background:#D4A935"></span><span style="background:#5B2838"></span>
+  <span style="background:#8FC9B7"></span><span style="background:#B4A0C7"></span>
+  <span style="background:#A8C4A2"></span><span style="background:#3D5A47"></span>
+  <span style="background:#D4A935"></span><span style="background:#5B2838"></span>
+  <span style="background:#8FC9B7"></span><span style="background:#B4A0C7"></span>
+  <span style="background:#A8C4A2"></span><span style="background:#3D5A47"></span>
+</div>
+
+<!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
+<section id="hero">
+  <!-- dither bg -->
+  <div class="dither-overlay" style="background-image: url(&quot;data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%235B2838'/%3E%3Crect width='2' height='2' fill='%23EFE8D6'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23EFE8D6'/%3E%3C/svg%3E&quot;);"></div>
+
+  <!-- geometric floaters -->
+  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1;">
+    <!-- triangle -->
+    <svg width="100%" height="100%" style="position:absolute;inset:0;">
+      <polygon points="80,60 130,140 30,140" fill="#D4A935" stroke="#2A1E28" stroke-width="2" opacity="0.35"/>
+      <polygon points="900,80 960,190 840,190" fill="#B4A0C7" stroke="#2A1E28" stroke-width="2" opacity="0.25"/>
+      <rect x="1000" y="300" width="48" height="48" fill="#8FC9B7" stroke="#2A1E28" stroke-width="2" opacity="0.3" transform="rotate(18,1024,324)"/>
+      <circle cx="120" cy="480" r="32" fill="none" stroke="#D4A935" stroke-width="2" opacity="0.2"/>
+      <polygon points="1100,500 1130,460 1160,500 1130,540" fill="#5B2838" stroke="#2A1E28" stroke-width="2" opacity="0.4"/>
+      <rect x="60" y="350" width="30" height="30" fill="#A8C4A2" stroke="#2A1E28" stroke-width="2" opacity="0.25" transform="rotate(30,75,365)"/>
+    </svg>
+  </div>
+
+  <div class="hero-inner">
+    <!-- left copy -->
+    <div class="hero-left">
+      <div class="hero-eyebrow">◆ FOR CASSETTE ENTHUSIASTS</div>
+
+      <div class="hero-headline">
+        MIX.<br>DESIGN.<br><em>REWIND.</em>
+      </div>
+
+      <p class="hero-sub">
+        Build perfect mixtapes with auto length calculation, then design beautiful print-ready J-cards. No account needed — just press play.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="Scherzo Mixtape.html" class="btn btn-mustard btn-lg">▶ Make a Tape</a>
+        <a href="J-Card Generator.html" class="btn btn-paper btn-lg">✦ Design a J-Card</a>
+      </div>
+
+      <div class="hero-note">Free to use · No sign-in · Works in your browser</div>
+    </div>
+
+    <!-- right cassette -->
+    <div class="hero-right">
+      <div class="cassette-float">
+        <svg width="360" height="234" viewBox="0 0 300 195" fill="none" xmlns="http://www.w3.org/2000/svg"
+          style="filter: drop-shadow(8px 8px 0 #2A1E28)">
+          <rect x="2" y="2" width="296" height="191" rx="10" fill="#EFE8D6" stroke="#2A1E28" stroke-width="3.5"/>
+          <rect x="10" y="10" width="280" height="175" rx="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+          <rect x="14" y="14" width="272" height="88" rx="4" fill="#5B2838" stroke="#2A1E28" stroke-width="2.5"/>
+          <rect x="20" y="20" width="260" height="76" rx="2" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <rect x="26" y="28" width="130" height="7" rx="2" fill="rgba(255,255,255,0.55)"/>
+          <rect x="26" y="43" width="90" height="4" rx="2" fill="rgba(255,255,255,0.3)"/>
+          <rect x="26" y="55" width="60" height="3" rx="2" fill="rgba(255,255,255,0.2)"/>
+          <rect x="26" y="65" width="110" height="3" rx="2" fill="rgba(255,255,255,0.15)"/>
+          <rect x="26" y="75" width="75" height="3" rx="2" fill="rgba(255,255,255,0.15)"/>
+          <rect x="208" y="24" width="66" height="24" rx="2" fill="#D4A935" stroke="#2A1E28" stroke-width="2"/>
+          <text x="241" y="40" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#2A1E28">SIDE A</text>
+          <rect x="14" y="112" width="272" height="70" rx="4" fill="#2A1E28" stroke="#2A1E28" stroke-width="2"/>
+          <rect x="80" y="118" width="140" height="58" rx="4" fill="#1a1218" stroke="#4A3A48" stroke-width="1.5"/>
+          <path d="M 90 158 Q 150 138 210 158" stroke="#3a2a38" stroke-width="3" fill="none" class="tape-line"/>
+          <g transform="translate(44 148)" class="reel">
+            <circle r="26" fill="#DDD2B8" stroke="#2A1E28" stroke-width="2.5"/>
+            <circle r="10" fill="#D4A935" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="0" y1="-24" x2="0" y2="24" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="-24" y1="0" x2="24" y2="0" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="17" y1="-17" x2="-17" y2="17" stroke="#2A1E28" stroke-width="2"/>
+            <circle r="4" fill="#5B2838" stroke="#2A1E28" stroke-width="1.5"/>
+          </g>
+          <g transform="translate(256 148)" class="reel">
+            <circle r="26" fill="#DDD2B8" stroke="#2A1E28" stroke-width="2.5"/>
+            <circle r="10" fill="#D4A935" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="0" y1="-24" x2="0" y2="24" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="-24" y1="0" x2="24" y2="0" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="-17" y1="-17" x2="17" y2="17" stroke="#2A1E28" stroke-width="2"/>
+            <line x1="17" y1="-17" x2="-17" y2="17" stroke="#2A1E28" stroke-width="2"/>
+            <circle r="4" fill="#5B2838" stroke="#2A1E28" stroke-width="1.5"/>
+          </g>
+          <rect x="14" y="186" width="272" height="4" rx="2" fill="#DDD2B8" stroke="#2A1E28" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ FEATURE BAR ══════════════════════════════════ -->
+<div id="feature-bar">
+  <div class="feature-bar-inner">
+    <div class="feature-pill">
+      <div class="pill-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M8 3v10" stroke="#EFE8D6" stroke-width="2"/></svg>
+      </div>
+      Auto length calculation
+    </div>
+    <div class="feature-pill">
+      <div class="pill-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="8" stroke="#EFE8D6" stroke-width="1.5" fill="none"/><line x1="2" y1="7" x2="14" y2="7" stroke="#EFE8D6" stroke-width="1"/></svg>
+      </div>
+      Side A &amp; B balancing
+    </div>
+    <div class="feature-pill">
+      <div class="pill-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" stroke="#EFE8D6" stroke-width="1.5" fill="none"/><rect x="4" y="4" width="8" height="5" fill="#EFE8D6" fill-opacity="0.4"/></svg>
+      </div>
+      J-Card designer
+    </div>
+    <div class="feature-pill">
+      <div class="pill-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13 L3 6 L8 3 L13 6 L13 13 Z" stroke="#EFE8D6" stroke-width="1.5" fill="none"/><rect x="6" y="9" width="4" height="4" fill="#EFE8D6" fill-opacity="0.5"/></svg>
+      </div>
+      Print-ready export
+    </div>
+    <div class="feature-pill">
+      <div class="pill-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" stroke="#EFE8D6" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="2" fill="#EFE8D6" fill-opacity="0.5"/></svg>
+      </div>
+      No account needed
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MIXTAPE SECTION ═══════════════════════════════ -->
+<section id="mixtape" style="background: var(--paper); border-bottom: 3px solid var(--ink);">
+  <div style="position:absolute;inset:0;opacity:0.04;background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23EFE8D6'/%3E%3Crect width='2' height='2' fill='%232A1E28'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%232A1E28'/%3E%3C/svg%3E&quot;);pointer-events:none;z-index:0;"></div>
+  <!-- geo deco -->
+  <div style="position:absolute;top:40px;right:60px;width:80px;height:80px;border:2px solid var(--sage);opacity:0.35;transform:rotate(12deg);pointer-events:none;z-index:1;"></div>
+  <div style="position:absolute;bottom:60px;left:40px;opacity:0.25;pointer-events:none;z-index:1;">
+    <svg width="60" height="60"><polygon points="30,4 56,52 4,52" fill="none" stroke="#3D5A47" stroke-width="2"/></svg>
+  </div>
+
+  <div class="section-inner">
+    <div class="split-feature">
+      <div class="split-text">
+        <div class="section-label" style="color:var(--inkSoft);">Feature 01</div>
+        <div class="section-title" style="color:var(--plum);">The Mixtape<br>Editor.</div>
+        <p class="section-body" style="color:var(--inkSoft);">
+          Add tracks to Side A and Side B, enter run times, and watch the length bar fill up in real time. Cassette tells you exactly how much tape you have left — no more cutting songs short.
+        </p>
+        <ul class="feature-list" style="color:var(--inkSoft);">
+          <li>Drag-and-drop track ordering for both sides</li>
+          <li>Real-time tape fill meter with over-length warnings</li>
+          <li>Supports C-46, C-60, C-90, and custom tape lengths</li>
+          <li>Import from a playlist or enter tracks manually</li>
+        </ul>
+        <div>
+          <a href="Scherzo Mixtape.html" class="btn btn-forest" style="font-size:22px;padding:7px 22px 4px;">▶ Try the Mixtape Editor →</a>
+        </div>
+      </div>
+
+      <!-- MOCK mixtape window -->
+      <div class="split-visual">
+        <div class="mock-window hard-shadow-lg">
+          <div class="mock-titlebar">
+            <div class="mock-close">×</div>
+            <span>📼 Summer Drive '94 — Mixtape</span>
+          </div>
+          <div class="mock-body">
+            <!-- side A header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-family:'VT323',monospace;font-size:20px;letter-spacing:1px;color:var(--plum);">◀ SIDE A</span>
+              <span style="font-family:'VT323',monospace;font-size:14px;opacity:0.5;color:var(--ink);">C-60</span>
+            </div>
+            <div class="track-rows">
+              <div class="track-row">
+                <div class="track-num">1</div>
+                <div class="track-bar-bg"><div class="track-bar-fill" style="width:28%"></div><div class="track-name">Fade Into You</div></div>
+                <div class="track-dur">3:35</div>
+              </div>
+              <div class="track-row">
+                <div class="track-num">2</div>
+                <div class="track-bar-bg"><div class="track-bar-fill" style="width:22%"></div><div class="track-name">Dreams</div></div>
+                <div class="track-dur">2:53</div>
+              </div>
+              <div class="track-row">
+                <div class="track-num">3</div>
+                <div class="track-bar-bg"><div class="track-bar-fill" style="width:35%"></div><div class="track-name">The Chain</div></div>
+                <div class="track-dur">4:30</div>
+              </div>
+              <div class="track-row">
+                <div class="track-num">4</div>
+                <div class="track-bar-bg"><div class="track-bar-fill" style="width:19%"></div><div class="track-name">Running Up That Hill</div></div>
+                <div class="track-dur">2:23</div>
+              </div>
+              <div class="track-row">
+                <div class="track-num">5</div>
+                <div class="track-bar-bg" style="opacity:0.5"><div class="track-bar-fill" style="width:0%"></div><div class="track-name" style="opacity:0.35;font-style:italic;">+ add track…</div></div>
+                <div class="track-dur" style="opacity:0.3;">—</div>
+              </div>
+            </div>
+            <!-- tape fill bar -->
+            <div class="dither-bar-wrap">
+              <div class="dither-bar-label">
+                <span>Tape used: 13:21</span>
+                <span>Remaining: 16:39</span>
+              </div>
+              <div class="dither-bar-outer">
+                <div class="dither-bar-fill"></div>
+                <div class="dither-ticks">
+                  <span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ J-CARD SECTION ═══════════════════════════════ -->
+<section id="jcard" style="background: var(--sage); border-bottom: 3px solid var(--ink);">
+  <div style="position:absolute;top:50px;left:80px;opacity:0.3;pointer-events:none;z-index:1;">
+    <svg width="70" height="70"><polygon points="35,2 68,62 2,62" fill="none" stroke="#2A1E28" stroke-width="2"/></svg>
+  </div>
+  <div style="position:absolute;bottom:40px;right:50px;width:60px;height:60px;border:2px solid var(--ink);opacity:0.2;transform:rotate(20deg);pointer-events:none;z-index:1;"></div>
+
+  <div class="section-inner">
+    <div class="split-feature reverse">
+      <div class="split-text">
+        <div class="section-label" style="color:var(--forest);">Feature 02</div>
+        <div class="section-title" style="color:var(--ink);">The J-Card<br>Designer.</div>
+        <p class="section-body" style="color:var(--inkSoft);">
+          Every great mixtape deserves a proper J-card. Upload cover art, style the spine with your tape's title, lay out the track list on the back, and export a perfectly-sized PDF ready to fold and slip in the case.
+        </p>
+        <ul class="feature-list" style="color:var(--inkSoft);">
+          <li>Full J-card template with spine, front and back panels</li>
+          <li>Upload your own cover art or use a built-in layout</li>
+          <li>Auto-imports track list from your mixtape</li>
+          <li>Export as print-ready PDF or high-res PNG</li>
+        </ul>
+        <div>
+          <a href="J-Card Generator.html" class="btn btn-plum" style="font-size:22px;padding:7px 22px 4px;">✦ Design your J-Card →</a>
+        </div>
+      </div>
+
+      <!-- J-card mock -->
+      <div class="split-visual">
+        <div style="box-shadow: 8px 8px 0 var(--ink); border: 2.5px solid var(--ink);">
+          <!-- titlebar -->
+          <div class="mock-titlebar" style="background:var(--lavender);color:var(--ink);">
+            <div class="mock-close" style="background:var(--paper);">×</div>
+            <span>✦ J-Card Designer — Summer Drive '94</span>
+          </div>
+          <div style="background:var(--paperDk);padding:14px;">
+            <!-- j-card body -->
+            <div style="display:flex;border:2px solid var(--ink);background:var(--paper);">
+              <!-- spine -->
+              <div style="width:36px;background:var(--plum);border-right:2px solid var(--ink);display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-family:'VT323',monospace;font-size:14px;letter-spacing:2px;color:var(--paper);padding:10px 0;flex-shrink:0;">
+                SUMMER DRIVE '94
+              </div>
+              <!-- front panel -->
+              <div style="flex:1.2;display:flex;flex-direction:column;border-right:2px solid var(--ink);min-height:180px;">
+                <!-- cover placeholder -->
+                <div style="flex:1;background:var(--inkSoft);background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.04) 0,rgba(255,255,255,0.04) 1px,transparent 1px,transparent 8px),repeating-linear-gradient(90deg,rgba(255,255,255,0.04) 0,rgba(255,255,255,0.04) 1px,transparent 1px,transparent 8px);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Geneva,Verdana,sans-serif;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:1px;text-transform:uppercase;text-align:center;min-height:120px;">
+                  cover art
+                </div>
+                <div style="padding:7px 10px;border-top:2px solid var(--ink);background:var(--paper);font-family:'VT323',monospace;font-size:15px;letter-spacing:0.5px;color:var(--ink);">
+                  Summer Drive '94<br>
+                  <span style="font-size:12px;opacity:0.5;font-family:Geneva,Verdana,sans-serif;letter-spacing:0px;">Mixed by Alex · C-60</span>
+                </div>
+              </div>
+              <!-- back panel -->
+              <div style="flex:1;padding:10px;background:var(--white);font-family:Geneva,Verdana,sans-serif;font-size:10px;color:var(--inkSoft);display:flex;flex-direction:column;gap:4px;">
+                <div style="font-family:'VT323',monospace;font-size:14px;letter-spacing:1px;margin-bottom:4px;color:var(--ink);">SIDE A</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">1. Fade Into You — 3:35</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">2. Dreams — 2:53</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">3. The Chain — 4:30</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">4. Running Up That Hill — 2:23</div>
+                <div style="font-family:'VT323',monospace;font-size:14px;letter-spacing:1px;margin-top:6px;margin-bottom:4px;color:var(--ink);">SIDE B</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">1. Blue — 3:12</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">2. Heroes — 6:07</div>
+                <div style="border-bottom:1px solid var(--paperDk);padding-bottom:3px;">3. Maps — 3:40</div>
+              </div>
+            </div>
+            <!-- export bar -->
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <div class="btn btn-plum" style="font-size:16px;padding:4px 14px 2px;cursor:default;">↓ Export PDF</div>
+              <div class="btn btn-paper" style="font-size:16px;padding:4px 14px 2px;cursor:default;">↓ Export PNG</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ HOW IT WORKS ════════════════════════════════ -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <div style="text-align:center;margin-bottom:52px;">
+      <div class="section-label" style="color:var(--mustard);letter-spacing:3px;">Process</div>
+      <div class="section-title" style="color:var(--paper);margin-top:8px;">How it works.</div>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-number">01</div>
+        <div class="step-title">Build your tracklist</div>
+        <p class="step-desc">Add songs to Side A and Side B, enter their run times, and watch the tape fill meter update as you go. Cassette flags you when a side is full.</p>
+        <div class="step-tag">Mixtape Editor</div>
+      </div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <div class="step-title">Fine-tune the sequence</div>
+        <p class="step-desc">Rearrange tracks by dragging them up and down. Balance both sides so neither ends with dead air. Obsess over the running order — it matters.</p>
+        <div class="step-tag">Mixtape Editor</div>
+      </div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <div class="step-title">Design your J-Card</div>
+        <p class="step-desc">Switch to the J-Card designer, upload cover art, add your title and tracklist, style the spine — then export a print-ready PDF sized to fold into a standard cassette case.</p>
+        <div class="step-tag">J-Card Designer</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ CTA ═════════════════════════════════════════ -->
+<section id="cta">
+  <div class="section-inner">
+    <div class="cta-inner">
+      <div class="cta-headline">Ready to<br>make a tape?</div>
+
+      <div class="cta-cards">
+        <!-- Mixtape card -->
+        <a href="Scherzo Mixtape.html" class="cta-card">
+          <div class="cta-card-head" style="background:var(--forest);">
+            <div style="font-size:32px;">📼</div>
+            <div class="cta-card-title">Mixtape Editor</div>
+            <p class="cta-card-desc">Build, balance, and perfect your track list with real-time tape length calculation.</p>
+          </div>
+          <div class="cta-card-foot">
+            <span>Start mixing</span>
+            <span>→</span>
+          </div>
+        </a>
+
+        <!-- J-card card -->
+        <a href="J-Card Generator.html" class="cta-card">
+          <div class="cta-card-head" style="background:var(--plum);">
+            <div style="font-size:32px;">🃏</div>
+            <div class="cta-card-title">J-Card Designer</div>
+            <p class="cta-card-desc">Upload cover art, style the spine and back panel, and export a print-ready PDF.</p>
+          </div>
+          <div class="cta-card-foot">
+            <span>Start designing</span>
+            <span>→</span>
+          </div>
+        </a>
+      </div>
+
+      <div style="font-family:'VT323',monospace;font-size:18px;letter-spacing:1px;opacity:0.5;color:var(--ink);">
+        No account · No cost · 100% in your browser
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ FOOTER ═══════════════════════════════════════ -->
+<div class="tape-strip">
+  <span style="background:#3D5A47"></span><span style="background:#A8C4A2"></span>
+  <span style="background:#B4A0C7"></span><span style="background:#8FC9B7"></span>
+  <span style="background:#5B2838"></span><span style="background:#D4A935"></span>
+  <span style="background:#3D5A47"></span><span style="background:#A8C4A2"></span>
+  <span style="background:#B4A0C7"></span><span style="background:#8FC9B7"></span>
+  <span style="background:#5B2838"></span><span style="background:#D4A935"></span>
+</div>
+<footer>
+  <div class="foot-logo">
+    <svg width="18" height="12" viewBox="0 0 20 14" fill="none" style="margin-right:6px;vertical-align:middle;">
+      <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none"/>
+      <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28"/>
+    </svg>
+    CASSETTE
+  </div>
+  <div class="foot-note">Make mixtapes. Design J-cards. Press play.</div>
+  <div style="display:flex;gap:12px;">
+    <a href="Scherzo Mixtape.html" class="btn btn-paper" style="font-size:15px;padding:3px 12px 1px;">Mixtape Editor</a>
+    <a href="J-Card Generator.html" class="btn btn-plum" style="font-size:15px;padding:3px 12px 1px;">J-Card Designer</a>
+  </div>
+</footer>
+
+</body>
+</html>

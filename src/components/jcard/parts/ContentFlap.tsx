@@ -6,7 +6,7 @@ interface Props {
   flapNumber: number;
 }
 
-const ContentFlap = ({ content, sanitizedContent, flapNumber }: Props) => {
+const ContentFlap = ({ content, sanitizedContent, flapNumber: _flapNumber }: Props) => {
   const bg: React.CSSProperties = {
     backgroundColor: content.continuousBackground
       ? 'transparent'
@@ -29,15 +29,15 @@ const ContentFlap = ({ content, sanitizedContent, flapNumber }: Props) => {
 
   return (
     <div style={bg}>
-      {isEmpty ? (
-        <span style={{ position: 'absolute', bottom: 4, right: 6, fontSize: '2mm', color: 'rgba(0,0,0,0.12)', userSelect: 'none' }}>
-          flap {flapNumber}
-        </span>
-      ) : (
+      {!isEmpty ? (
         <div
-          style={{ padding: '1mm', fontSize: '2.8mm', lineHeight: 1.3, overflow: 'hidden', height: '100%' }}
+          style={{ padding: '1.5mm', fontSize: '2.8mm', lineHeight: 1.3, overflow: 'hidden', height: '100%' }}
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
+      ) : (
+        <span style={{ position: 'absolute', bottom: 4, right: 6, fontSize: '2mm', color: 'rgba(0,0,0,0.12)', userSelect: 'none' }}>
+          {/* flap {flapNumber} */}
+        </span>
       )}
     </div>
   );

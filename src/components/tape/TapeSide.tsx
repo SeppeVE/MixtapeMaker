@@ -74,7 +74,6 @@ const TapeSide = ({ side, songs, maxDuration, onRemoveSong, onReorderSongs, onMo
                 <div className="song-item-title">{song.title}</div>
                 <div className="song-item-artist">{song.artist} · {formatTime(song.duration)}</div>
               </div>
-              <div className="fade-knob" title="Fade / gap">↘0s</div>
               <div className="song-actions">
                 <button
                   onClick={() => onMoveSong(song.id, side, otherSide)}
@@ -118,9 +117,6 @@ const TapeSide = ({ side, songs, maxDuration, onRemoveSong, onReorderSongs, onMo
             ))}
             <div className="tape-meter-tick-last" />
           </div>
-        </div>
-        <div className="tape-meter-labels">
-          <span>C30</span><span>C45</span><span>C60</span><span>C90</span>
         </div>
       </div>
     </div>

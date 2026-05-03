@@ -59,7 +59,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
             title={isUntitled ? undefined : mixtape.title}
             side={sideA ? 'A' : 'B'}
             accentColor={accentColor}
-            float={true}
+            float={false}
           />
 
           <div className="cassette-meta">

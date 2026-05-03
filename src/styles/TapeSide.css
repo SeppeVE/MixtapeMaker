@@ -151,20 +151,6 @@
   margin-top: 2px;
 }
 
-.fade-knob {
-  font-family: var(--font-display);
-  font-size: 11px;
-  line-height: 1;
-  padding: 1px 4px;
-  border: 1px solid rgba(42,30,40,.3);
-  color: var(--color-text);
-  opacity: 0.45;
-  flex-shrink: 0;
-  align-self: center;
-  cursor: pointer;
-}
-.fade-knob:hover { opacity: 0.8; }
-
 .song-actions {
   display: flex;
   align-items: stretch;

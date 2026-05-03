@@ -51,6 +51,7 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
     if (!cardEl) throw new Error('JCardPrintable failed to mount');
 
     await inlineCrossOriginFonts(host);
+    inlineCustomFonts(host, content);
     await waitForImages(content);
 
     const pngDataUrl = await toPng(cardEl, {
@@ -128,6 +129,7 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
         const insideCardEl = insideHost.querySelector<HTMLElement>('.jcard');
         if (insideCardEl) {
           await inlineCrossOriginFonts(insideHost);
+          inlineCustomFonts(insideHost, content);
           const insidePngUrl = await toPng(insideCardEl, {
             pixelRatio: SNAPSHOT_PIXEL_RATIO,
             cacheBust: true,
@@ -172,6 +174,28 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Inject @font-face rules for user-uploaded custom fonts directly into the
+ * snapshot host element so html-to-image can find them in a real stylesheet.
+ *
+ * Custom fonts are registered via the FontFace API (document.fonts.add) which
+ * does NOT appear in document.styleSheets — html-to-image therefore never sees
+ * them and the rendered PNG falls back to the browser's default serif.
+ * Injecting an explicit <style> block with data-URL sources fixes this.
+ */
+function inlineCustomFonts(host: HTMLElement, content: JCardContent): void {
+  if (!content.customFonts?.length) return;
+  const css = content.customFonts
+    .map(
+      f =>
+        `@font-face { font-family: '${f.name}'; src: url('data:${f.mimeType};base64,${f.data}'); }`,
+    )
+    .join('\n');
+  const style = document.createElement('style');
+  style.textContent = css;
+  host.prepend(style);
+}
 
 
 function dataUrlToUint8Array(dataUrl: string): Uint8Array {

@@ -156,7 +156,7 @@ const JCardPreview = ({ content: rawContent }: Props) => {
             <div key={i} className="jcard-part" style={{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
               {i === 0
                 ? <CoverFlap content={content} sanitizedCover={s.flaps[0]} />
-                : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapNumber={i + 1} />}
+                : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapIndex={i} />}
             </div>
           ))}
         </div>

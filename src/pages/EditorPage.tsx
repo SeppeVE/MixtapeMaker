@@ -8,7 +8,6 @@ import TapeSide from '../components/tape/TapeSide';
 import TapePreview from '../components/tape/TapePreview';
 import '../styles/Editor.css';
 
-
 interface EditorPageProps {
   mixtape: Mixtape;
   onMixtapeChange: (mixtape: Mixtape) => void;
@@ -52,6 +51,7 @@ const EditorPage = ({
   const handleAddSong = (song: Song, side: Side) => {
     const key = side === 'A' ? 'sideA' : 'sideB';
     update({ [key]: [...mixtape[key], song] });
+    if (side !== activeSide) doFlip();
   };
 
   const handleRemoveSong = (songId: string, side: Side) => {

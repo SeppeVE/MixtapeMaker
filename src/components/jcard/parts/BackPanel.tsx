@@ -29,12 +29,15 @@ interface Props { content: JCardContent; sanitizedLeft: string; sanitizedRight: 
 const BackPanel = ({ content, sanitizedLeft, sanitizedRight }: Props) => {
   const isRev = content.isReversed;
 
+  // Per-panel image overrides the global background image when set
+  const panelBgImage = content.backPanelImageUrl || content.backgroundImageUrl;
+
   const bg: React.CSSProperties = {
     backgroundColor: content.continuousBackground
       ? 'transparent'
-      : content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
-    backgroundImage: !content.continuousBackground && content.backgroundImageUrl
-      ? `url(${content.backgroundImageUrl})`
+      : panelBgImage ? 'transparent' : content.backgroundColor,
+    backgroundImage: !content.continuousBackground && panelBgImage
+      ? `url(${panelBgImage})`
       : undefined,
     backgroundSize: 'cover', backgroundPosition: 'center',
     width: '100%', height: '100%', position: 'relative', overflow: 'hidden',

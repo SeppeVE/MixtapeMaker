@@ -7,6 +7,7 @@ import { createJCard, updateJCard, loadJCard } from '../../utils/jcardDatabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { registerCustomFonts } from '../../utils/fontManager';
 import JCardPreview from './JCardPreview';
+import JCardInsidePreview from './JCardInsidePreview';
 import JCardSettings from './JCardSettings';
 import '../../styles/jcard/JCardView.css';
 
@@ -18,7 +19,9 @@ interface Props {
 }
 
 function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
-  const content = mixtape ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape) : buildBlankJCardContent();
+  const content = mixtape
+    ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape, { overwriteCover: true })
+    : buildBlankJCardContent();
   return {
     id: generateId(),
     title: mixtape ? `${mixtape.title} — J-Card` : 'Untitled J-Card',
@@ -171,18 +174,20 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
           <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (⌘⇧Z)">↪</button>
         </div>
         <button className="btn btn-primary" onClick={saveNow} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '💾 Save'}
+          {isSaving ? 'Saving…' : 'Save'}
         </button>
       </div>
 
       {/* 2-column body */}
       <div className="jcard-view-body">
 
-        {/* MAIN — preview */}
+        {/* MAIN — outside + inside previews */}
         <div className="jcard-view-main">
           <div className="jcard-view-preview">
-            <span className="jcard-col-label">▧ Live preview</span>
+            <span className="jcard-col-label">▧ Outside</span>
             <JCardPreview content={card.content} />
+            <span className="jcard-col-label" style={{ marginTop: 8 }}>◧ Inside</span>
+            <JCardInsidePreview content={card.content} />
           </div>
         </div>
 
@@ -195,13 +200,15 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
             onTitleChange={(title) => update({ title })}
             onContentChange={(content: JCardContent) => update({ content })}
             onMixtapeLink={(mixtapeId) => update({ mixtapeId })}
-            sections={['info', 'layout', 'flaps', 'background', 'fonts', 'spine', 'back', 'mixtape', 'export']}
+            sections={['info', 'presets', 'layout', 'fonts', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']}
           />
         </aside>
 
       </div>
+
     </div>
   );
 };
 
 export default JCardView;
+         

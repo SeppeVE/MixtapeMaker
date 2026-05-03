@@ -14,7 +14,7 @@ type Tab = 'mixtapes' | 'jcards';
 interface LibraryPageProps {
   currentDraft: Mixtape;
   onLoadMixtape: (mixtape: Mixtape) => void;
-  onSaveDraftToCloud: () => void;
+  onSaveDraftToCloud: () => Promise<void>;
   isSavingDraft: boolean;
   onGoHome: () => void;
   onOpenAuth: () => void;
@@ -26,6 +26,40 @@ interface LibraryPageProps {
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+// ── Skeleton loader ────────────────────────────────────────────────────────────
+const SkeletonTapeCard = () => (
+  <div className="lib-skeleton-tape">
+    <div className="lib-skeleton-header" />
+    <div className="lib-skeleton-body">
+      <div className="lib-skeleton-line" />
+      <div className="lib-skeleton-line lib-skeleton-line--short" />
+      <div className="lib-skeleton-line lib-skeleton-line--short" />
+    </div>
+    <div className="lib-skeleton-footer" />
+  </div>
+);
+
+const SkeletonJCardCard = () => (
+  <div className="lib-skeleton-jcard">
+    <div className="lib-skeleton-swatch" />
+    <div className="lib-skeleton-info">
+      <div className="lib-skeleton-line" />
+      <div className="lib-skeleton-line lib-skeleton-line--short" />
+    </div>
+  </div>
+);
+
+// ── Error state ────────────────────────────────────────────────────────────────
+const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+  <div className="lib-error-state">
+    <span className="lib-error-icon">⚠</span>
+    <span className="lib-error-msg">{message}</span>
+    <button className="lp-btn lp-btn-mustard" style={{ fontSize: '14px', padding: '4px 14px 2px' }} onClick={onRetry}>
+      ↻ Retry
+    </button>
+  </div>
+);
 
 const totalDuration = (m: Mixtape) =>
   [...m.sideA, ...m.sideB].reduce((s, t) => s + t.duration, 0);
@@ -69,27 +103,33 @@ const LibraryPage = ({
   // ── Mixtapes state ──
   const [cloudTapes, setCloudTapes] = useState<Mixtape[]>([]);
   const [tapesLoading, setTapesLoading] = useState(false);
+  const [tapesError, setTapesError] = useState<string | null>(null);
 
   // ── J-Cards state ──
   const [localCards, setLocalCards] = useState<JCard[]>([]);
   const [cloudCardIds, setCloudCardIds] = useState<Set<string>>(new Set());
   const [allCards, setAllCards] = useState<JCard[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
+  const [cardsError, setCardsError] = useState<string | null>(null);
   const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
 
   // ── Load cloud tapes ──
-  useEffect(() => {
+  const loadTapes = useCallback(() => {
     if (!user) { setCloudTapes([]); return; }
     setTapesLoading(true);
+    setTapesError(null);
     loadMixtapes(user.id)
       .then(setCloudTapes)
-      .catch(() => showToast('Failed to load tapes', 'error'))
+      .catch(() => setTapesError('Failed to load cloud tapes'))
       .finally(() => setTapesLoading(false));
   }, [user]);
+
+  useEffect(() => { loadTapes(); }, [loadTapes]);
 
   // ── Load + merge J-cards ──
   const loadCards = useCallback(() => {
     setCardsLoading(true);
+    setCardsError(null);
     const local = loadJCardsFromLocal();
     setLocalCards(local);
     if (user) {
@@ -104,7 +144,10 @@ const LibraryPage = ({
           merged.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
           setAllCards(merged);
         })
-        .catch(() => setAllCards(local))
+        .catch(() => {
+          setCardsError('Failed to load cloud cards — showing local only');
+          setAllCards(local);
+        })
         .finally(() => setCardsLoading(false));
     } else {
       setAllCards(local);
@@ -124,6 +167,14 @@ const LibraryPage = ({
     if (inCloud && inLocal) return 'synced';
     if (inCloud) return 'cloud';
     return 'local';
+  };
+
+  // ── Save draft + refresh list ──
+  const handleSaveDraftToCloud = async () => {
+    await onSaveDraftToCloud();
+    if (user) {
+      loadMixtapes(user.id).then(setCloudTapes).catch(() => {});
+    }
   };
 
   // ── Tape actions ──
@@ -241,7 +292,14 @@ const LibraryPage = ({
                   <span>Working Draft</span>
                   <span className="lib-section-sub">Not yet saved to cloud</span>
                 </div>
-                <div className="lib-draft-card">
+                <div
+                  className="lib-draft-card"
+                  onClick={() => onLoadMixtape(currentDraft)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && onLoadMixtape(currentDraft)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="lib-draft-card-left">
                     <div className="lib-draft-title">{currentDraft.title}</div>
                     <div className="lib-draft-meta">
@@ -250,12 +308,12 @@ const LibraryPage = ({
                       C-{currentDraft.cassetteLength}
                     </div>
                   </div>
-                  <div className="lib-draft-card-right">
+                  <div className="lib-draft-card-right" onClick={e => e.stopPropagation()}>
                     <Badge status="local" />
                     <button
                       className="lp-btn lp-btn-forest"
                       style={{ fontSize: '16px', padding: '4px 14px 2px' }}
-                      onClick={user ? onSaveDraftToCloud : onOpenAuth}
+                      onClick={user ? handleSaveDraftToCloud : onOpenAuth}
                       disabled={isSavingDraft}
                     >
                       {isSavingDraft ? 'Saving…' : '☁ Save to Cloud'}
@@ -282,10 +340,16 @@ const LibraryPage = ({
               )}
 
               {user && tapesLoading && (
-                <div className="lib-loading">Loading tapes…</div>
+                <div className="lib-cards-grid">
+                  {[1, 2, 3].map(n => <SkeletonTapeCard key={n} />)}
+                </div>
               )}
 
-              {user && !tapesLoading && cloudTapes.length === 0 && (
+              {user && !tapesLoading && tapesError && (
+                <ErrorState message={tapesError} onRetry={loadTapes} />
+              )}
+
+              {user && !tapesLoading && !tapesError && cloudTapes.length === 0 && (
                 <div className="lib-empty">
                   <div className="lib-empty-icon">📼</div>
                   <p>No cloud tapes yet.</p>
@@ -296,7 +360,7 @@ const LibraryPage = ({
                 </div>
               )}
 
-              {user && !tapesLoading && cloudTapes.length > 0 && (
+              {user && !tapesLoading && !tapesError && cloudTapes.length > 0 && (
                 <div className="lib-cards-grid">
                   {cloudTapes.map(tape => (
                     <div
@@ -365,7 +429,15 @@ const LibraryPage = ({
                 </button>
               </div>
 
-              {cardsLoading && <div className="lib-loading">Loading…</div>}
+              {cardsLoading && (
+                <div className="lib-cards-grid">
+                  {[1, 2, 3].map(n => <SkeletonJCardCard key={n} />)}
+                </div>
+              )}
+
+              {!cardsLoading && cardsError && (
+                <ErrorState message={cardsError} onRetry={loadCards} />
+              )}
 
               {!cardsLoading && allCards.length === 0 && (
                 <div className="lib-empty">

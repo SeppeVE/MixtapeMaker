@@ -129,6 +129,10 @@ body {
   font-size: 16px;
 }
 
+.btn-small {
+  padding: 4px 6px;
+}
+
 .error-message {
   background: var(--color-paper);
   border: 2px solid var(--color-warning);
@@ -147,4 +151,11 @@ body {
   .icon {
     margin-top: 2px;
   }
+}
+
+.small-info {
+  font-family: var(--font-body);
+  font-size: 11px;
+  opacity: 0.7;
+  margin: 0 0 8px;
 }

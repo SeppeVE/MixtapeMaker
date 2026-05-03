@@ -57,8 +57,8 @@
 
 /* Form labels */
 .settings-label {
-  font-family: var(--font-display);
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
   color: var(--color-text);
   letter-spacing: 0.5px;
   display: block;
@@ -209,4 +209,29 @@
 .settings-swatch.selected {
   outline: 2px solid var(--color-mustard);
   outline-offset: 1px;
+}
+
+.side-indicator-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  padding: 0 2px;
+}
+
+.side-indicator-divider {
+  border-top: 1.5px dashed rgba(0,0,0,0.15);
+  margin-top: 14px;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6;
+}
+
+.side-indicator-divider-borderless {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6;
 }

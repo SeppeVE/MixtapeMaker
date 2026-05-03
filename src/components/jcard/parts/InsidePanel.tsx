@@ -1,26 +1,33 @@
+import React from 'react';
 import { JCardContent } from '../../../types';
 
 interface Props {
   content: JCardContent;
   sanitizedContent: string;
-  flapIndex: number; // 0-based index into flapContents (0 = cover, handled by CoverFlap)
+  flapIndex: number; // 0-based
+  label?: string;
 }
 
-const ContentFlap = ({ content, sanitizedContent, flapIndex }: Props) => {
-  const imgUrl = content.flapImageUrls?.[flapIndex];
-  const isFull = content.flapImageFulls?.[flapIndex] ?? false;
-  const behind = content.flapImageBehindContents?.[flapIndex] ?? false;
+const InsidePanel = ({ content, sanitizedContent, flapIndex, label }: Props) => {
+  const isEmpty =
+    !sanitizedContent ||
+    sanitizedContent === '<p><br></p>' ||
+    sanitizedContent.trim() === '';
+
+  // Use insideContinuousBackground if set, fall back to continuousBackground for old cards
+  const isContinuous = content.insideContinuousBackground ?? content.continuousBackground;
+
+  const imgUrl = content.insideFlapImageUrls?.[flapIndex];
+  const isFull = content.insideFlapImageFulls?.[flapIndex] ?? false;
+  const behind = content.insideFlapImageBehindContents?.[flapIndex] ?? false;
 
   const bg: React.CSSProperties = {
-    backgroundColor: content.continuousBackground
+    backgroundColor: isContinuous
       ? 'transparent'
-      : content.backgroundImageUrl
-        ? 'transparent'
-        : content.backgroundColor,
-    backgroundImage:
-      !content.continuousBackground && content.backgroundImageUrl
-        ? `url(${content.backgroundImageUrl})`
-        : undefined,
+      : content.insideBackgroundImageUrl ? 'transparent' : (content.backgroundColor || '#ffffff'),
+    backgroundImage: !isContinuous && content.insideBackgroundImageUrl
+      ? `url(${content.insideBackgroundImageUrl})`
+      : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     width: '100%',
@@ -52,18 +59,28 @@ const ContentFlap = ({ content, sanitizedContent, flapIndex }: Props) => {
     display: isFull && !behind ? 'none' : 'block',
   };
 
-  const isEmpty = !sanitizedContent || sanitizedContent === '<p><br></p>' || sanitizedContent.trim() === '';
-
   return (
     <div style={bg}>
       {imgUrl && <div style={imgStyle} />}
-      {(!isEmpty || behind) ? (
+      {!isEmpty ? (
         <div style={textStyle} dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
-      ) : (
-        <div style={textStyle} />
-      )}
+      ) : label ? (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 3,
+            right: 4,
+            fontSize: '2mm',
+            color: 'rgba(0,0,0,0.15)',
+            userSelect: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {/* {label} */}
+        </span>
+      ) : null}
     </div>
   );
 };
 
-export default ContentFlap;
+export default InsidePanel;

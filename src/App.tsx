@@ -100,7 +100,7 @@ function App() {
             onLoadMixtape={handleLoadMixtape}
             onOpenLibrary={() => navigate('/library')}
             onOpenAuth={() => setIsAuthModalOpen(true)}
-            onOpenJCards={() => navigate('/library')}
+            onOpenJCards={() => navigate('/cards/designer')}
           />
         } />
 

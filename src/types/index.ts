@@ -57,10 +57,30 @@ export interface JCardContent {
   backgroundImageUrl?: string;
   /** When true a single background image/color spans the whole card instead of repeating per-panel */
   continuousBackground?: boolean;
+  /** Separate background image for the inside panels (flaps, spine, back). Falls back to backgroundColor when absent. */
+  insideBackgroundImageUrl?: string;
+  /** When true a single background image spans all inside panels (independent of continuousBackground for outside) */
+  insideContinuousBackground?: boolean;
   coverImageUrl?: string;
   coverImageBehindContent: boolean;
   isFullCoverImage: boolean;
-  /** @deprecated migrated to flapContents[0] — kept for backward-compat with existing saved cards */
+  /** Per-flap images for outside content flaps (indices 1-5; index 0 / cover uses coverImageUrl). */
+  flapImageUrls?: (string | undefined)[];
+  /** Fill panel with image, per outside content flap (indices 1-5). */
+  flapImageFulls?: boolean[];
+  /** Show text over image, per outside content flap (indices 1-5). */
+  flapImageBehindContents?: boolean[];
+  /** Image for the outside back panel. */
+  backPanelImageUrl?: string;
+  /** Per-flap images for inside flaps (indices 0-5). */
+  insideFlapImageUrls?: (string | undefined)[];
+  /** Fill panel with image, per inside flap. */
+  insideFlapImageFulls?: boolean[];
+  /** Show text over image, per inside flap. */
+  insideFlapImageBehindContents?: boolean[];
+  /** Image for the inside back panel. */
+  insideBackPanelImageUrl?: string;
+  /** @deprecated migrated to flapContents[0] - kept for backward-compat */
   coverContent?: string;
   /** HTML content for each flap (index 0 = cover/front flap). Always length 6. */
   flapContents: string[];
@@ -73,6 +93,14 @@ export interface JCardContent {
   showCutGuides?: boolean;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
+  /** @deprecated Use insideFlapContents / insideSpineContent / insideBackContent for per-panel inside content. */
+  insideContent?: string;
+  /** HTML content for the inside face of each flap (index 0 = cover). Always length 6. */
+  insideFlapContents?: string[];
+  /** HTML content for the inside of the spine panel. */
+  insideSpineContent?: string;
+  /** HTML content for the inside of the back panel. */
+  insideBackContent?: string;
 }
 
 export interface JCard {

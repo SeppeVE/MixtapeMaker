@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect, useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { JCardContent } from '../../types';
-import { computeWidthMm, JCARD_HEIGHT_MM, BACK_FULL_MM, BACK_SHORT_MM, SPINE_MM } from './dimensions';
+import { computeWidthMm, JCARD_HEIGHT_MM } from './dimensions';
 import { migrateJCardContent } from '../../utils/jcardDefaults';
 import { liftListColors } from '../../utils/htmlUtils';
 import Spine from './parts/Spine';
@@ -144,52 +144,6 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
             />
           </div>
         </div>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          fontSize: 9,
-          fontFamily: 'var(--font-display)',
-          opacity: 0.45,
-          gap: 0,
-          overflow: 'hidden',
-          paddingLeft: 2,
-        }}
-      >
-        {reversedFlapIndices.map(i => (
-          <span
-            key={i}
-            style={{
-              width: `calc(${FLAP_WIDTHS[i]} * ${actual ? 1 : scale})`,
-              flexShrink: 0,
-              textAlign: 'center',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {i === 0 ? 'cover' : `flap ${i + 1}`}
-          </span>
-        ))}
-        <span
-          style={{
-            width: `calc(${SPINE_MM}mm * ${actual ? 1 : scale})`,
-            flexShrink: 0,
-            textAlign: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          spine
-        </span>
-        <span
-          style={{
-            width: `calc(${content.shortBack ? BACK_SHORT_MM : BACK_FULL_MM}mm * ${actual ? 1 : scale})`,
-            flexShrink: 0,
-            textAlign: 'center',
-          }}
-        >
-          back
-        </span>
       </div>
     </div>
   );

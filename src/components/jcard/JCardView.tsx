@@ -174,7 +174,7 @@ const JCardView = ({ initialCard, currentMixtape, onBack: _onBack, showToast }: 
           <button className="btn" onClick={redo} disabled={!canRedo} title="Redo (⌘⇧Z)">↪</button>
         </div>
         <button className="btn btn-primary" onClick={saveNow} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '💾 Save'}
+          {isSaving ? 'Saving…' : 'Save'}
         </button>
       </div>
 

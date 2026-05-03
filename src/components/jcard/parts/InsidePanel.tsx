@@ -53,7 +53,7 @@ const InsidePanel = ({ content, sanitizedContent, label }: Props) => {
             whiteSpace: 'nowrap',
           }}
         >
-          {label}
+          {/* {label} */}
         </span>
       ) : null}
     </div>

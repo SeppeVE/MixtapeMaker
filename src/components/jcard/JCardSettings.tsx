@@ -13,16 +13,16 @@ export type Section = 'info' | 'layout' | 'flaps' | 'background' | 'fonts' | 'sp
 
 const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   info:       { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
-  layout:     { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
-  flaps:      { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
-  background: { bg: 'var(--color-mustard)', fg: 'var(--color-text)'  },
-  fonts:      { bg: 'var(--color-mustard)', fg: 'var(--color-text)'  },
-  spine:      { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
+  presets:    { bg: 'var(--color-primary)',  fg: 'var(--color-paper)' },
+  layout:     { bg: 'var(--color-mustard)', fg: 'var(--color-text)' },
+  fonts:      { bg: 'var(--color-accent)', fg: 'var(--color-paper)'  },
+  background: { bg: 'var(--color-primary)', fg: 'var(--color-paper)'  },
+  flaps:      { bg: 'var(--color-mustard)', fg: 'var(--color-text)' },
+  spine:      { bg: 'var(--color-accent)', fg: 'var(--color-paper)' },
   back:       { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
-  inside:     { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
-  mixtape:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
+  mixtape:    { bg: 'var(--color-mustard)',  fg: 'var(--color-text)' },
   export:     { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
-  presets:    { bg: 'var(--color-accent)',  fg: 'var(--color-paper)' },
+  inside:     { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
 };
 
 const COLOR_PRESETS = [
@@ -202,7 +202,7 @@ const JCardSettings = ({
 
       {/* 1b. Presets */}
       <Block id="presets" label="✦ Presets" {...blockProps}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+        <p className='small-info'>
           Applying a preset overwrites your current design. Use Undo to revert.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -213,7 +213,7 @@ const JCardSettings = ({
               style={{ justifyContent: 'flex-start', gap: 8, padding: '5px 10px' }}
               onClick={() => handleApplyPreset(preset.id)}
             >
-              <span>{preset.emoji}</span>
+              {/* <span>{preset.emoji}</span> */}
               <span style={{ fontFamily: 'var(--font-body)', fontSize: 12 }}>{preset.label}</span>
             </button>
           ))}
@@ -230,7 +230,7 @@ const JCardSettings = ({
           <input type="checkbox" checked={content.shortBack} onChange={(e) => patch({ shortBack: e.target.checked })} />
           Short back panel (10 mm)
         </label>
-        <label className="settings-label" style={{ marginTop: 6 }}>Flaps: {content.flaps}</label>
+        <label className="settings-label" style={{ marginTop: 6 }}>Panels: {content.flaps}</label>
         <input
           type="range" min={1} max={6} value={content.flaps}
           onChange={(e) => patch({ flaps: parseInt(e.target.value, 10) as 1|2|3|4|5|6 })}
@@ -240,15 +240,15 @@ const JCardSettings = ({
           {[1,2,3,4,5,6].map(n => <span key={n}>{n}</span>)}
         </div>
         {!content.shortBack && content.flaps > 2 && (
-          <p style={{ margin: '8px 0 0', fontSize: 10, color: 'var(--color-accent)', fontFamily: 'var(--font-body)' }}>
-            Tall back + {content.flaps} flaps — this card may not fit a standard cassette case. Consider enabling "Short back panel" or reducing flap count.
+          <p className='small-info'>
+            Cover + {content.flaps - 1} Panels — this will not fit on a standard A4 paper, keep this in mind for printing.
           </p>
         )}
       </Block>
 
       {/* 3. Fonts */}
       <Block id="fonts" label="Aa Fonts" {...blockProps}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 11, opacity: 0.7, margin: '0 0 8px' }}>
+        <p className='small-info'>
           9 default fonts are always available in the text editors.
           Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
         </p>
@@ -265,8 +265,7 @@ const JCardSettings = ({
                   custom
                 </span>
                 <button
-                  className="btn"
-                  style={{ fontSize: 10, padding: '1px 5px', minWidth: 0, flexShrink: 0 }}
+                  className="btn btn-small"
                   onClick={() => removeFont(f.name)}
                   title={`Remove ${f.name}`}
                 >x</button>
@@ -300,8 +299,62 @@ const JCardSettings = ({
         </button>
       </Block>
 
+      {/* 4. Background */}
+      <Block id="background" label="▧ Background" {...blockProps}>
+        <label className="settings-label">Color</label>
+        <div className="settings-swatch-row" style={{ marginBottom: 6 }}>
+          {COLOR_PRESETS.map((c) => (
+            <div
+              key={c}
+              className={`settings-swatch${content.backgroundColor === c ? ' selected' : ''}`}
+              style={{ background: c }}
+              onClick={() => patch({ backgroundColor: c })}
+              title={c}
+            />
+          ))}
+          <input
+            type="color"
+            value={content.backgroundColor}
+            onChange={(e) => patch({ backgroundColor: e.target.value })}
+            style={{ width: 22, height: 22, border: '2px solid var(--color-text)', cursor: 'pointer', padding: 0 }}
+          />
+        </div>
+        <div className='side-indicator-divider'>
+          <span className='side-indicator-label'>Outside</span>
+        </div>
+        <ImageUpload
+          label="Background image outside"
+          currentUrl={content.backgroundImageUrl}
+          imageType="background"
+          cardId={card.id}
+          onChange={(url) => patch({ backgroundImageUrl: url ?? undefined })}
+        />
+        <label className="settings-checkbox-label" style={{ marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={!!content.continuousBackground}
+            onChange={(e) => patch({ continuousBackground: e.target.checked })}
+          />
+          Stretch image across all panels
+        </label>
+
+        <div className='side-indicator-divider'>
+          <span className='side-indicator-label'>Inside</span>
+        </div>
+        <ImageUpload
+          label="Background image inside"
+          currentUrl={content.insideBackgroundImageUrl}
+          imageType="background"
+          cardId={card.id}
+          onChange={(url) => patch({ insideBackgroundImageUrl: url ?? undefined })}
+        />
+      </Block>
+
       {/* 4. Flap editors */}
-      <Block id="flaps" label="✎ Flaps" {...blockProps}>
+      <Block id="flaps" label="◫ Panel content" {...blockProps}>
+        <div className='side-indicator-divider-borderless'>
+          <span className='side-indicator-label'>Outside</span>
+        </div>
         {/* Tab strip */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
           {Array.from({ length: content.flaps }, (_, i) => (
@@ -353,8 +406,8 @@ const JCardSettings = ({
           customFontNames={customFontNames}
         />
 
-        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        <div className='side-indicator-divider'>
+          <span className='side-indicator-label'>Inside</span>
         </div>
         <div style={{ display: 'flex', gap: 4, marginTop: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           {Array.from({ length: content.flaps }, (_, i) => (
@@ -379,56 +432,11 @@ const JCardSettings = ({
         />
       </Block>
 
-      {/* 4. Background */}
-      <Block id="background" label="Background" {...blockProps}>
-        <label className="settings-label">Color</label>
-        <div className="settings-swatch-row" style={{ marginBottom: 6 }}>
-          {COLOR_PRESETS.map((c) => (
-            <div
-              key={c}
-              className={`settings-swatch${content.backgroundColor === c ? ' selected' : ''}`}
-              style={{ background: c }}
-              onClick={() => patch({ backgroundColor: c })}
-              title={c}
-            />
-          ))}
-          <input
-            type="color"
-            value={content.backgroundColor}
-            onChange={(e) => patch({ backgroundColor: e.target.value })}
-            style={{ width: 22, height: 22, border: '2px solid var(--color-text)', cursor: 'pointer', padding: 0 }}
-          />
-        </div>
-        <ImageUpload
-          label="Background image"
-          currentUrl={content.backgroundImageUrl}
-          imageType="background"
-          cardId={card.id}
-          onChange={(url) => patch({ backgroundImageUrl: url ?? undefined })}
-        />
-        <label className="settings-checkbox-label" style={{ marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={!!content.continuousBackground}
-            onChange={(e) => patch({ continuousBackground: e.target.checked })}
-          />
-          Stretch image across all panels
-        </label>
-
-        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
-        </div>
-        <ImageUpload
-          label="Inside background image"
-          currentUrl={content.insideBackgroundImageUrl}
-          imageType="background"
-          cardId={card.id}
-          onChange={(url) => patch({ insideBackgroundImageUrl: url ?? undefined })}
-        />
-      </Block>
-
       {/* 5. Spine */}
-      <Block id="spine" label="Spine" {...blockProps}>
+      <Block id="spine" label="▏Spine" {...blockProps}>
+        <div className='side-indicator-divider-borderless'>
+          <span className='side-indicator-label'>Outside</span>
+        </div>
         <label className="settings-label">Top</label>
         <ContentEditor value={content.spineTopContent} onChange={(html) => patch({ spineTopContent: html })} placeholder="Mixtape title" minHeight="40px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Center</label>
@@ -436,22 +444,25 @@ const JCardSettings = ({
         <label className="settings-label" style={{ marginTop: 8 }}>Bottom</label>
         <ContentEditor value={content.spineBottomContent} onChange={(html) => patch({ spineBottomContent: html })} placeholder="90 min" minHeight="40px" customFontNames={customFontNames} />
 
-        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        <div className='side-indicator-divider'>
+          <span className='side-indicator-label'>Inside</span>
         </div>
         <label className="settings-label" style={{ marginTop: 8 }}>Center</label>
         <ContentEditor value={content.insideSpineContent ?? ''} onChange={(html) => patch({ insideSpineContent: html })} placeholder="Spine inside..." minHeight="40px" customFontNames={customFontNames} />
       </Block>
 
       {/* 6. Back panel */}
-      <Block id="back" label="Back panel" {...blockProps}>
+      <Block id="back" label="◧ Back panel" {...blockProps}>
+        <div className='side-indicator-divider-borderless'>
+          <span className='side-indicator-label'>Outside</span>
+        </div>
         <label className="settings-label">Left column (Side A)</label>
         <ContentEditor value={content.backLeftContent} onChange={(html) => patch({ backLeftContent: html })} placeholder="Side A tracks..." minHeight="80px" customFontNames={customFontNames} />
         <label className="settings-label" style={{ marginTop: 8 }}>Right column (Side B)</label>
         <ContentEditor value={content.backRightContent} onChange={(html) => patch({ backRightContent: html })} placeholder="Side B tracks..." minHeight="80px" customFontNames={customFontNames} />
 
-        <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.15)', marginTop: 14, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, opacity: 0.55 }}>Inside</span>
+        <div className='side-indicator-divider'>
+          <span className='side-indicator-label'>Inside</span>
         </div>
         <label className="settings-label" style={{ marginTop: 8 }}>Content</label>
         <ContentEditor value={content.insideBackContent ?? ''} onChange={(html) => patch({ insideBackContent: html })} placeholder="Back panel inside..." minHeight="80px" customFontNames={customFontNames} />
@@ -459,7 +470,7 @@ const JCardSettings = ({
 
 
       {/* 7. Tracklist (linked mixtape) */}
-      <Block id="mixtape" label="Tracklist" {...blockProps}>
+      <Block id="mixtape" label="⚏ Tracklist" {...blockProps}>
         <MixtapeLinkPicker
           mixtapeId={card.mixtapeId}
           currentMixtape={currentMixtape}
@@ -470,7 +481,7 @@ const JCardSettings = ({
       </Block>
 
       {/* 8. Export */}
-      <Block id="export" label="Export" {...blockProps}>
+      <Block id="export" label="⇪ Export" {...blockProps}>
         <label className="settings-checkbox-label" style={{ marginBottom: 8 }}>
           <input
             type="checkbox"

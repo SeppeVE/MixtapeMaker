@@ -9,12 +9,18 @@ interface Props {
 const InsideBackPanel = ({ content, sanitizedContent }: Props) => {
   const isRev = content.isReversed;
 
+  // Use insideContinuousBackground if set, fall back to continuousBackground for old cards
+  const isContinuous = content.insideContinuousBackground ?? content.continuousBackground;
+
+  // Per-panel image overrides the global inside background image when set
+  const panelBgImage = content.insideBackPanelImageUrl || content.insideBackgroundImageUrl;
+
   const bg: React.CSSProperties = {
-    backgroundColor: content.continuousBackground
+    backgroundColor: isContinuous
       ? 'transparent'
-      : content.insideBackgroundImageUrl ? 'transparent' : (content.backgroundColor || '#ffffff'),
-    backgroundImage: !content.continuousBackground && content.insideBackgroundImageUrl
-      ? `url(${content.insideBackgroundImageUrl})`
+      : panelBgImage ? 'transparent' : (content.backgroundColor || '#ffffff'),
+    backgroundImage: !isContinuous && panelBgImage
+      ? `url(${panelBgImage})`
       : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',

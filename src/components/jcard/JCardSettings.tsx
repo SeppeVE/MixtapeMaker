@@ -348,6 +348,14 @@ const JCardSettings = ({
           cardId={card.id}
           onChange={(url) => patch({ insideBackgroundImageUrl: url ?? undefined })}
         />
+        <label className="settings-checkbox-label" style={{ marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={!!content.insideContinuousBackground}
+            onChange={(e) => patch({ insideContinuousBackground: e.target.checked })}
+          />
+          Stretch image across all panels
+        </label>
       </Block>
 
       {/* 4. Flap editors */}
@@ -395,6 +403,51 @@ const JCardSettings = ({
           </>
         )}
 
+        {/* Non-cover outside flaps (index 1+) -- per-panel image */}
+        {activeFlap > 0 && (
+          <>
+            <ImageUpload
+              label={`Panel ${activeFlap + 1} image`}
+              currentUrl={content.flapImageUrls?.[activeFlap]}
+              imageType="cover"
+              cardId={card.id}
+              onChange={(url) => {
+                const next = [...(content.flapImageUrls ?? Array(6).fill(undefined))];
+                next[activeFlap] = url ?? undefined;
+                patch({ flapImageUrls: next });
+              }}
+            />
+            {content.flapImageUrls?.[activeFlap] && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                <label className="settings-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={content.flapImageFulls?.[activeFlap] ?? false}
+                    onChange={(e) => {
+                      const next = [...(content.flapImageFulls ?? Array(6).fill(false))];
+                      next[activeFlap] = e.target.checked;
+                      patch({ flapImageFulls: next });
+                    }}
+                  />
+                  Fill panel with image
+                </label>
+                <label className="settings-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={content.flapImageBehindContents?.[activeFlap] ?? false}
+                    onChange={(e) => {
+                      const next = [...(content.flapImageBehindContents ?? Array(6).fill(false))];
+                      next[activeFlap] = e.target.checked;
+                      patch({ flapImageBehindContents: next });
+                    }}
+                  />
+                  Show text over image
+                </label>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Editor for whichever flap is active */}
         <label className="settings-label" style={{ marginTop: 10 }}>Text (shift + enter for new line)</label>
         <ContentEditor
@@ -422,6 +475,45 @@ const JCardSettings = ({
             </button>
           ))}
         </div>
+        <ImageUpload
+          label={activeInsideFlap === 0 ? 'Inside cover image' : `Inside panel ${activeInsideFlap + 1} image`}
+          currentUrl={content.insideFlapImageUrls?.[activeInsideFlap]}
+          imageType="cover"
+          cardId={card.id}
+          onChange={(url) => {
+            const next = [...(content.insideFlapImageUrls ?? Array(6).fill(undefined))];
+            next[activeInsideFlap] = url ?? undefined;
+            patch({ insideFlapImageUrls: next });
+          }}
+        />
+        {content.insideFlapImageUrls?.[activeInsideFlap] && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginBottom: 8 }}>
+            <label className="settings-checkbox-label">
+              <input
+                type="checkbox"
+                checked={content.insideFlapImageFulls?.[activeInsideFlap] ?? false}
+                onChange={(e) => {
+                  const next = [...(content.insideFlapImageFulls ?? Array(6).fill(false))];
+                  next[activeInsideFlap] = e.target.checked;
+                  patch({ insideFlapImageFulls: next });
+                }}
+              />
+              Fill panel with image
+            </label>
+            <label className="settings-checkbox-label">
+              <input
+                type="checkbox"
+                checked={content.insideFlapImageBehindContents?.[activeInsideFlap] ?? false}
+                onChange={(e) => {
+                  const next = [...(content.insideFlapImageBehindContents ?? Array(6).fill(false))];
+                  next[activeInsideFlap] = e.target.checked;
+                  patch({ insideFlapImageBehindContents: next });
+                }}
+              />
+              Show text over image
+            </label>
+          </div>
+        )}
         <ContentEditor
           key={`inside-flap-${activeInsideFlap}`}
           value={(content.insideFlapContents ?? [])[activeInsideFlap] ?? ''}

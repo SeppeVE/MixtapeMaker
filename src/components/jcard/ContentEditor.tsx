@@ -69,7 +69,7 @@ function syncListColors(dom: HTMLElement) {
   });
 }
 
-const FONT_SIZES        = ['8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
+const FONT_SIZES        = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '14', '16', '18', '22', '28'];
 const LETTER_SPACINGS   = ['0px', '0.5px', '1px', '1.5px', '2px', '3px', '5px'];
 const LINE_HEIGHTS      = ['1', '1.1', '1.2', '1.3', '1.5', '1.8', '2', '2.5', '3'];
 

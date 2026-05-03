@@ -68,18 +68,26 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
 
   const reversedFlapIndices = Array.from({ length: content.flaps }, (_, i) => content.flaps - 1 - i);
 
-  const continuousInsideBgStyle: React.CSSProperties | undefined = content.continuousBackground
+  // Use insideContinuousBackground if set, fall back to continuousBackground for old cards
+  const isContinuousInside = content.insideContinuousBackground ?? content.continuousBackground;
+
+  const continuousInsideBgStyle: React.CSSProperties | undefined = isContinuousInside
     ? {
         position: 'absolute', inset: 0, zIndex: 0,
         backgroundColor: content.insideBackgroundImageUrl ? 'transparent' : content.backgroundColor,
         backgroundImage: content.insideBackgroundImageUrl
-          ? `url(${content.insideBackgroundImageUrl})`
+          ? 'url(' + content.insideBackgroundImageUrl + ')'
           : undefined,
         backgroundSize: 'cover', backgroundPosition: 'center',
       }
     : undefined;
 
-  const insideContent = { ...content, backgroundImageUrl: content.insideBackgroundImageUrl };
+  // Pass resolved inside settings to Spine (which reads continuousBackground + backgroundImageUrl)
+  const insideContent = {
+    ...content,
+    backgroundImageUrl: content.insideBackgroundImageUrl,
+    continuousBackground: isContinuousInside,
+  };
 
   return (
     <div className="jcard-preview-root">
@@ -91,7 +99,7 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
           </span>
         </span>
         <button
-          className={`btn jcard-actual-btn${actual ? ' active' : ''}`}
+          className={'btn jcard-actual-btn' + (actual ? ' active' : '')}
           onClick={() => setActual(v => !v)}
         >{actual ? 'Scale to fit' : 'Actual size'}</button>
       </div>
@@ -99,17 +107,17 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
       <div
         ref={wrapperRef}
         className="jcard-preview-wrapper"
-        style={{ height: actual ? undefined : `calc(${JCARD_HEIGHT_MM}mm * ${scale} + 48px)` }}
+        style={{ height: actual ? undefined : 'calc(' + JCARD_HEIGHT_MM + 'mm * ' + scale + ' + 48px)' }}
       >
         <div
-          className={`jcard${content.isReversed ? ' reversed' : ''}`}
+          className={'jcard' + (content.isReversed ? ' reversed' : '')}
           style={{
-            transform: actual ? 'none' : `scale(${scale})`,
+            transform: actual ? 'none' : 'scale(' + scale + ')',
             transformOrigin: 'top left',
             opacity: 1,
           }}
         >
-          {content.continuousBackground && <div style={continuousInsideBgStyle} />}
+          {isContinuousInside && <div style={continuousInsideBgStyle} />}
 
           {reversedFlapIndices.map(i => (
             <div
@@ -120,7 +128,8 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
               <InsidePanel
                 content={content}
                 sanitizedContent={s.flaps[i]}
-                label={i === 0 ? 'cover inside' : `flap ${i + 1} inside`}
+                flapIndex={i}
+                label={i === 0 ? 'cover inside' : 'flap ' + (i + 1) + ' inside'}
               />
             </div>
           ))}
@@ -135,7 +144,7 @@ const JCardInsidePreview = ({ content: rawContent }: Props) => {
           </div>
 
           <div
-            className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`}
+            className={'jcard-part jcard-back' + (content.shortBack ? ' short' : '')}
             style={{ position: 'relative', zIndex: 1 }}
           >
             <InsideBackPanel

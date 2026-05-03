@@ -77,7 +77,7 @@ const JCardPrintable = forwardRef<HTMLDivElement, Props>(({ content: rawContent 
         >
           {i === 0
             ? <CoverFlap content={content} sanitizedCover={s.flaps[0]} />
-            : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapNumber={i + 1} />}
+            : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapIndex={i} />}
         </div>
       ))}
     </div>

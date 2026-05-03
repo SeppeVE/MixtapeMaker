@@ -44,22 +44,30 @@ const JCardInsidePrintable = forwardRef<HTMLDivElement, Props>(({ content: rawCo
 
   const reversedFlapIndices = Array.from({ length: content.flaps }, (_, i) => content.flaps - 1 - i);
 
-  const continuousInsideBgStyle: React.CSSProperties | undefined = content.continuousBackground
+  // Use insideContinuousBackground if set, fall back to continuousBackground for old cards
+  const isContinuousInside = content.insideContinuousBackground ?? content.continuousBackground;
+
+  const continuousInsideBgStyle: React.CSSProperties | undefined = isContinuousInside
     ? {
         position: 'absolute', inset: 0, zIndex: 0,
         backgroundColor: content.insideBackgroundImageUrl ? 'transparent' : content.backgroundColor,
         backgroundImage: content.insideBackgroundImageUrl
-          ? `url(${content.insideBackgroundImageUrl})`
+          ? 'url(' + content.insideBackgroundImageUrl + ')'
           : undefined,
         backgroundSize: 'cover', backgroundPosition: 'center',
       }
     : undefined;
 
-  const insideContent = { ...content, backgroundImageUrl: content.insideBackgroundImageUrl };
+  // Pass resolved inside settings to Spine (which reads continuousBackground + backgroundImageUrl)
+  const insideContent = {
+    ...content,
+    backgroundImageUrl: content.insideBackgroundImageUrl,
+    continuousBackground: isContinuousInside,
+  };
 
   return (
     <div ref={ref} className={classes}>
-      {content.continuousBackground && <div style={continuousInsideBgStyle} />}
+      {isContinuousInside && <div style={continuousInsideBgStyle} />}
 
       {reversedFlapIndices.map(i => (
         <div
@@ -67,7 +75,7 @@ const JCardInsidePrintable = forwardRef<HTMLDivElement, Props>(({ content: rawCo
           className="jcard-part"
           style={{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}
         >
-          <InsidePanel content={content} sanitizedContent={s.flaps[i]} />
+          <InsidePanel content={content} sanitizedContent={s.flaps[i]} flapIndex={i} />
         </div>
       ))}
 
@@ -81,7 +89,7 @@ const JCardInsidePrintable = forwardRef<HTMLDivElement, Props>(({ content: rawCo
       </div>
 
       <div
-        className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`}
+        className={'jcard-part jcard-back' + (content.shortBack ? ' short' : '')}
         style={{ position: 'relative', zIndex: 1 }}
       >
         <InsideBackPanel content={content} sanitizedContent={s.back} />

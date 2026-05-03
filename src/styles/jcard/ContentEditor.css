@@ -156,7 +156,7 @@
   outline: none;
   font-family: var(--font-body);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.3;
   color: var(--color-text);
   /* Neutral mid-tone so both dark and white text are legible while editing.
      The card's actual background colour is set separately in the preview. */

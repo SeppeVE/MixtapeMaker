@@ -159,7 +159,6 @@ const JCardMock = () => (
           ))}
           <div style={{ marginTop: 'auto', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', opacity: 0.4, fontSize: '9px' }}>
             <span>Apr 2026</span>
-            <span>CASSETTE</span>
           </div>
         </div>
       </div>

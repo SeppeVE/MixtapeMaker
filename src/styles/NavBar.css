@@ -107,6 +107,12 @@
   opacity: 0.7;
 }
 
+@media screen and (max-width: 768px) {
+  .lp-nav-user {
+    display: none;
+  }
+}
+
 /* ── buttons ── */
 .lp-btn {
   font-family: var(--font-display);
@@ -144,6 +150,8 @@
   .lp-nav {
     padding: 7px 20px;
     gap: 16px;
+    display: flex;
+    justify-content: space-between;
   }
   /* Hide section anchor links — they're a nice-to-have on desktop */
   .lp-nav-links {
@@ -169,4 +177,8 @@
     box-shadow: 2px 2px 0 var(--color-text);
   }
   .lp-btn:hover { box-shadow: 4px 4px 0 var(--color-text); }
+
+  .lp-logo-text{
+    display: none;
+  }
 }

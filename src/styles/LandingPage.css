@@ -627,14 +627,6 @@
     width: 100%;
   }
 
-  /* Scale down mock windows so they don't overflow */
-  .lp-split-visual > * {
-    transform: scale(0.82);
-    transform-origin: top left;
-    /* Compensate for the shrinkage so it doesn't leave a gap */
-    margin-bottom: calc((0.82 - 1) * 100%);
-  }
-
   /* Section titles */
   .lp-section-title {
     font-size: 52px;
@@ -663,6 +655,10 @@
     align-items: flex-start;
     padding: 20px 28px;
     gap: 14px;
+  }
+
+  .lp-cassette-float {
+    display: none;
   }
 }
 

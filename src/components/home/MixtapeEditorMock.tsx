@@ -24,7 +24,6 @@ const MixtapeEditorMock = () => (
       <span style={{ opacity: 0.4 }}>/</span>
       <span>Summer Drive '94</span>
       <div style={{ flex: 1 }} />
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: '14px', background: 'var(--color-forest)', color: 'var(--color-paper)', padding: '1px 8px' }}>🎴 J-Cards</span>
       <span style={{ background: 'var(--color-plum)', color: 'var(--color-paper)', padding: '2px 10px 1px', fontFamily: 'var(--font-display)', fontSize: '14px' }}>Save</span>
     </div>
 
@@ -176,18 +175,6 @@ const MixtapeEditorMock = () => (
             <div key={j} style={{ flex: 1, borderRight: '1px solid rgba(42,30,40,.28)' }} />
           ))}
         </div>
-      </div>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontFamily: 'var(--font-display)',
-        fontSize: '11px',
-        opacity: 0.55,
-        marginTop: '3px',
-      }}>
-        <span>0:00</span>
-        <span>C-60 (30:00 / side)</span>
-        <span>30:00</span>
       </div>
     </div>
   </div>

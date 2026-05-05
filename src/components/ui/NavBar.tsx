@@ -35,7 +35,9 @@ const NavBar = ({
           <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
           <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28" />
         </svg>
-        CASSETTE
+        <span className='lp-logo-text'>
+          Mixtape Maker
+        </span>
       </button>
 
       {/* Middle slot */}
@@ -51,9 +53,6 @@ const NavBar = ({
         {onOpenLibrary && (
           <button className="lp-btn lp-btn-paper" onClick={onOpenLibrary}>Library</button>
         )}
-        {onOpenJCards && (
-          <button className="lp-btn lp-btn-paper" onClick={onOpenJCards}>🎴 J-Cards</button>
-        )}
         {onSave && (
           <button className="lp-btn lp-btn-paper" onClick={onSave} disabled={isSaving}>
             {isSaving ? 'Saving…' : 'Save'}
@@ -63,9 +62,6 @@ const NavBar = ({
           <button className="lp-btn lp-btn-paper" onClick={signOut}>Sign Out</button>
         ) : (
           <button className="lp-btn lp-btn-paper" onClick={onOpenAuth}>Sign In</button>
-        )}
-        {onNewMixtape && (
-          <button className="lp-btn lp-btn-plum" onClick={onNewMixtape}>Make a Tape</button>
         )}
       </div>
 

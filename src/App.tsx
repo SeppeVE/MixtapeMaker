@@ -145,6 +145,7 @@ function App() {
             activeCard={activeCard}
             mixtape={mixtape}
             onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenLibrary={() => navigate('/library')}
             showToast={showToast}
           />
         } />

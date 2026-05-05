@@ -9,10 +9,11 @@ interface JCardDesignerPageProps {
   activeCard: JCard | null;
   mixtape: Mixtape;
   onOpenAuth: () => void;
+  onOpenLibrary: () => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, showToast }: JCardDesignerPageProps) => {
+const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, onOpenLibrary, showToast }: JCardDesignerPageProps) => {
   const navigate = useNavigate();
 
   return (
@@ -20,6 +21,7 @@ const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, showToast }: JCard
       <NavBar
         onGoHome={() => navigate('/')}
         onOpenAuth={onOpenAuth}
+        onOpenLibrary={onOpenLibrary}
       >
         <button className="lp-nav-link" onClick={() => navigate(-1)}>Back</button>
         <span className="lp-nav-sep">/</span>

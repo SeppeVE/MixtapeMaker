@@ -5,9 +5,7 @@ interface NavBarProps {
   onGoHome: () => void;
   onOpenAuth: () => void;
   children?: React.ReactNode;       // middle section: nav links, breadcrumb, etc.
-  onNewMixtape?: () => void;        // renders "Make a Tape" button when provided
   onOpenLibrary?: () => void;       // renders "Library" button when provided
-  onOpenJCards?: () => void;        // renders "J-Cards" button when provided
   onSave?: () => void;              // renders "Save" button when provided
   isSaving?: boolean;
 }
@@ -16,9 +14,7 @@ const NavBar = ({
   onGoHome,
   onOpenAuth,
   children,
-  onNewMixtape,
   onOpenLibrary,
-  onOpenJCards,
   onSave,
   isSaving = false,
 }: NavBarProps) => {

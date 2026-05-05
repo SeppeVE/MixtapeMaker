@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    build: {
+      emptyOutDir: false,
+    },
     plugins: [
       react(),
       {

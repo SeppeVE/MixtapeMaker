@@ -37,9 +37,7 @@ const HomePage = ({ onNewMixtape, onLoadMixtape, onOpenLibrary, onOpenAuth, onOp
       <NavBar
         onGoHome={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         onOpenAuth={onOpenAuth}
-        onNewMixtape={onNewMixtape}
         onOpenLibrary={onOpenLibrary}
-        onOpenJCards={onOpenJCards}
       >
         <a href="#mixtape"      className="lp-nav-link">Mixtape</a>
         <a href="#jcard"        className="lp-nav-link">J-Card</a>

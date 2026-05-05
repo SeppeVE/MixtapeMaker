@@ -244,7 +244,6 @@ const LibraryPage = ({
       <NavBar
         onGoHome={onGoHome}
         onOpenAuth={onOpenAuth}
-        onNewMixtape={onNewMixtape}
       >
         <button className="lp-nav-link" onClick={onGoHome}>◀ Home</button>
         <span className="lp-nav-sep">/</span>

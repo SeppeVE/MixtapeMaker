@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { JCard, Mixtape } from '../types';
 import NavBar from '../components/ui/NavBar';
 import JCardView from '../components/jcard/JCardView';
+import '../styles/jcard/JCardView.css';
+import HomeFooter from '../components/home/HomeFooter';
 
 interface JCardDesignerPageProps {
   activeCard: JCard | null;
@@ -19,12 +21,15 @@ const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, showToast }: JCard
         onGoHome={() => navigate('/')}
         onOpenAuth={onOpenAuth}
       >
-        <button className="lp-nav-link" onClick={() => navigate(-1)}>◀ Back</button>
+        <button className="lp-nav-link" onClick={() => navigate(-1)}>Back</button>
         <span className="lp-nav-sep">/</span>
         <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)' }}>
           Designer
         </span>
       </NavBar>
+      <div className="designer-mobile-warning">
+        This designer is built for desktop — layout and editing work best on a wider screen.
+      </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <JCardView
           initialCard={activeCard}
@@ -32,6 +37,9 @@ const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, showToast }: JCard
           onBack={() => navigate('/cards')}
           showToast={showToast}
         />
+      </div>
+      <div className="jcard-page-footer">
+        <HomeFooter />
       </div>
     </div>
   );

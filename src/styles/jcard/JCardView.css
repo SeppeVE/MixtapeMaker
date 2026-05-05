@@ -80,8 +80,68 @@
   flex-direction: column;
   gap: 10px;
   background: var(--color-paper);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-text) transparent;
+}
+
+/* ── Desktop-only warning banner (hidden on desktop) ── */
+.designer-mobile-warning {
+  display: none;
+}
+
+/* ── Footer: hidden on desktop, visible on mobile ── */
+.jcard-page-footer {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  /* Show the footer on mobile */
+  .jcard-page-footer {
+    display: block;
+  }
+
+  /* Show the warning */
+  .designer-mobile-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-mustard);
+    border-bottom: 2px solid var(--color-text);
+    padding: 8px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text);
+    flex-shrink: 0;
+  }
+
+  /* Switch from fixed-height to natural-scroll */
+  .jcard-view {
+    height: auto;
+    overflow: visible;
+  }
+
+  .jcard-view-body {
+    grid-template-columns: 1fr;
+    overflow: visible;
+    min-height: unset;
+  }
+
+  .jcard-view-main {
+    overflow: visible;
+    min-height: unset;
+  }
+
+  .jcard-view-preview {
+    overflow: visible;
+    min-height: unset;
+    padding: 12px;
+  }
+
+  /* Settings panel: full width, no left border, natural height */
+  .jcard-view-right {
+    border-left: none;
+    border-top: 2px solid var(--color-text);
+    overflow-y: visible;
+  }
 }
 
 /* Column section labels */

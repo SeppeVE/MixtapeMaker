@@ -6,6 +6,7 @@ import Floaters from '../components/ui/Floaters';
 import SearchBar from '../components/ui/SearchBar';
 import TapeSide from '../components/tape/TapeSide';
 import TapePreview from '../components/tape/TapePreview';
+import HomeFooter from '../components/home/HomeFooter';
 import '../styles/Editor.css';
 
 interface EditorPageProps {
@@ -173,6 +174,7 @@ const EditorPage = ({
           />
         </div>
       </div>
+      <HomeFooter onNewMixtape={onNewMixtape} />
     </div>
   );
 };

@@ -11,8 +11,6 @@
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--color-text);
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-text-light) transparent;
 }
 
 /* ── animations ── */
@@ -545,7 +543,7 @@
 .lp-footer {
   background: var(--color-paper);
   border-top: 3px solid var(--color-text);
-  padding: 20px 40px;
+  padding: 10px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;

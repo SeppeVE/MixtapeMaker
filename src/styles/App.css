@@ -167,3 +167,35 @@ body {
   opacity: 0.7;
   margin: 0 0 8px;
 }
+
+/* ── Global scrollbar styling ── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text) var(--color-paper-dk);
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper-dk);
+  border-left: 1px solid var(--color-text);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text);
+  border: 1px solid var(--color-text);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-paper-dk);
+}

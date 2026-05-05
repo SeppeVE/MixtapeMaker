@@ -6,6 +6,7 @@ import { listJCards, deleteJCard, upsertJCard } from '../utils/jcardDatabase';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '../utils/localStorage';
 import { formatDuration } from '../utils/timeUtils';
 import NavBar from '../components/ui/NavBar';
+import HomeFooter from '../components/home/HomeFooter';
 import '../styles/LibraryPage.css';
 
 type StorageStatus = 'local' | 'cloud' | 'synced';
@@ -511,6 +512,7 @@ const LibraryPage = ({
           </div>
         )}
       </div>
+      <HomeFooter onNewMixtape={onNewMixtape} />
     </div>
   );
 };

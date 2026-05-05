@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { JCard } from '../types';
 import NavBar from '../components/ui/NavBar';
 import JCardLibrary from './JCardLibrary';
+import HomeFooter from '../components/home/HomeFooter';
 
 interface JCardLibraryPageProps {
   onOpenCard: (card: JCard) => void;
@@ -33,6 +34,7 @@ const JCardLibraryPage = ({ onOpenCard, onNewCard, onOpenAuth, showToast }: JCar
           showToast={showToast}
         />
       </div>
+      <HomeFooter />
     </div>
   );
 };

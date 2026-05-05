@@ -23,7 +23,7 @@ const CassetteSVG = ({
   const beads = [35, 47, 59, 71, 83];
 
   return (
-    <div className={float ? 'lp-cassette-float' : undefined} style={{ lineHeight: 0 }}>
+    <div className={float ? 'lp-cassette-float' : 'cassette-svg'} style={{ lineHeight: 0 }}>
       <svg
         width="100%"
         viewBox="0 0 300 195"

@@ -102,9 +102,22 @@
   margin-top: 3px;
 }
 
-.jcard-card-delete {
+/* ── Card actions (badge + upload + delete) ── */
+.jcl-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
   opacity: 0;
   transition: opacity 0.12s;
+}
+
+.jcard-card:hover .jcl-card-actions {
+  opacity: 1;
+}
+
+.jcard-card-delete {
   flex-shrink: 0;
   font-size: 18px;
   width: 24px;
@@ -115,6 +128,53 @@
   justify-content: center;
 }
 
-.jcard-card:hover .jcard-card-delete {
-  opacity: 1;
+/* ── Storage badge ── */
+.jcl-badge {
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 6px 1px;
+  border: 1.5px solid var(--color-text);
+  white-space: nowrap;
+}
+
+.jcl-badge-local  { background: var(--color-mustard, #f5c842); color: var(--color-text); }
+.jcl-badge-cloud  { background: var(--color-plum,   #7b5ea7); color: #fff; border-color: var(--color-plum, #7b5ea7); }
+.jcl-badge-synced { background: var(--color-forest, #3a7d44); color: #fff; border-color: var(--color-forest, #3a7d44); }
+
+/* ── Upload button ── */
+.jcl-upload-btn {
+  font-size: 10px;
+  padding: 2px 7px 1px;
+  white-space: nowrap;
+}
+
+/* ── Sync banner ── */
+.jcl-sync-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-mustard, #f5c842);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  padding: 8px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+/* ── Error state ── */
+.jcl-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-text);
+  background: #fff3cd;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
 }

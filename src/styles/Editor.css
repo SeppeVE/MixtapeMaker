@@ -137,6 +137,71 @@
   scrollbar-width: thin;
 }
 
+@media screen and (max-width: 1200px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .col-preview {
+    order: 1;
+  }
+
+  .cassette-svg {
+    display: none;
+  }
+
+  .col-deck {
+    grid-column: 1 / -1;
+    order: 2;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* Switch from fixed-viewport to natural-scroll model */
+  .editor {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    padding: 10px 10px 24px;
+  }
+
+  .col-search,
+  .col-deck,
+  .col-preview {
+    min-height: unset;
+  }
+
+  .col-preview {
+    order: 0;
+    /* natural height — TapePreview is not a scrollable container */
+  }
+
+  .col-search {
+    order: 1;
+    /* fixed height so the internal results list can scroll */
+    height: 460px;
+    min-height: 0;
+  }
+
+  .cassette-svg {
+    display: block;
+    width: 50%;
+  }
+
+  .col-deck {
+    order: 2;
+    /* fixed height so the internal song list can scroll */
+    height: 460px;
+    min-height: 0;
+  }
+}
+
 /* ── Hello banners ── */
 .col-hello,
 .deck-side-label {

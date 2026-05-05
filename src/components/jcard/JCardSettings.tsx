@@ -239,7 +239,7 @@ const JCardSettings = ({
         <div className="settings-range-ticks">
           {[1,2,3,4,5,6].map(n => <span key={n}>{n}</span>)}
         </div>
-        {!content.shortBack && content.flaps > 2 && (
+        {!content.shortBack && content.flaps > 3 && (
           <p className='small-info'>
             Cover + {content.flaps - 1} Panels — this will not fit on a standard A4 paper, keep this in mind for printing.
           </p>

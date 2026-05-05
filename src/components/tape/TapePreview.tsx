@@ -64,7 +64,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
 
           <div className="cassette-meta">
 
-            {/* ── Title — first, most prominent ── */}
+            {/* Title */}
             <MetaRow label="Title">
               {editingTitle ? (
                 <input
@@ -76,7 +76,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
                     if (e.key === 'Enter') saveTitle();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  placeholder="Name your tape…"
+                  placeholder="Name your tape..."
                   autoFocus
                 />
               ) : (
@@ -85,44 +85,45 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
                   onClick={() => { setTitleText(mixtape.title); setEditingTitle(true); }}
                 >
                   {isUntitled
-                    ? <span className="meta-placeholder">✎ name your tape…</span>
-                    : <>{mixtape.title} <span className="meta-edit-hint">✎</span></>}
+                    ? <span className="meta-placeholder">pencil name your tape...</span>
+                    : <>{mixtape.title} <span className="meta-edit-hint">pencil</span></>}
                 </span>
               )}
             </MetaRow>
 
-            {/* ── Tape length ── */}
+            {/* Tape length */}
             <MetaRow label="Length">
               <select
                 className="meta-select"
                 value={mixtape.cassetteLength}
                 onChange={e => onUpdate({ cassetteLength: Number(e.target.value) as CassetteLength })}
               >
+                <option value={30}>C30 · 15m / side</option>
+                <option value={45}>C45 · 22.5m / side</option>
                 <option value={60}>C60 · 30m / side</option>
                 <option value={90}>C90 · 45m / side</option>
+                <option value={100}>C100 · 50m / side</option>
                 <option value={120}>C120 · 60m / side</option>
               </select>
             </MetaRow>
 
-            {/* ── Side A with fill status ── */}
+            {/* Side A with fill status */}
             <MetaRow label="Side A">
               <span className="meta-value side-meta">
                 <span className="side-status-dot" style={{ background: sideAStatus.color }} />
                 <span>{mixtape.sideA.length} trk · {formatTime(totalA)}</span>
-                <span className="side-status-label" style={{ color: sideAStatus.color }}>{sideAStatus.label}</span>
               </span>
             </MetaRow>
 
-            {/* ── Side B with fill status ── */}
+            {/* Side B with fill status */}
             <MetaRow label="Side B">
               <span className="meta-value side-meta">
                 <span className="side-status-dot" style={{ background: sideBStatus.color }} />
                 <span>{mixtape.sideB.length} trk · {formatTime(totalB)}</span>
-                <span className="side-status-label" style={{ color: sideBStatus.color }}>{sideBStatus.label}</span>
               </span>
             </MetaRow>
 
-            {/* ── For — deprioritised, last ── */}
+            {/* For */}
             <MetaRow label="For">
               {editingFor ? (
                 <input
@@ -136,7 +137,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
                 />
               ) : (
                 <span className="meta-value meta-editable" onClick={() => { setForText(mixtape.dedicatedTo ?? ''); setEditingFor(true); }}>
-                  {mixtape.dedicatedTo || <span className="meta-placeholder">click to add…</span>}
+                  {mixtape.dedicatedTo || <span className="meta-placeholder">click to add...</span>}
                 </span>
               )}
             </MetaRow>
@@ -147,10 +148,10 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
 
       {/* Actions panel */}
       <div className="preview-panel">
-        <div className="panel-titlebar panel-plum">⚙ Actions</div>
+        <div className="panel-titlebar panel-plum">Actions</div>
         <div className="panel-body panel-body-actions">
           <button className="btn action-btn" onClick={onSave} disabled={isSaving}>
-            ◉ {isSaving ? 'Saving to cloud…' : 'Save to cloud'}
+            {isSaving ? 'Saving to cloud...' : 'Save to cloud'}
           </button>
           <button className="btn action-btn" onClick={onNewMixtape}>
             + New Mixtape
@@ -163,7 +164,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
         <div className="dubbing-panel">
           <div className="dubbing-reel" />
           <div className="dubbing-info">
-            <div className="dubbing-label">dubbing to cloud…</div>
+            <div className="dubbing-label">dubbing to cloud...</div>
             <div className="dubbing-bar">
               <div className="dubbing-fill" />
             </div>

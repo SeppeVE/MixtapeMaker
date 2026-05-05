@@ -29,6 +29,7 @@ const JCardLibraryPage = ({ onOpenCard, onNewCard, onOpenAuth, showToast }: JCar
         <JCardLibrary
           onOpenCard={onOpenCard}
           onNewCard={onNewCard}
+          onOpenAuth={onOpenAuth}
           showToast={showToast}
         />
       </div>

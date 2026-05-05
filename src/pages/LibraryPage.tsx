@@ -326,10 +326,10 @@ const LibraryPage = ({
             {/* Cloud section */}
             <section className="lib-section">
               <div className="lib-section-head">
-                <span>☁ Cloud Library</span>
-                {user && !tapesLoading && (
-                  <span className="lib-section-sub">{cloudTapes.length} tape{cloudTapes.length !== 1 ? 's' : ''}</span>
-                )}
+                <span>Mixtapes</span>
+                <button className="lp-btn lp-btn-mustard" style={{ fontSize: '16px', padding: '4px 14px 2px' }} onClick={onNewMixtape}>
+                  + New Tape
+                </button>
               </div>
 
               {!user && (

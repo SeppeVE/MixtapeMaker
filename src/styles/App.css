@@ -39,6 +39,14 @@ html, body, #root {
   overflow: hidden;
 }
 
+@media screen and (max-width: 768px) {
+  html, body, #root {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

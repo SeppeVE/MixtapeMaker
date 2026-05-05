@@ -36,7 +36,7 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
 
         <p className="lp-hero-sub">
           Build perfect mixtapes with auto length calculation, then design beautiful
-          print-ready J-cards. No account needed — just press play.
+          print-ready J-cards.
         </p>
 
         <div className="lp-hero-ctas">

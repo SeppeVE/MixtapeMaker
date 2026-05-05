@@ -4,7 +4,7 @@ const FEATURES = [
     icon: <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M8 3v10" stroke="#EFE8D6" strokeWidth="2"/></svg>,
   },
   {
-    label: 'Side A & B calculation',
+    label: 'Side A & B swapping',
     icon: <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="8" stroke="#EFE8D6" strokeWidth="1.5" fill="none"/><line x1="2" y1="7" x2="14" y2="7" stroke="#EFE8D6" strokeWidth="1"/></svg>,
   },
   {

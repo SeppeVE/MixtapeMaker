@@ -1,4 +1,5 @@
 import CassetteSVG from '../tape/CassetteSVG';
+import '../../styles/utilities.css';
 
 interface HeroSectionProps {
   onNewMixtape: () => void;
@@ -8,14 +9,11 @@ interface HeroSectionProps {
 const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
   <section className="lp-hero" id="hero">
     {/* Dither background */}
-    <div style={{
-      position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.06,
-      backgroundImage: "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%235B2838'/%3E%3Crect width='2' height='2' fill='%23EFE8D6'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23EFE8D6'/%3E%3C/svg%3E\")",
-    }} />
+    <div className="absolute-inset pointer-events-none dither-bg" />
 
     {/* Geometric floaters */}
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 1 }}>
-      <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+    <div className="hero-floater-container">
+      <svg width="100%" height="100%">
         <polygon points="80,60 130,140 30,140"   fill="#D4A935" stroke="#2A1E28" strokeWidth="2" opacity="0.35" />
         <polygon points="900,80 960,190 840,190"  fill="#B4A0C7" stroke="#2A1E28" strokeWidth="2" opacity="0.25" />
         <rect x="1000" y="300" width="48" height="48" fill="#8FC9B7" stroke="#2A1E28" strokeWidth="2" opacity="0.3" transform="rotate(18,1024,324)" />

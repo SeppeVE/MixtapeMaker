@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { JCardDesign } from './JCardDesigner';
+import '../styles/utilities.css';
 
 interface JCardEditorProps {
   design: JCardDesign;
@@ -9,7 +10,7 @@ interface JCardEditorProps {
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg
     width="14" height="14" viewBox="0 0 14 14" fill="none"
-    style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+    className={`transition-transform flex-shrink-0 ${open ? 'rotate-180' : 'rotate-0'}`}
   >
     <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>

@@ -1,4 +1,5 @@
 import JCardMock from './JCardMock';
+import '../../styles/utilities.css';
 
 interface JCardSectionProps {
   onOpenJCards: () => void;
@@ -7,10 +8,10 @@ interface JCardSectionProps {
 const JCardSection = ({ onOpenJCards }: JCardSectionProps) => (
   <section id="jcard" className="lp-section" style={{ background: 'var(--color-sage)', borderBottom: '3px solid var(--color-text)' }}>
     {/* Geo decorations */}
-    <div style={{ position: 'absolute', top: '50px', left: '80px', opacity: 0.3, pointerEvents: 'none', zIndex: 1 }}>
+    <div className="decorative-triangle">
       <svg width="70" height="70"><polygon points="35,2 68,62 2,62" fill="none" stroke="#2A1E28" strokeWidth="2" /></svg>
     </div>
-    <div style={{ position: 'absolute', bottom: '40px', right: '50px', width: '60px', height: '60px', border: '2px solid var(--color-text)', opacity: 0.2, transform: 'rotate(20deg)', pointerEvents: 'none', zIndex: 1 }} />
+    <div className="decorative-square decorative-square-jcard" />
 
     <div className="lp-section-inner">
       <div className="lp-split lp-split-reverse">

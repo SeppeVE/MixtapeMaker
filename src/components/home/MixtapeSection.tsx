@@ -1,4 +1,5 @@
 import MixtapeEditorMock from './MixtapeEditorMock';
+import '../../styles/utilities.css';
 
 interface MixtapeSectionProps {
   onNewMixtape: () => void;
@@ -7,11 +8,11 @@ interface MixtapeSectionProps {
 const MixtapeSection = ({ onNewMixtape }: MixtapeSectionProps) => (
   <section id="mixtape" className="lp-section" style={{ background: 'var(--color-paper)', borderBottom: '3px solid var(--color-text)' }}>
     {/* Geo decorations */}
-    <div style={{ position: 'absolute', top: '40px', right: '60px', width: '80px', height: '80px', border: '2px solid var(--color-sage)', opacity: 0.35, transform: 'rotate(12deg)', pointerEvents: 'none', zIndex: 1 }} />
-    <div style={{ position: 'absolute', bottom: '60px', left: '40px', opacity: 0.25, pointerEvents: 'none', zIndex: 1 }}>
+    <div className="decorative-square decorative-square-mixtape" />
+    <div className="decorative-triangle-mixtape">
       <svg width="60" height="60"><polygon points="30,4 56,52 4,52" fill="none" stroke="#3D5A47" strokeWidth="2" /></svg>
     </div>
-    <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23EFE8D6'/%3E%3Crect width='2' height='2' fill='%232A1E28'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%232A1E28'/%3E%3C/svg%3E\")", pointerEvents: 'none', zIndex: 0 }} />
+    <div className="absolute-inset dither-bg-inverse pointer-events-none z-0" />
 
     <div className="lp-section-inner">
       <div className="lp-split">

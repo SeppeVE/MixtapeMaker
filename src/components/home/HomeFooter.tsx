@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import TapeStrip from './TapeStrip';
+import '../../styles/utilities.css';
 
 interface HomeFooterProps {
   onNewMixtape?: () => void;
@@ -7,7 +8,7 @@ interface HomeFooterProps {
 }
 
 const CassetteIcon = () => (
-  <svg width="18" height="12" viewBox="0 0 20 14" fill="none" style={{ verticalAlign: 'middle' }}>
+  <svg width="18" height="12" viewBox="0 0 20 14" fill="none" className="align-middle">
     <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
     <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
     <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" strokeWidth="1.5" fill="none" />
@@ -16,12 +17,18 @@ const CassetteIcon = () => (
 );
 
 const BuyMeCoffee = () => (
-  <a href="https://www.buymeacoffee.com/seppe.ve" target="_blank" rel="noreferrer" style={{height: 'max-content'}}>
+  <a href="https://www.buymeacoffee.com/seppe.ve" target="_blank" rel="noreferrer" className="height-max-content">
     <img
       src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
       alt="Buy Me a Coffee"
-      style={{ height: '40px', width: '150px', transform: 'translateY(3px)' }}
+      className="footer-logo"
     />
+  </a>
+);
+
+const ContactButton = () => (
+  <a href="mailto:contact@mixtape-maker.com" className="lp-btn lp-btn-paper footer-btn">
+    ✉ Contact
   </a>
 );
 
@@ -38,9 +45,10 @@ const HomeFooter = ({ onNewMixtape, onOpenJCards }: HomeFooterProps) => {
           <CassetteIcon /> CASSETTE
         </div>
         <div className="lp-foot-note">Make mixtapes. Design J-cards. Press play.</div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="lp-btn lp-btn-paper" style={{ fontSize: '15px', padding: '3px 12px 1px' }} onClick={handleNewMixtape}>Mixtape Editor</button>
-          <button className="lp-btn lp-btn-plum"  style={{ fontSize: '15px', padding: '3px 12px 1px' }} onClick={handleOpenJCards}>J-Card Designer</button>
+        <div className="footer-btn-group">
+          <button className="lp-btn lp-btn-paper footer-btn" onClick={handleNewMixtape}>Mixtape Editor</button>
+          <button className="lp-btn lp-btn-plum footer-btn" onClick={handleOpenJCards}>J-Card Designer</button>
+          <ContactButton />
         </div>
         <BuyMeCoffee />
       </footer>

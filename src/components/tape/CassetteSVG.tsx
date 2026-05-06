@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import '../../styles/utilities.css';
 
 interface CassetteSVGProps {
   title?: string;
@@ -23,13 +24,13 @@ const CassetteSVG = ({
   const beads = [35, 47, 59, 71, 83];
 
   return (
-    <div className={float ? 'lp-cassette-float' : 'cassette-svg'} style={{ lineHeight: 0 }}>
+    <div className={`${float ? 'lp-cassette-float' : 'cassette-svg'} line-height-0`}>
       <svg
         width="100%"
         viewBox="0 0 300 195"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ filter: 'drop-shadow(6px 6px 0 #2A1E28)', display: 'block' }}
+        className="cassette-drop-shadow block"
       >
         {/* Shell */}
         <rect x="2" y="2" width="296" height="191" rx="10"

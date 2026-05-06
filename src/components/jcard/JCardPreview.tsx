@@ -10,6 +10,7 @@ import CoverFlap from './parts/CoverFlap';
 import ContentFlap from './parts/ContentFlap';
 import '../../styles/jcard/jcard.css';
 import '../../styles/jcard/JCardPreview.css';
+import '../../styles/utilities.css';
 
 /** Wait for all image URLs and document fonts to be ready. */
 function waitForAssets(content: JCardContent): Promise<void> {
@@ -105,10 +106,8 @@ const JCardPreview = ({ content: rawContent }: Props) => {
 
   const continuousBgStyle: React.CSSProperties | undefined = content.continuousBackground
     ? {
-        position: 'absolute', inset: 0, zIndex: 0,
         backgroundColor: content.backgroundImageUrl ? 'transparent' : content.backgroundColor,
         backgroundImage: content.backgroundImageUrl ? `url(${content.backgroundImageUrl})` : undefined,
-        backgroundSize: 'cover', backgroundPosition: 'center',
       }
     : undefined;
 
@@ -137,23 +136,20 @@ const JCardPreview = ({ content: rawContent }: Props) => {
           </div>
         )}
         <div
-          className={`jcard${content.isReversed ? ' reversed' : ''}`}
+          className={`jcard jcard-scale-container transform-origin-top-left${content.isReversed ? ' reversed' : ''}${isReady ? ' transition-opacity opacity-100' : ' transition-none opacity-0'}`}
           style={{
             transform: actual ? 'none' : `scale(${scale})`,
-            transformOrigin: 'top left',
-            opacity: isReady ? 1 : 0,
-            transition: isReady ? 'opacity 0.35s ease' : 'none',
           }}
         >
-          {content.continuousBackground && <div style={continuousBgStyle} />}
-          <div className={`jcard-part jcard-back${content.shortBack ? ' short' : ''}`} style={{ position: 'relative', zIndex: 1 }}>
+          {content.continuousBackground && <div className="jcard-continuous-bg bg-cover" style={continuousBgStyle} />}
+          <div className={`jcard-part jcard-back jcard-part-positioned${content.shortBack ? ' short' : ''}`}>
             <BackPanel content={content} sanitizedLeft={s.backLeft} sanitizedRight={s.backRight} />
           </div>
-          <div className="jcard-part jcard-spine" style={{ position: 'relative', zIndex: 1 }}>
+          <div className="jcard-part jcard-spine jcard-part-positioned">
             <Spine content={content} sanitizedTop={s.spineTop} sanitizedCenter={s.spineMid} sanitizedBottom={s.spineBot} />
           </div>
           {Array.from({ length: content.flaps }, (_, i) => (
-            <div key={i} className="jcard-part" style={{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+            <div key={i} className="jcard-part jcard-flap" style={{ width: FLAP_WIDTHS[i] }}>
               {i === 0
                 ? <CoverFlap content={content} sanitizedCover={s.flaps[0]} />
                 : <ContentFlap content={content} sanitizedContent={s.flaps[i]} flapIndex={i} />}

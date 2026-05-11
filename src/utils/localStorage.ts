@@ -1,11 +1,13 @@
 import { Mixtape, JCard } from '../types';
 
+const isClient = typeof window !== 'undefined';
 const STORAGE_KEY = 'mixtape-current';
 
 /**
  * Save mixtape to local storage
  */
 export const saveMixtapeToLocal = (mixtape: Mixtape): void => {
+  if (!isClient) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(mixtape));
   } catch (error) {
@@ -17,6 +19,7 @@ export const saveMixtapeToLocal = (mixtape: Mixtape): void => {
  * Load mixtape from local storage
  */
 export const loadMixtapeFromLocal = (): Mixtape | null => {
+  if (!isClient) return null;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return null;

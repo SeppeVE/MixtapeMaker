@@ -17,7 +17,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  // In SSR (no window), skip loading state so components render in logged-out state
+  const [loading, setLoading] = useState(typeof window !== 'undefined');
 
   useEffect(() => {
     // Get initial session

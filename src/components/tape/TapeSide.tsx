@@ -53,7 +53,7 @@ const TapeSide = ({ side, songs, maxDuration, onRemoveSong, onReorderSongs, onMo
       {/* Song list */}
       <div className="song-list">
         {songs.length === 0 ? (
-          <div className="empty-side">◌ drop a song here · or press A / B from search</div>
+          <div className="empty-side">◌ Drop a song here · or press A / B from search</div>
         ) : (
           songs.map((song, index) => (
             <div

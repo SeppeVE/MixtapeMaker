@@ -3,7 +3,7 @@
  * Runs after `vite build` and `vite build --ssr` to inject server-rendered HTML
  * into the static index.html, giving crawlers full page content.
  *
- * Only the homepage (/) is prerendered — app pages (/editor, /library, etc.)
+ * Only the homepage (/) is prerendered — app pages (/mixtape, /library, etc.)
  * are authenticated and have no crawlable content.
  */
 

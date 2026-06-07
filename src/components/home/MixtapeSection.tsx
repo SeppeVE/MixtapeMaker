@@ -18,7 +18,7 @@ const MixtapeSection = ({ onNewMixtape }: MixtapeSectionProps) => (
       <div className="lp-split">
         <div className="lp-split-text">
           <div className="lp-section-label" style={{ color: 'var(--color-text-light)' }}>Feature 01</div>
-          <div className="lp-section-title" style={{ color: 'var(--color-plum)' }}>The Mixtape<br />Editor.</div>
+          <h2 className="lp-section-title" style={{ color: 'var(--color-plum)' }}>The Mixtape<br />Editor.</h2>
           <p className="lp-section-body" style={{ color: 'var(--color-text-light)' }}>
             Add tracks to Side A and Side B, and watch the length bar fill
             up in real time because of the auto length calculation. Select the length of your tape and easily fill it with your favourite songs.

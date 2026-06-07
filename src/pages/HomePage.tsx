@@ -11,7 +11,7 @@ import JCardSection from '../components/home/JCardSection';
 import HowItWorksSection from '../components/home/HowItWorksSection';
 import CtaSection from '../components/home/CtaSection';
 import HomeFooter from '../components/home/HomeFooter';
-import '../styles/LandingPage.css';
+import '../styles/home/HomePage.css';
 
 interface HomePageProps {
   onNewMixtape: () => void;

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Mixtape, JCard } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { loadMixtapes, deleteMixtape } from '../utils/database';
-import { listJCards, deleteJCard, upsertJCard } from '../utils/jcardDatabase';
-import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '../utils/localStorage';
 import { formatDuration } from '../utils/timeUtils';
 import NavBar from '../components/ui/NavBar';
 import HomeFooter from '../components/home/HomeFooter';
+import JCardLibrary from '../components/jcard/JCardLibrary';
+import { useJCardLibrary } from '../hooks/useJCardLibrary';
 import '../styles/LibraryPage.css';
 
 type StorageStatus = 'local' | 'cloud' | 'synced';
@@ -28,7 +29,6 @@ interface LibraryPageProps {
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-// ── Skeleton loader ────────────────────────────────────────────────────────────
 const SkeletonTapeCard = () => (
   <div className="lib-skeleton-tape">
     <div className="lib-skeleton-header" />
@@ -41,17 +41,6 @@ const SkeletonTapeCard = () => (
   </div>
 );
 
-const SkeletonJCardCard = () => (
-  <div className="lib-skeleton-jcard">
-    <div className="lib-skeleton-swatch" />
-    <div className="lib-skeleton-info">
-      <div className="lib-skeleton-line" />
-      <div className="lib-skeleton-line lib-skeleton-line--short" />
-    </div>
-  </div>
-);
-
-// ── Error state ────────────────────────────────────────────────────────────────
 const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
   <div className="lib-error-state">
     <span className="lib-error-icon">⚠</span>
@@ -65,7 +54,6 @@ const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void
 const totalDuration = (m: Mixtape) =>
   [...m.sideA, ...m.sideB].reduce((s, t) => s + t.duration, 0);
 
-// ── Storage badge ──────────────────────────────────────────────────────────────
 const Badge = ({ status }: { status: StorageStatus }) => (
   <span className={`lib-badge lib-badge-${status}`}>
     {status === 'local'  && '💾 Local'}
@@ -74,7 +62,6 @@ const Badge = ({ status }: { status: StorageStatus }) => (
   </span>
 );
 
-// ── Sign-in gate ───────────────────────────────────────────────────────────────
 const SignInGate = ({ onOpenAuth, message }: { onOpenAuth: () => void; message: string }) => (
   <div className="lib-sign-gate">
     <div className="lib-sign-gate-icon">☁</div>
@@ -83,9 +70,6 @@ const SignInGate = ({ onOpenAuth, message }: { onOpenAuth: () => void; message: 
   </div>
 );
 
-// ═══════════════════════════════════════════════════════
-//  Main component
-// ═══════════════════════════════════════════════════════
 const LibraryPage = ({
   currentDraft,
   onLoadMixtape,
@@ -99,22 +83,27 @@ const LibraryPage = ({
   showToast,
 }: LibraryPageProps) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('mixtapes');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam === 'jcards' ? 'jcards' : 'mixtapes');
 
-  // ── Mixtapes state ──
+  const jcardLibrary = useJCardLibrary(showToast, onOpenAuth);
+  const { allCards } = jcardLibrary;
+
   const [cloudTapes, setCloudTapes] = useState<Mixtape[]>([]);
   const [tapesLoading, setTapesLoading] = useState(false);
   const [tapesError, setTapesError] = useState<string | null>(null);
 
-  // ── J-Cards state ──
-  const [localCards, setLocalCards] = useState<JCard[]>([]);
-  const [cloudCardIds, setCloudCardIds] = useState<Set<string>>(new Set());
-  const [allCards, setAllCards] = useState<JCard[]>([]);
-  const [cardsLoading, setCardsLoading] = useState(true);
-  const [cardsError, setCardsError] = useState<string | null>(null);
-  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (tabParam === 'jcards') setActiveTab('jcards');
+    else if (tabParam === 'mixtapes') setActiveTab('mixtapes');
+  }, [tabParam]);
 
-  // ── Load cloud tapes ──
+  const setTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'mixtapes' ? {} : { tab });
+  };
+
   const loadTapes = useCallback(() => {
     if (!user) { setCloudTapes([]); return; }
     setTapesLoading(true);
@@ -127,50 +116,9 @@ const LibraryPage = ({
 
   useEffect(() => { loadTapes(); }, [loadTapes]);
 
-  // ── Load + merge J-cards ──
-  const loadCards = useCallback(() => {
-    setCardsLoading(true);
-    setCardsError(null);
-    const local = loadJCardsFromLocal();
-    setLocalCards(local);
-    if (user) {
-      listJCards(user.id)
-        .then(cloud => {
-          const ids = new Set(cloud.map(c => c.id));
-          setCloudCardIds(ids);
-          const merged = [...cloud];
-          for (const card of local) {
-            if (!ids.has(card.id)) merged.push(card);
-          }
-          merged.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-          setAllCards(merged);
-        })
-        .catch(() => {
-          setCardsError('Failed to load cloud cards — showing local only');
-          setAllCards(local);
-        })
-        .finally(() => setCardsLoading(false));
-    } else {
-      setAllCards(local);
-      setCardsLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => { loadCards(); }, [loadCards]);
-
-  // ── Helpers ──
   const draftHasSongs = currentDraft.sideA.length > 0 || currentDraft.sideB.length > 0;
   const draftIsUnsaved = draftHasSongs && !cloudTapes.some(t => t.id === currentDraft.id);
 
-  const cardStatus = (card: JCard): StorageStatus => {
-    const inCloud = cloudCardIds.has(card.id);
-    const inLocal = localCards.some(c => c.id === card.id);
-    if (inCloud && inLocal) return 'synced';
-    if (inCloud) return 'cloud';
-    return 'local';
-  };
-
-  // ── Save draft + refresh list ──
   const handleSaveDraftToCloud = async () => {
     await onSaveDraftToCloud();
     if (user) {
@@ -178,7 +126,6 @@ const LibraryPage = ({
     }
   };
 
-  // ── Tape actions ──
   const handleDeleteTape = async (tape: Mixtape, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm(`Delete "${tape.title}"?`)) return;
@@ -187,56 +134,6 @@ const LibraryPage = ({
       setCloudTapes(prev => prev.filter(t => t.id !== tape.id));
       showToast('Tape deleted', 'info');
     } catch { showToast('Failed to delete tape', 'error'); }
-  };
-
-  // ── J-Card actions ──
-  const handleUploadCard = async (card: JCard) => {
-    if (!user) { onOpenAuth(); return; }
-    setUploadingIds(prev => new Set(prev).add(card.id));
-    try {
-      const synced = await upsertJCard(card, user.id);
-
-      // The cloud may have assigned a new UUID (when the local id wasn't a UUID).
-      // Replace the old local entry with the synced version.
-      if (synced.id !== card.id) {
-        deleteJCardFromLocal(card.id);
-      }
-      saveJCardToLocal(synced);
-
-      // Swap the card in the UI list and update the cloud-id set
-      setAllCards(prev => prev.map(c => c.id === card.id ? synced : c));
-      setCloudCardIds(prev => {
-        const s = new Set(prev);
-        s.delete(card.id);
-        s.add(synced.id);
-        return s;
-      });
-      // Also update the local cards list so cardStatus() stays accurate
-      setLocalCards(prev => {
-        const without = prev.filter(c => c.id !== card.id);
-        return [...without, synced];
-      });
-
-      showToast('Card saved to cloud ☁', 'success');
-    } catch { showToast('Upload failed', 'error'); }
-    finally { setUploadingIds(prev => { const s = new Set(prev); s.delete(card.id); return s; }); }
-  };
-
-  const handleDeleteCard = async (card: JCard, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm(`Delete "${card.title || 'Untitled'}"?`)) return;
-    try {
-      const status = cardStatus(card);
-      if (status === 'cloud' || status === 'synced') {
-        await deleteJCard(card.id);
-      }
-      if (status === 'local' || status === 'synced') {
-        deleteJCardFromLocal(card.id);
-      }
-      setAllCards(prev => prev.filter(c => c.id !== card.id));
-      setCloudCardIds(prev => { const s = new Set(prev); s.delete(card.id); return s; });
-      showToast('Card deleted', 'info');
-    } catch { showToast('Failed to delete', 'error'); }
   };
 
   return (
@@ -250,7 +147,6 @@ const LibraryPage = ({
         <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)' }}>Library</span>
       </NavBar>
 
-      {/* ── Page header + tabs ── */}
       <div className="lib-header">
         <div className="lib-header-inner">
           <div>
@@ -260,7 +156,7 @@ const LibraryPage = ({
           <div className="lib-tabs">
             <button
               className={`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`}
-              onClick={() => setActiveTab('mixtapes')}
+              onClick={() => setTab('mixtapes')}
             >
               📼 Mixtapes
               {cloudTapes.length > 0 && (
@@ -269,7 +165,7 @@ const LibraryPage = ({
             </button>
             <button
               className={`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`}
-              onClick={() => setActiveTab('jcards')}
+              onClick={() => setTab('jcards')}
             >
               🎴 J-Cards
               {allCards.length > 0 && (
@@ -280,12 +176,9 @@ const LibraryPage = ({
         </div>
       </div>
 
-      {/* ── Tab content ── */}
       <div className="lib-content">
         {activeTab === 'mixtapes' && (
           <div className="lib-section-stack">
-
-            {/* Draft section */}
             {draftIsUnsaved && (
               <section className="lib-section">
                 <div className="lib-section-head">
@@ -323,7 +216,6 @@ const LibraryPage = ({
               </section>
             )}
 
-            {/* Cloud section */}
             <section className="lib-section">
               <div className="lib-section-head">
                 <span>Mixtapes</span>
@@ -410,17 +302,6 @@ const LibraryPage = ({
 
         {activeTab === 'jcards' && (
           <div className="lib-section-stack">
-
-            {/* Cloud sync banner for signed-out users */}
-            {!user && allCards.length > 0 && (
-              <div className="lib-sync-banner">
-                <span>💾 Your cards are saved locally. Sign in to back them up to the cloud.</span>
-                <button className="lp-btn lp-btn-plum" style={{ fontSize: '15px', padding: '3px 14px 1px' }} onClick={onOpenAuth}>
-                  Sign In
-                </button>
-              </div>
-            )}
-
             <section className="lib-section">
               <div className="lib-section-head">
                 <span>J-Cards</span>
@@ -428,85 +309,13 @@ const LibraryPage = ({
                   + New Card
                 </button>
               </div>
-
-              {cardsLoading && (
-                <div className="lib-cards-grid">
-                  {[1, 2, 3].map(n => <SkeletonJCardCard key={n} />)}
-                </div>
-              )}
-
-              {!cardsLoading && cardsError && (
-                <ErrorState message={cardsError} onRetry={loadCards} />
-              )}
-
-              {!cardsLoading && allCards.length === 0 && (
-                <div className="lib-empty">
-                  <div className="lib-empty-icon">🎴</div>
-                  <p>No J-cards yet.</p>
-                  <p className="lib-empty-sub">Design a card for any of your mixtapes.</p>
-                  <button className="lp-btn lp-btn-mustard" style={{ marginTop: '8px' }} onClick={onNewCard}>
-                    ✦ Create your first J-Card
-                  </button>
-                </div>
-              )}
-
-              {!cardsLoading && allCards.length > 0 && (
-                <div className="lib-cards-grid">
-                  {allCards.map(card => {
-                    const status = cardStatus(card);
-                    const isUploading = uploadingIds.has(card.id);
-                    return (
-                      <div
-                        key={card.id}
-                        className="lib-jcard-card"
-                        onClick={() => onOpenCard(card)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && onOpenCard(card)}
-                      >
-                        {/* Color swatch + title */}
-                        <div
-                          className="lib-jcard-swatch"
-                          style={{ background: card.content.backgroundColor }}
-                        />
-                        <div className="lib-jcard-info">
-                          <div className="lib-jcard-name">{card.title || 'Untitled'}</div>
-                          <div className="lib-jcard-meta">
-                            {card.content.flaps} flap{card.content.flaps !== 1 ? 's' : ''} · {fmtDate(card.updatedAt)}
-                          </div>
-                        </div>
-                        {/* Status + actions */}
-                        <div className="lib-jcard-actions" onClick={e => e.stopPropagation()}>
-                          <Badge status={status} />
-                          {status === 'local' && user && (
-                            <button
-                              className="lib-upload-btn"
-                              onClick={() => handleUploadCard(card)}
-                              disabled={isUploading}
-                              title="Upload to cloud"
-                            >
-                              {isUploading ? '…' : '↑ Cloud'}
-                            </button>
-                          )}
-                          <button
-                            className="lib-delete-btn"
-                            onClick={e => handleDeleteCard(card, e)}
-                            title="Delete"
-                          >×</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Sign-in gate for users with no account */}
-              {!user && allCards.length === 0 && (
-                <SignInGate
-                  onOpenAuth={onOpenAuth}
-                  message="Sign in to save J-cards to the cloud and access them from any device."
-                />
-              )}
+              <JCardLibrary
+                embedded
+                library={jcardLibrary}
+                onOpenCard={onOpenCard}
+                onNewCard={onNewCard}
+                onOpenAuth={onOpenAuth}
+              />
             </section>
           </div>
         )}

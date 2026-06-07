@@ -9,38 +9,108 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- ── Primary SEO ──────────────────────────────────────────────────── -->
-    <title>Mixtape Maker</title>
-    <meta name="description" content="Build retro cassette mixtapes using Spotify search. Design custom j-cards, split tracks across Side A & B, and save your mixes to the cloud." />
+    <title>Mixtape Maker — Build Retro Cassette Mixtapes</title>
+    <meta name="description" content="Build retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud." />
     <link rel="canonical" href="https://mixtape-maker.com" />
 
     <!-- ── Open Graph (social / AI link previews) ───────────────────────── -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mixtape Maker" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://mixtape-maker.com" />
-    <meta property="og:title" content="Mixtape Maker — Build Retro Cassette Mixtapes" />
-    <meta property="og:description" content="Build retro cassette mixtapes using Spotify search. Design custom j-cards, split tracks across Side A & B, and save your mixes to the cloud." />
+    <meta property="og:title" content="Mixtape Maker: Build Retro Cassette Mixtapes" />
+    <meta property="og:description" content="Build retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud." />
     <meta property="og:image" content="https://mixtape-maker.com/og-image.png" />
+    <meta property="og:image:width" content="3456" />
+    <meta property="og:image:height" content="1582" />
 
     <!-- ── Twitter / X card ─────────────────────────────────────────────── -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Mixtape Maker — Build Retro Cassette Mixtapes" />
-    <meta name="twitter:description" content="Build retro cassette mixtapes using Spotify search. Design custom j-cards, split tracks across Side A & B, and save your mixes to the cloud." />
+    <meta name="twitter:description" content="Build retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud." />
     <meta name="twitter:image" content="https://mixtape-maker.com/og-image.png" />
 
     <!-- ── Structured data (JSON-LD) ────────────────────────────────────── -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Mixtape Maker",
-      "url": "https://mixtape-maker.com",
-      "description": "Build retro cassette mixtapes using Spotify search. Design custom j-cards, split tracks across Side A & B, and save your mixes to the cloud.",
-      "applicationCategory": "MusicApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "Mixtape Maker",
+          "url": "https://mixtape-maker.com",
+          "description": "Build retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud.",
+          "applicationCategory": "MusicApplication",
+          "operatingSystem": "Web",
+          "browserRequirements": "Requires JavaScript",
+          "featureList": [
+            "Spotify track search",
+            "A/B side mixtape editor with cassette length limits",
+            "Drag-and-drop track ordering",
+            "J-card designer with print-ready PDF export",
+            "Optional cloud save with sign-in"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        },
+        {
+          "@type": "HowTo",
+          "name": "How to make a cassette mixtape with Mixtape Maker",
+          "description": "Build a tracklist, fine-tune the sequence, and design a print-ready J-card.",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": 1,
+              "name": "Build your tracklist",
+              "text": "Search for songs using Spotify results and add them to Side A or Side B. Cassette length is calculated automatically."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 2,
+              "name": "Fine-tune the sequence",
+              "text": "Rearrange tracks by dragging them. Balance both sides so neither ends with dead air."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 3,
+              "name": "Design your J-Card",
+              "text": "Upload cover art, add your title and tracklist, style the spine, and export a print-ready PDF sized for a standard cassette case."
+            }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Mixtape Maker?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Mixtape Maker is a free web app for building cassette mixtapes with Spotify search and designing print-ready J-cards for cassette cases."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do I need to sign in?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No sign-in is required to use the editor. Sign in to save mixtapes and J-cards to the cloud and access them across devices."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I design a J-card without making a mixtape?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. The J-card designer works independently — you can create and export a J-card without building a mixtape first."
+              }
+            }
+          ]
+        }
+      ]
     }
     </script>
 

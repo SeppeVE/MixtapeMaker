@@ -17,7 +17,7 @@ const JCardSection = ({ onOpenJCards }: JCardSectionProps) => (
       <div className="lp-split lp-split-reverse">
         <div className="lp-split-text">
           <div className="lp-section-label" style={{ color: 'var(--color-forest)' }}>Feature 02</div>
-          <div className="lp-section-title" style={{ color: 'var(--color-text)' }}>The J-Card<br />Designer.</div>
+          <h2 className="lp-section-title" style={{ color: 'var(--color-text)' }}>The J-Card<br />Designer.</h2>
           <p className="lp-section-body" style={{ color: 'var(--color-text-light)' }}>
             Every great mixtape deserves a proper J-card. Upload cover art, style the spine
             with your tape's title, lay out the track list on the back, or one of the inside panels, and export a

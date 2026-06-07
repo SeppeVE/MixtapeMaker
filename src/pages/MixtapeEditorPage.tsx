@@ -7,9 +7,9 @@ import SearchBar from '../components/ui/SearchBar';
 import TapeSide from '../components/tape/TapeSide';
 import TapePreview from '../components/tape/TapePreview';
 import HomeFooter from '../components/home/HomeFooter';
-import '../styles/Editor.css';
+import '../styles/mixtape/MixtapeEditor.css';
 
-interface EditorPageProps {
+interface MixtapeEditorPageProps {
   mixtape: Mixtape;
   onMixtapeChange: (mixtape: Mixtape) => void;
   isSaving: boolean;
@@ -19,7 +19,7 @@ interface EditorPageProps {
   onOpenLibrary: () => void;
 }
 
-const EditorPage = ({
+const MixtapeEditorPage = ({
   mixtape,
   onMixtapeChange,
   isSaving,
@@ -27,7 +27,7 @@ const EditorPage = ({
   onNewMixtape,
   onOpenAuth,
   onOpenLibrary,
-}: EditorPageProps) => {
+}: MixtapeEditorPageProps) => {
   const navigate = useNavigate();
 
   const [sideA, setSideA] = useState(true);
@@ -179,4 +179,4 @@ const EditorPage = ({
   );
 };
 
-export default EditorPage;
+export default MixtapeEditorPage;

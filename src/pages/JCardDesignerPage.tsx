@@ -36,7 +36,7 @@ const JCardDesignerPage = ({ activeCard, mixtape, onOpenAuth, onOpenLibrary, sho
         <JCardView
           initialCard={activeCard}
           currentMixtape={mixtape}
-          onBack={() => navigate('/cards')}
+          onBack={() => navigate('/library?tab=jcards')}
           showToast={showToast}
         />
       </div>

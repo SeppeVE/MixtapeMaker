@@ -34,8 +34,8 @@ const ContactButton = () => (
 
 const HomeFooter = ({ onNewMixtape, onOpenJCards }: HomeFooterProps) => {
   const navigate = useNavigate();
-  const handleNewMixtape = onNewMixtape ?? (() => navigate('/editor'));
-  const handleOpenJCards = onOpenJCards ?? (() => navigate('/cards/designer'));
+  const handleNewMixtape = onNewMixtape ?? (() => navigate('/mixtape'));
+  const handleOpenJCards = onOpenJCards ?? (() => navigate('/library?tab=jcards'));
 
   return (
     <>

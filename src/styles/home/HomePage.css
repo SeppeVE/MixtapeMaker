@@ -2,7 +2,7 @@
    Landing Page — scoped to .lp-page
    Uses the app's CSS variables from App.css
    ═══════════════════════════════════════════════════════ */
-@import './NavBar.css';
+@import '../NavBar.css';
 
 /* ── page container (scrollable, overlays the fixed root) ── */
 .lp-page {
@@ -106,6 +106,13 @@
   font-size: 18px;
   letter-spacing: 2px;
   width: fit-content;
+}
+
+.lp-hero-headline,
+.lp-section-title,
+.lp-step-title {
+  margin: 0;
+  font-weight: inherit;
 }
 
 .lp-hero-headline {

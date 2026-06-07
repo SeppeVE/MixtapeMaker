@@ -28,13 +28,13 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
       <div className="lp-hero-left">
         <div className="lp-hero-eyebrow icon-button"><span className='icon'>◆</span><span>MIXTAPE MAKER</span></div>
 
-        <div className="lp-hero-headline">
+        <h1 className="lp-hero-headline">
           MIX.<br />DESIGN.<br /><span className='lp-hero-headline-accent'>ENJOY.</span>
-        </div>
+        </h1>
 
         <p className="lp-hero-sub">
-          Build perfect mixtapes with auto length calculation, then design beautiful
-          print-ready J-cards.
+          Mixtape Maker: build cassette mixtapes with Spotify search and auto length
+          calculation, then design beautiful print-ready J-cards.
         </p>
 
         <div className="lp-hero-ctas">
@@ -42,7 +42,7 @@ const HeroSection = ({ onNewMixtape, onOpenJCards }: HeroSectionProps) => (
           <button className="lp-btn lp-btn-paper lp-btn-lg icon-button" onClick={onOpenJCards}><span className='icon'>✦</span><span>Design a J-Card</span></button>
         </div>
 
-        <div className="lp-hero-note">Free to use · No sign-in · Works in your browser</div>
+        <div className="lp-hero-note">Free to use · Works in your browser · Sign in to sync to the cloud</div>
       </div>
 
       {/* Right: animated cassette */}

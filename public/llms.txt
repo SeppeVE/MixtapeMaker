@@ -1,0 +1,23 @@
+# Mixtape Maker
+
+> Free web app to build cassette mixtapes with Spotify search and design print-ready J-cards for cassette cases.
+
+## Features
+
+- Mixtape editor with Side A / Side B tracklists
+- Spotify track search
+- Cassette length calculator (C-46, C-60, C-90)
+- Drag-and-drop track ordering
+- J-card designer with print-ready PDF export
+- Optional cloud save (sign in required)
+
+## URLs
+
+- https://mixtape-maker.com — Homepage and product overview
+- https://mixtape-maker.com/mixtape — Mixtape editor
+- https://mixtape-maker.com/library — Saved mixtapes and J-cards library
+- https://mixtape-maker.com/cards/designer — J-card designer
+
+## Contact
+
+- contact@mixtape-maker.com

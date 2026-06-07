@@ -6,6 +6,10 @@
   gap: 14px;
 }
 
+.jcard-library--embedded {
+  padding: 0;
+}
+
 .jcard-library-header {
   display: flex;
   justify-content: space-between;

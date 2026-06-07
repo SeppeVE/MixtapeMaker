@@ -24,13 +24,13 @@ const HowItWorksSection = () => (
     <div className="lp-section-inner">
       <div style={{ textAlign: 'center', marginBottom: '52px' }}>
         <div className="lp-section-label" style={{ color: 'var(--color-mustard)', letterSpacing: '3px' }}>Process</div>
-        <div className="lp-section-title" style={{ color: 'var(--color-paper)', marginTop: '8px' }}>How it works.</div>
+        <h2 className="lp-section-title" style={{ color: 'var(--color-paper)', marginTop: '8px' }}>How it works.</h2>
       </div>
       <div className="lp-steps-grid">
         {STEPS.map(({ number, title, desc, tag }) => (
           <div key={number} className="lp-step">
             <div className="lp-step-number">{number}</div>
-            <div className="lp-step-title">{title}</div>
+            <h3 className="lp-step-title">{title}</h3>
             <p className="lp-step-desc">{desc}</p>
             <div className="lp-step-tag">{tag}</div>
           </div>

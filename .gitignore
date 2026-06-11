@@ -33,3 +33,5 @@ dist-ssr
 
 .cursorignore
 .cursor/rules
+.claude/
+.claude/settings.local.json

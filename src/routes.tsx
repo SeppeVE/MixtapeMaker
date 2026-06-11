@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import LibraryPage from './pages/LibraryPage';
 import MixtapeEditorPage from './pages/MixtapeEditorPage';
 import JCardDesignerPage from './pages/JCardDesignerPage';
+import SpotifyCallback from './pages/SpotifyCallback';
 
 export interface AppRoutesProps {
   mixtape: Mixtape;
@@ -84,6 +85,8 @@ export function AppRoutes({
           showToast={showToast}
         />
       } />
+
+      <Route path="/spotify-callback" element={<SpotifyCallback />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

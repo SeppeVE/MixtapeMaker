@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mixtape, CassetteLength } from '../../types';
 import { calculateTotalDuration, formatTime } from '../../utils/timeUtils';
 import CassetteSVG from './CassetteSVG';
+import ExportToSpotify from '../spotify/ExportToSpotify';
 import '../../styles/TapePreview.css';
 
 interface TapePreviewProps {
@@ -156,6 +157,7 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
           <button className="btn action-btn" onClick={onNewMixtape}>
             + New Mixtape
           </button>
+          <ExportToSpotify mixtape={mixtape} />
         </div>
       </div>
 

@@ -72,8 +72,11 @@ const SearchBar = ({ onAddSong, sideA, sideB, activeSide }: SearchBarProps) => {
           )}
 
           {results.length > 0 && (
-            <div className="search-status">
-              {results.length} results · <span className="connected">● spotify</span>
+            <div className="search-status-row">
+              <div className="search-status">
+                {results.length} results · <span className="connected">● spotify</span>
+              </div>
+              <button className="btn btn-search btn-clear-results" onClick={() => setResults([])}>✕</button>
             </div>
           )}
 

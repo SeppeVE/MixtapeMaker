@@ -42,7 +42,8 @@ export function useAppMixtapeState() {
     if (!user) { setIsAuthModalOpen(true); return; }
     setIsSaving(true);
     try {
-      await saveMixtape(mixtape, user.id);
+      const saved = await saveMixtape(mixtape, user.id);
+      setMixtape(saved);
       showToast('Mixtape saved to cloud', 'success');
     } catch (err) {
       console.error('Save failed:', err);

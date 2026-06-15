@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { Mixtape } from '../types';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface DatabaseMixtape {
   id: string;
   user_id: string;
@@ -39,15 +41,21 @@ function mixtapeToDb(mixtape: Mixtape, _userId: string): Omit<DatabaseMixtape, '
 }
 
 // Save a mixtape to the database
-export async function saveMixtape(mixtape: Mixtape, userId: string) {
+export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mixtape> {
   const dbMixtape = mixtapeToDb(mixtape, userId);
+
+  // Strip locally-generated (non-UUID) ids so Supabase generates a real UUID
+  const payload: Omit<DatabaseMixtape, 'user_id'> & { user_id: string; id?: string } = {
+    ...dbMixtape,
+    user_id: userId,
+  };
+  if (!UUID_RE.test(mixtape.id)) {
+    delete payload.id;
+  }
 
   const { data, error } = await supabase
     .from('mixtapes')
-    .upsert({
-      ...dbMixtape,
-      user_id: userId,
-    })
+    .upsert(payload)
     .select()
     .single();
 

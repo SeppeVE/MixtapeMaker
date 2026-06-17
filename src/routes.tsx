@@ -18,7 +18,6 @@ export interface AppRoutesProps {
   handleLoadMixtape: (mixtape: Mixtape) => void;
   handleTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
   handleEnableShare: (mixtapeId: string) => Promise<string>;
-  handleDisableShare: (mixtapeId: string) => Promise<void>;
   isCloudId: (id: string) => boolean;
   openDesigner: (card: JCard | null) => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -36,7 +35,6 @@ export function AppRoutes({
   handleLoadMixtape,
   handleTogglePublic,
   handleEnableShare,
-  handleDisableShare,
   isCloudId,
   openDesigner,
   showToast,
@@ -68,7 +66,6 @@ export function AppRoutes({
           onNewMixtape={handleNewMixtape}
           onTogglePublic={handleTogglePublic}
           onEnableShare={handleEnableShare}
-          onDisableShare={handleDisableShare}
           showToast={showToast}
         />
       } />

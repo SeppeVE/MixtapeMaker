@@ -94,26 +94,26 @@ const ExplorePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onOpenMixtape }: Exp
       <div className="lib-content">
         <div className="lib-section-stack">
           <section className="lib-section">
-            <div className="search-window explore-search-window">
-              <div className="search-window-title">⌕ Search Mixtapes</div>
-              <div className="search-form-area">
-                <div className="search-form">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={e => handleQueryChange(e.target.value)}
-                    placeholder="search by title…"
-                    className="search-input"
-                  />
-                </div>
-                {!loading && !error && (
-                  <div className="search-status-row">
-                    <div className="search-status">
-                      {tapes.length} result{tapes.length === 1 ? '' : 's'}
-                    </div>
+            <div className="explore-search-window">
+              <form className="search-form" onSubmit={e => { e.preventDefault(); runSearch(query); }}>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => handleQueryChange(e.target.value)}
+                  placeholder="song, artist…"
+                  className="search-input"
+                />
+                <button type="submit" disabled={loading} className="btn btn-search">
+                  {loading ? '…' : '⌕'}
+                </button>
+              </form>
+              {!loading && !error && (
+                <div className="search-status-row">
+                  <div className="search-status">
+                    {tapes.length} result{tapes.length === 1 ? '' : 's'}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {loading && (

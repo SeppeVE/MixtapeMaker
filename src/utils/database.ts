@@ -45,7 +45,7 @@ export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mix
   const dbMixtape = mixtapeToDb(mixtape, userId);
 
   // Strip locally-generated (non-UUID) ids so Supabase generates a real UUID
-  const payload: Omit<DatabaseMixtape, 'user_id'> & { user_id: string; id?: string } = {
+  const payload: Omit<DatabaseMixtape, 'user_id' | 'id'> & { user_id: string; id?: string } = {
     ...dbMixtape,
     user_id: userId,
   };

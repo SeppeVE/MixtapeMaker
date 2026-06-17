@@ -43,14 +43,16 @@ function mixtapeToDb(mixtape: Mixtape, _userId: string): Omit<DatabaseMixtape, '
 // Save a mixtape to the database
 export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mixtape> {
   const dbMixtape = mixtapeToDb(mixtape, userId);
-
-  // Strip locally-generated (non-UUID) ids so Supabase generates a real UUID
-  const payload: Omit<DatabaseMixtape, 'user_id' | 'id'> & { user_id: string; id?: string } = {
+  const payload: DatabaseMixtape = {
     ...dbMixtape,
     user_id: userId,
   };
+
+  // Legacy cloud tapes use timestamp ids — keep them on update.
+  // New local drafts get a UUID so future shares use a standard id format.
   if (!UUID_RE.test(mixtape.id)) {
-    delete payload.id;
+    const existing = await loadMixtape(mixtape.id);
+    payload.id = existing ? mixtape.id : crypto.randomUUID();
   }
 
   const { data, error } = await supabase

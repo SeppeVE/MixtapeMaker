@@ -83,6 +83,22 @@ CREATE POLICY "Users can delete their own mixtapes"
 4. Click **Run** or press `Ctrl+Enter` to execute the SQL
 5. You should see a success message
 
+## Step 3b: Add Shareable Links (Optional)
+
+If your `mixtapes` table predates the share-link feature, run this in the SQL Editor to add it:
+
+```sql
+-- Add a nullable share token. NULL means "not shared"; a tape becomes shareable
+-- the moment a token is set, independent of the is_public flag.
+ALTER TABLE mixtapes ADD COLUMN share_token UUID DEFAULT NULL;
+CREATE UNIQUE INDEX mixtapes_share_token_idx ON mixtapes(share_token) WHERE share_token IS NOT NULL;
+
+-- Allow anyone holding a valid token to read that single row, regardless of is_public.
+CREATE POLICY "Anyone can view mixtapes via share token"
+  ON mixtapes FOR SELECT
+  USING (share_token IS NOT NULL);
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

@@ -24,8 +24,12 @@ interface LibraryPageProps {
   onNewCard: () => void;
   onNewMixtape: () => void;
   onTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
+  onEnableShare: (mixtapeId: string) => Promise<string>;
+  onDisableShare: (mixtapeId: string) => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
+
+const buildShareUrl = (token: string) => `${window.location.origin}/share/${token}`;
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -82,6 +86,8 @@ const LibraryPage = ({
   onNewCard,
   onNewMixtape,
   onTogglePublic,
+  onEnableShare,
+  onDisableShare,
   showToast,
 }: LibraryPageProps) => {
   const { user } = useAuth();
@@ -146,6 +152,31 @@ const LibraryPage = ({
       await onTogglePublic(tape.id, next);
     } catch {
       setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, isPublic: tape.isPublic } : t));
+    }
+  };
+
+  const handleShare = async (tape: Mixtape, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const token = tape.shareToken ?? await onEnableShare(tape.id);
+      if (!tape.shareToken) {
+        setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, shareToken: token } : t));
+      }
+      await navigator.clipboard.writeText(buildShareUrl(token));
+      showToast('Share link copied to clipboard', 'success');
+    } catch {
+      showToast('Failed to create share link', 'error');
+    }
+  };
+
+  const handleRevokeShare = async (tape: Mixtape, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await onDisableShare(tape.id);
+      setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, shareToken: null } : t));
+      showToast('Share link revoked', 'info');
+    } catch {
+      showToast('Failed to revoke share link', 'error');
     }
   };
 
@@ -287,6 +318,20 @@ const LibraryPage = ({
                           >
                             {tape.isPublic ? '◉ Public' : '◌ Private'}
                           </button>
+                          <button
+                            className={`lib-public-toggle ${tape.shareToken ? 'lib-badge-public' : 'lib-badge-private'}`}
+                            onClick={e => handleShare(tape, e)}
+                            title={tape.shareToken ? 'Shared · click to copy link again' : 'Click to create a share link'}
+                          >
+                            🔗 {tape.shareToken ? 'Copy Link' : 'Share'}
+                          </button>
+                          {tape.shareToken && (
+                            <button
+                              className="lib-delete-btn"
+                              onClick={e => handleRevokeShare(tape, e)}
+                              title="Revoke share link"
+                            >⊘</button>
+                          )}
                           <button
                             className="lib-delete-btn"
                             onClick={e => handleDeleteTape(tape, e)}

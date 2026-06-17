@@ -21,7 +21,6 @@ function App() {
     handleLoadMixtape,
     handleTogglePublic,
     handleEnableShare,
-    handleDisableShare,
     isCloudId,
     openDesigner,
     navigate,
@@ -39,7 +38,6 @@ function App() {
         handleLoadMixtape={handleLoadMixtape}
         handleTogglePublic={handleTogglePublic}
         handleEnableShare={handleEnableShare}
-        handleDisableShare={handleDisableShare}
         isCloudId={isCloudId}
         openDesigner={openDesigner}
         showToast={showToast}

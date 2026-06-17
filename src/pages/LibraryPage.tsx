@@ -25,7 +25,6 @@ interface LibraryPageProps {
   onNewMixtape: () => void;
   onTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
   onEnableShare: (mixtapeId: string) => Promise<string>;
-  onDisableShare: (mixtapeId: string) => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -87,7 +86,6 @@ const LibraryPage = ({
   onNewMixtape,
   onTogglePublic,
   onEnableShare,
-  onDisableShare,
   showToast,
 }: LibraryPageProps) => {
   const { user } = useAuth();
@@ -166,17 +164,6 @@ const LibraryPage = ({
       showToast('Share link copied to clipboard', 'success');
     } catch {
       showToast('Failed to create share link', 'error');
-    }
-  };
-
-  const handleRevokeShare = async (tape: Mixtape, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await onDisableShare(tape.id);
-      setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, shareToken: null } : t));
-      showToast('Share link revoked', 'info');
-    } catch {
-      showToast('Failed to revoke share link', 'error');
     }
   };
 
@@ -309,35 +296,28 @@ const LibraryPage = ({
                     >
                       <div className="lib-tape-card-header">
                         <span className="lib-tape-card-title">{tape.title}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Badge status="cloud" />
-                          <button
-                            className={`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`}
-                            onClick={e => handleTogglePublic(tape, e)}
-                            title={tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'}
-                          >
-                            {tape.isPublic ? '◉ Public' : '◌ Private'}
-                          </button>
-                          <button
-                            className={`lib-public-toggle ${tape.shareToken ? 'lib-badge-public' : 'lib-badge-private'}`}
-                            onClick={e => handleShare(tape, e)}
-                            title={tape.shareToken ? 'Shared · click to copy link again' : 'Click to create a share link'}
-                          >
-                            🔗 {tape.shareToken ? 'Copy Link' : 'Share'}
-                          </button>
-                          {tape.shareToken && (
-                            <button
-                              className="lib-delete-btn"
-                              onClick={e => handleRevokeShare(tape, e)}
-                              title="Revoke share link"
-                            >⊘</button>
-                          )}
-                          <button
-                            className="lib-delete-btn"
-                            onClick={e => handleDeleteTape(tape, e)}
-                            title="Delete"
-                          >×</button>
-                        </div>
+                      </div>
+                      <div className="lib-tape-card-actions">
+                        <Badge status="cloud" />
+                        <button
+                          className={`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`}
+                          onClick={e => handleTogglePublic(tape, e)}
+                          title={tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'}
+                        >
+                          {tape.isPublic ? '◉ Public' : '◌ Private'}
+                        </button>
+                        <button
+                          className="lib-public-toggle lib-badge-private"
+                          onClick={e => handleShare(tape, e)}
+                          title="Copy share link"
+                        >
+                          🔗 Copy Link
+                        </button>
+                        <button
+                          className="lib-delete-btn"
+                          onClick={e => handleDeleteTape(tape, e)}
+                          title="Delete"
+                        >×</button>
                       </div>
                       <div className="lib-tape-card-body">
                         <div className="lib-tape-row">

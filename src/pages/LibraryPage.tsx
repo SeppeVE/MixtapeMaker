@@ -23,6 +23,7 @@ interface LibraryPageProps {
   onOpenCard: (card: JCard) => void;
   onNewCard: () => void;
   onNewMixtape: () => void;
+  onTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
@@ -80,6 +81,7 @@ const LibraryPage = ({
   onOpenCard,
   onNewCard,
   onNewMixtape,
+  onTogglePublic,
   showToast,
 }: LibraryPageProps) => {
   const { user } = useAuth();
@@ -134,6 +136,17 @@ const LibraryPage = ({
       setCloudTapes(prev => prev.filter(t => t.id !== tape.id));
       showToast('Tape deleted', 'info');
     } catch { showToast('Failed to delete tape', 'error'); }
+  };
+
+  const handleTogglePublic = async (tape: Mixtape, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = !tape.isPublic;
+    setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, isPublic: next } : t));
+    try {
+      await onTogglePublic(tape.id, next);
+    } catch {
+      setCloudTapes(prev => prev.map(t => t.id === tape.id ? { ...t, isPublic: tape.isPublic } : t));
+    }
   };
 
   return (
@@ -267,6 +280,13 @@ const LibraryPage = ({
                         <span className="lib-tape-card-title">{tape.title}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Badge status="cloud" />
+                          <button
+                            className={`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`}
+                            onClick={e => handleTogglePublic(tape, e)}
+                            title={tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'}
+                          >
+                            {tape.isPublic ? '◉ Public' : '◌ Private'}
+                          </button>
                           <button
                             className="lib-delete-btn"
                             onClick={e => handleDeleteTape(tape, e)}

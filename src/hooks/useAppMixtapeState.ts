@@ -8,7 +8,7 @@ import {
   saveActiveCardToLocal,
   loadActiveCardFromLocal,
 } from '../utils/localStorage';
-import { saveMixtape } from '../utils/database';
+import { saveMixtape, toggleMixtapePublic, isCloudId } from '../utils/database';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useAppMixtapeState() {
@@ -29,6 +29,7 @@ export function useAppMixtapeState() {
       sideB: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isPublic: false,
     }
   );
 
@@ -62,6 +63,7 @@ export function useAppMixtapeState() {
       sideB: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isPublic: false,
     });
     navigate('/mixtape');
     showToast('New mixtape created', 'success');
@@ -71,6 +73,17 @@ export function useAppMixtapeState() {
     setMixtape(loaded);
     navigate('/mixtape');
     showToast('Mixtape loaded', 'success');
+  };
+
+  const handleTogglePublic = async (mixtapeId: string, isPublic: boolean) => {
+    try {
+      await toggleMixtapePublic(mixtapeId, isPublic);
+      if (mixtape.id === mixtapeId) setMixtape({ ...mixtape, isPublic });
+      showToast(isPublic ? 'Mixtape is now public' : 'Mixtape is now private', 'success');
+    } catch (err) {
+      console.error('Toggle public failed:', err);
+      showToast('Failed to update visibility', 'error');
+    }
   };
 
   const openDesigner = (card: JCard | null) => {
@@ -92,6 +105,8 @@ export function useAppMixtapeState() {
     handleSave,
     handleNewMixtape,
     handleLoadMixtape,
+    handleTogglePublic,
+    isCloudId,
     openDesigner,
     navigate,
   };

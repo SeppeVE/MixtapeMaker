@@ -12,6 +12,8 @@ interface TapePreviewProps {
   onUpdate: (updates: Partial<Mixtape>) => void;
   onSave: () => void;
   onNewMixtape: () => void;
+  onTogglePublic: () => void;
+  isCloudSaved: boolean;
 }
 
 function getSideStatus(totalDur: number, maxDur: number) {
@@ -22,7 +24,7 @@ function getSideStatus(totalDur: number, maxDur: number) {
   return { color: '#4a7c5e', label: `${pct}%` };
 }
 
-export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave, onNewMixtape }: TapePreviewProps) {
+export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave, onNewMixtape, onTogglePublic, isCloudSaved }: TapePreviewProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleText, setTitleText] = useState(mixtape.title);
   const [editingFor, setEditingFor] = useState(false);
@@ -156,6 +158,14 @@ export default function TapePreview({ mixtape, sideA, isSaving, onUpdate, onSave
           </button>
           <button className="btn action-btn" onClick={onNewMixtape}>
             + New Mixtape
+          </button>
+          <button
+            className="btn action-btn"
+            onClick={onTogglePublic}
+            disabled={!isCloudSaved}
+            title={isCloudSaved ? undefined : 'Save to cloud first'}
+          >
+            {mixtape.isPublic ? '◉ Make Private' : '◌ Make Public'}
           </button>
           <ExportToSpotify mixtape={mixtape} />
         </div>

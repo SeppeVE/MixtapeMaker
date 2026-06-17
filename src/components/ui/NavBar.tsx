@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import '../../styles/NavBar.css';
 
@@ -19,6 +20,7 @@ const NavBar = ({
   isSaving = false,
 }: NavBarProps) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <nav className="lp-nav">
@@ -46,6 +48,7 @@ const NavBar = ({
       {/* Right CTAs */}
       <div className="lp-nav-ctas">
         {user && <span className="lp-nav-user">●● {user.email?.split('@')[0]}</span>}
+        <button className="lp-btn lp-btn-paper" onClick={() => navigate('/explore')}>Explore</button>
         {onOpenLibrary && (
           <button className="lp-btn lp-btn-paper" onClick={onOpenLibrary}>Library</button>
         )}

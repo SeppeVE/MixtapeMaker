@@ -19,6 +19,8 @@ function App() {
     handleSave,
     handleNewMixtape,
     handleLoadMixtape,
+    handleTogglePublic,
+    isCloudId,
     openDesigner,
     navigate,
   } = useAppMixtapeState();
@@ -33,6 +35,8 @@ function App() {
         handleSave={handleSave}
         handleNewMixtape={handleNewMixtape}
         handleLoadMixtape={handleLoadMixtape}
+        handleTogglePublic={handleTogglePublic}
+        isCloudId={isCloudId}
         openDesigner={openDesigner}
         showToast={showToast}
         setIsAuthModalOpen={setIsAuthModalOpen}

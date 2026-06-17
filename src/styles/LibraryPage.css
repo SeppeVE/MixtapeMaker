@@ -170,6 +170,34 @@
   border-color: var(--color-text);
 }
 
+.lib-badge-public {
+  background: var(--color-sage);
+  color: var(--color-text);
+  border-color: rgba(42, 30, 40, 0.4);
+}
+
+.lib-badge-private {
+  background: transparent;
+  color: var(--color-text-light);
+  border-color: rgba(42, 30, 40, 0.3);
+}
+
+.lib-public-toggle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 2px 8px 1px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.lib-public-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ── Sign-in gate ── */
 .lib-sign-gate {
   display: flex;

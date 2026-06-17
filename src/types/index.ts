@@ -17,6 +17,7 @@ export interface Mixtape {
   sideB: Song[];
   createdAt: string;
   updatedAt: string;
+  isPublic: boolean;
 }
 
 export interface SpotifyTrack {

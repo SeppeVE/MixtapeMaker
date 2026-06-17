@@ -17,6 +17,8 @@ interface MixtapeEditorPageProps {
   onNewMixtape: () => void;
   onOpenAuth: () => void;
   onOpenLibrary: () => void;
+  onTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
+  isCloudId: (id: string) => boolean;
 }
 
 const MixtapeEditorPage = ({
@@ -27,6 +29,8 @@ const MixtapeEditorPage = ({
   onNewMixtape,
   onOpenAuth,
   onOpenLibrary,
+  onTogglePublic,
+  isCloudId,
 }: MixtapeEditorPageProps) => {
   const navigate = useNavigate();
 
@@ -171,6 +175,8 @@ const MixtapeEditorPage = ({
             onUpdate={patch => update(patch)}
             onSave={onSave}
             onNewMixtape={onNewMixtape}
+            onTogglePublic={() => onTogglePublic(mixtape.id, !mixtape.isPublic)}
+            isCloudSaved={isCloudId(mixtape.id)}
           />
         </div>
       </div>

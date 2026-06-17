@@ -5,6 +5,8 @@ import LibraryPage from './pages/LibraryPage';
 import MixtapeEditorPage from './pages/MixtapeEditorPage';
 import JCardDesignerPage from './pages/JCardDesignerPage';
 import SpotifyCallback from './pages/SpotifyCallback';
+import ExplorePage from './pages/ExplorePage';
+import PublicMixtapePage from './pages/PublicMixtapePage';
 
 export interface AppRoutesProps {
   mixtape: Mixtape;
@@ -14,6 +16,8 @@ export interface AppRoutesProps {
   handleSave: () => Promise<void>;
   handleNewMixtape: () => void;
   handleLoadMixtape: (mixtape: Mixtape) => void;
+  handleTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
+  isCloudId: (id: string) => boolean;
   openDesigner: (card: JCard | null) => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
   setIsAuthModalOpen: (open: boolean) => void;
@@ -28,6 +32,8 @@ export function AppRoutes({
   handleSave,
   handleNewMixtape,
   handleLoadMixtape,
+  handleTogglePublic,
+  isCloudId,
   openDesigner,
   showToast,
   setIsAuthModalOpen,
@@ -56,6 +62,7 @@ export function AppRoutes({
           onOpenCard={openDesigner}
           onNewCard={() => openDesigner(null)}
           onNewMixtape={handleNewMixtape}
+          onTogglePublic={handleTogglePublic}
           showToast={showToast}
         />
       } />
@@ -69,6 +76,8 @@ export function AppRoutes({
           onNewMixtape={handleNewMixtape}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLibrary={() => navigate('/library')}
+          onTogglePublic={handleTogglePublic}
+          isCloudId={isCloudId}
         />
       } />
 
@@ -82,6 +91,25 @@ export function AppRoutes({
           mixtape={mixtape}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLibrary={() => navigate('/library')}
+          showToast={showToast}
+        />
+      } />
+
+      <Route path="/explore" element={
+        <ExplorePage
+          onGoHome={() => navigate('/')}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenLibrary={() => navigate('/library')}
+          onOpenMixtape={(id) => navigate(`/explore/${id}`)}
+        />
+      } />
+
+      <Route path="/explore/:id" element={
+        <PublicMixtapePage
+          onGoHome={() => navigate('/')}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenLibrary={() => navigate('/library')}
+          onLoadMixtape={handleLoadMixtape}
           showToast={showToast}
         />
       } />

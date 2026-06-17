@@ -5,6 +5,7 @@ import { formatDuration } from '../utils/timeUtils';
 import NavBar from '../components/ui/NavBar';
 import HomeFooter from '../components/home/HomeFooter';
 import '../styles/LibraryPage.css';
+import '../styles/SearchBar.css';
 
 interface ExplorePageProps {
   onGoHome: () => void;
@@ -87,19 +88,34 @@ const ExplorePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onOpenMixtape }: Exp
             <div className="lib-page-eyebrow">◆ COMMUNITY MIXTAPES</div>
             <h1 className="lib-page-title">Explore</h1>
           </div>
-          <input
-            className="meta-input"
-            style={{ minWidth: '240px' }}
-            placeholder="Search public mixtapes..."
-            value={query}
-            onChange={e => handleQueryChange(e.target.value)}
-          />
         </div>
       </div>
 
       <div className="lib-content">
         <div className="lib-section-stack">
           <section className="lib-section">
+            <div className="search-window explore-search-window">
+              <div className="search-window-title">⌕ Search Mixtapes</div>
+              <div className="search-form-area">
+                <div className="search-form">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={e => handleQueryChange(e.target.value)}
+                    placeholder="search by title…"
+                    className="search-input"
+                  />
+                </div>
+                {!loading && !error && (
+                  <div className="search-status-row">
+                    <div className="search-status">
+                      {tapes.length} result{tapes.length === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {loading && (
               <div className="lib-cards-grid">
                 {[1, 2, 3, 4, 5, 6].map(n => <SkeletonTapeCard key={n} />)}

@@ -141,6 +141,11 @@
   letter-spacing: 0;
 }
 
+.explore-search-window {
+  margin-bottom: 20px;
+  max-width: 420px;
+}
+
 /* ── Storage badges ── */
 .lib-badge {
   font-family: var(--font-display);

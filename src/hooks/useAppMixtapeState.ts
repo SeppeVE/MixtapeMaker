@@ -8,7 +8,7 @@ import {
   saveActiveCardToLocal,
   loadActiveCardFromLocal,
 } from '../utils/localStorage';
-import { saveMixtape, toggleMixtapePublic, isCloudId } from '../utils/database';
+import { saveMixtape, toggleMixtapePublic, enableMixtapeShare, disableMixtapeShare, isCloudId } from '../utils/database';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useAppMixtapeState() {
@@ -86,6 +86,17 @@ export function useAppMixtapeState() {
     }
   };
 
+  const handleEnableShare = async (mixtapeId: string): Promise<string> => {
+    const token = await enableMixtapeShare(mixtapeId);
+    if (mixtape.id === mixtapeId) setMixtape({ ...mixtape, shareToken: token });
+    return token;
+  };
+
+  const handleDisableShare = async (mixtapeId: string): Promise<void> => {
+    await disableMixtapeShare(mixtapeId);
+    if (mixtape.id === mixtapeId) setMixtape({ ...mixtape, shareToken: null });
+  };
+
   const openDesigner = (card: JCard | null) => {
     setActiveCard(card);
     saveActiveCardToLocal(card);
@@ -106,6 +117,8 @@ export function useAppMixtapeState() {
     handleNewMixtape,
     handleLoadMixtape,
     handleTogglePublic,
+    handleEnableShare,
+    handleDisableShare,
     isCloudId,
     openDesigner,
     navigate,

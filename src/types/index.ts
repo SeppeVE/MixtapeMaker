@@ -18,6 +18,7 @@ export interface Mixtape {
   createdAt: string;
   updatedAt: string;
   isPublic: boolean;
+  shareToken?: string | null;
 }
 
 export interface SpotifyTrack {

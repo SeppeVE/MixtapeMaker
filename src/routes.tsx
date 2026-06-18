@@ -6,7 +6,7 @@ import MixtapeEditorPage from './pages/MixtapeEditorPage';
 import JCardDesignerPage from './pages/JCardDesignerPage';
 import SpotifyCallback from './pages/SpotifyCallback';
 import ExplorePage from './pages/ExplorePage';
-import PublicMixtapePage from './pages/PublicMixtapePage';
+import PublicMixtapePage, { SharedMixtapePage } from './pages/PublicMixtapePage';
 
 export interface AppRoutesProps {
   mixtape: Mixtape;
@@ -17,6 +17,7 @@ export interface AppRoutesProps {
   handleNewMixtape: () => void;
   handleLoadMixtape: (mixtape: Mixtape) => void;
   handleTogglePublic: (mixtapeId: string, isPublic: boolean) => Promise<void>;
+  handleEnableShare: (mixtapeId: string) => Promise<string>;
   isCloudId: (id: string) => boolean;
   openDesigner: (card: JCard | null) => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -33,6 +34,7 @@ export function AppRoutes({
   handleNewMixtape,
   handleLoadMixtape,
   handleTogglePublic,
+  handleEnableShare,
   isCloudId,
   openDesigner,
   showToast,
@@ -63,6 +65,7 @@ export function AppRoutes({
           onNewCard={() => openDesigner(null)}
           onNewMixtape={handleNewMixtape}
           onTogglePublic={handleTogglePublic}
+          onEnableShare={handleEnableShare}
           showToast={showToast}
         />
       } />
@@ -106,6 +109,16 @@ export function AppRoutes({
 
       <Route path="/explore/:id" element={
         <PublicMixtapePage
+          onGoHome={() => navigate('/')}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenLibrary={() => navigate('/library')}
+          onLoadMixtape={handleLoadMixtape}
+          showToast={showToast}
+        />
+      } />
+
+      <Route path="/share/:token" element={
+        <SharedMixtapePage
           onGoHome={() => navigate('/')}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onOpenLibrary={() => navigate('/library')}

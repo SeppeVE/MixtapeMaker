@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Mixtape, Song } from '../types';
-import { loadPublicMixtape } from '../utils/database';
+import { loadPublicMixtape, loadSharedMixtape } from '../utils/database';
 import { useAuth } from '../contexts/AuthContext';
 import { generateId, formatTime, calculateTotalDuration } from '../utils/timeUtils';
 import NavBar from '../components/ui/NavBar';
@@ -10,7 +10,11 @@ import HomeFooter from '../components/home/HomeFooter';
 import '../styles/LibraryPage.css';
 import '../styles/TapeSide.css';
 
-interface PublicMixtapePageProps {
+interface MixtapeDetailViewProps {
+  loader: (key: string) => Promise<Mixtape | null>;
+  routeKey: string | undefined;
+  breadcrumbLabel: string;
+  notFoundSub: string;
   onGoHome: () => void;
   onOpenAuth: () => void;
   onOpenLibrary: () => void;
@@ -43,25 +47,34 @@ const ReadOnlySide = ({ label, songs }: { label: string; songs: Song[] }) => (
   </div>
 );
 
-const PublicMixtapePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onLoadMixtape, showToast }: PublicMixtapePageProps) => {
-  const { id } = useParams<{ id: string }>();
+export const MixtapeDetailView = ({
+  loader,
+  routeKey,
+  breadcrumbLabel,
+  notFoundSub,
+  onGoHome,
+  onOpenAuth,
+  onOpenLibrary,
+  onLoadMixtape,
+  showToast,
+}: MixtapeDetailViewProps) => {
   const { user } = useAuth();
   const [mixtape, setMixtape] = useState<Mixtape | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!routeKey) return;
     setLoading(true);
     setNotFound(false);
-    loadPublicMixtape(id)
+    loader(routeKey)
       .then(result => {
         if (!result) setNotFound(true);
         else setMixtape(result);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [routeKey, loader]);
 
   const handleCopy = () => {
     if (!mixtape) return;
@@ -71,6 +84,7 @@ const PublicMixtapePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onLoadMixtape,
       ...mixtape,
       id: generateId(),
       isPublic: false,
+      shareToken: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -83,7 +97,7 @@ const PublicMixtapePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onLoadMixtape,
       <NavBar onGoHome={onGoHome} onOpenAuth={onOpenAuth} onOpenLibrary={onOpenLibrary}>
         <button className="lp-nav-link" onClick={onGoHome}>◀ Home</button>
         <span className="lp-nav-sep">/</span>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)' }}>Explore</span>
+        <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)' }}>{breadcrumbLabel}</span>
       </NavBar>
 
       <div className="lib-content">
@@ -93,7 +107,7 @@ const PublicMixtapePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onLoadMixtape,
           <div className="lib-empty">
             <div className="lib-empty-icon">📼</div>
             <p>This mixtape isn't available.</p>
-            <p className="lib-empty-sub">It may be private or no longer exist.</p>
+            <p className="lib-empty-sub">{notFoundSub}</p>
           </div>
         )}
 
@@ -127,4 +141,38 @@ const PublicMixtapePage = ({ onGoHome, onOpenAuth, onOpenLibrary, onLoadMixtape,
   );
 };
 
+interface PublicMixtapePageProps {
+  onGoHome: () => void;
+  onOpenAuth: () => void;
+  onOpenLibrary: () => void;
+  onLoadMixtape: (mixtape: Mixtape) => void;
+  showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+}
+
+const PublicMixtapePage = (props: PublicMixtapePageProps) => {
+  const { id } = useParams<{ id: string }>();
+  return (
+    <MixtapeDetailView
+      {...props}
+      loader={loadPublicMixtape}
+      routeKey={id}
+      breadcrumbLabel="Explore"
+      notFoundSub="It may be private or no longer exist."
+    />
+  );
+};
+
 export default PublicMixtapePage;
+
+export const SharedMixtapePage = (props: PublicMixtapePageProps) => {
+  const { token } = useParams<{ token: string }>();
+  return (
+    <MixtapeDetailView
+      {...props}
+      loader={loadSharedMixtape}
+      routeKey={token}
+      breadcrumbLabel="Shared"
+      notFoundSub="This link may have been revoked or never existed."
+    />
+  );
+};

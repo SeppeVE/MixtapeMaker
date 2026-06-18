@@ -13,6 +13,7 @@ export interface DatabaseMixtape {
   created_at: string;
   updated_at: string;
   is_public: boolean;
+  share_token: string | null;
 }
 
 // A cloud-saved mixtape always has a UUID id (see saveMixtape below).
@@ -29,6 +30,7 @@ function dbToMixtape(dbMixtape: DatabaseMixtape): Mixtape {
     createdAt: dbMixtape.created_at,
     updatedAt: dbMixtape.updated_at,
     isPublic: dbMixtape.is_public,
+    shareToken: dbMixtape.share_token,
   };
 }
 
@@ -43,6 +45,7 @@ function mixtapeToDb(mixtape: Mixtape, _userId: string): Omit<DatabaseMixtape, '
     created_at: mixtape.createdAt,
     updated_at: mixtape.updatedAt,
     is_public: mixtape.isPublic,
+    share_token: mixtape.shareToken ?? null,
   };
 }
 
@@ -97,6 +100,44 @@ export async function loadMixtape(mixtapeId: string): Promise<Mixtape | null> {
   }
 
   return dbToMixtape(data);
+}
+
+// Load a mixtape via its share token, regardless of is_public
+export async function loadSharedMixtape(token: string): Promise<Mixtape | null> {
+  const { data, error } = await supabase
+    .from('mixtapes')
+    .select('*')
+    .eq('share_token', token)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // not found / not shared
+    throw error;
+  }
+
+  return dbToMixtape(data);
+}
+
+// Enable sharing: generate a token and return it so the UI can build the share URL
+export async function enableMixtapeShare(mixtapeId: string): Promise<string> {
+  const token = crypto.randomUUID();
+  const { error } = await supabase
+    .from('mixtapes')
+    .update({ share_token: token })
+    .eq('id', mixtapeId);
+
+  if (error) throw error;
+  return token;
+}
+
+// Revoke sharing: clear the token, invalidating any existing link
+export async function disableMixtapeShare(mixtapeId: string): Promise<void> {
+  const { error } = await supabase
+    .from('mixtapes')
+    .update({ share_token: null })
+    .eq('id', mixtapeId);
+
+  if (error) throw error;
 }
 
 // Delete a mixtape

@@ -357,6 +357,15 @@
   flex: 1;
 }
 
+.lib-tape-card-actions {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(42, 30, 40, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .lib-tape-card-body {
   padding: 8px 10px 6px;
   display: flex;

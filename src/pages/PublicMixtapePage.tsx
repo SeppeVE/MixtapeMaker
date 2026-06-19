@@ -129,7 +129,7 @@ export const MixtapeDetailView = ({
                 <CassetteSVG title={mixtape.title} side="A" float={false} />
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '24px', width: 'max-content' }}>
                 <ExportToSpotify mixtape={mixtape} />
               </div>
 

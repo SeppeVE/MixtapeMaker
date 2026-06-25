@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { generateId, formatTime, calculateTotalDuration } from '../utils/timeUtils';
 import NavBar from '../components/ui/NavBar';
 import CassetteSVG from '../components/tape/CassetteSVG';
+import ExportToSpotify from '../components/spotify/ExportToSpotify';
 import HomeFooter from '../components/home/HomeFooter';
 import '../styles/LibraryPage.css';
 import '../styles/TapeSide.css';
@@ -126,6 +127,10 @@ export const MixtapeDetailView = ({
 
               <div style={{ maxWidth: '320px', marginBottom: '24px' }}>
                 <CassetteSVG title={mixtape.title} side="A" float={false} />
+              </div>
+
+              <div style={{ marginBottom: '24px', width: 'max-content' }}>
+                <ExportToSpotify mixtape={mixtape} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

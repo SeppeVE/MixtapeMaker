@@ -86,6 +86,10 @@ const JSON_LD = {
 export default defineNuxtConfig({
   compatibilityDate: '2026-07-03',
 
+  // Components keep their original names (NavBar, JCardPreview, ...) instead
+  // of being prefixed with their folder path.
+  components: [{ path: '~/components', pathPrefix: false }],
+
   app: {
     head: {
       htmlAttrs: { lang: 'en' },

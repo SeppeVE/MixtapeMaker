@@ -1,11 +1,10 @@
-import React from 'react';
-import { createRoot, Root } from 'react-dom/client';
+import { createApp, type App } from 'vue';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { toPng } from 'html-to-image';
-import { JCardContent } from '../types';
+import type { JCardContent } from '../types';
 import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
-import JCardPrintable from '../components/jcard/JCardPrintable';
-import JCardInsidePrintable from '../components/jcard/JCardInsidePrintable';
+import JCardPrintable from '../components/jcard/JCardPrintable.vue';
+import JCardInsidePrintable from '../components/jcard/JCardInsidePrintable.vue';
 
 const MM_TO_PT = 72 / 25.4;
 const MM_TO_PX = 96 / 25.4;
@@ -35,11 +34,11 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
   ].join(';');
   document.body.appendChild(host);
 
-  let root: Root | null = null;
+  let root: App | null = null;
   try {
-    root = createRoot(host);
+    root = createApp(JCardPrintable, { content });
+    root.mount(host);
     await new Promise<void>(resolve => {
-      root!.render(React.createElement(JCardPrintable, { content }));
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
 
@@ -116,11 +115,11 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
         'background: transparent', 'zoom: 1', 'transform: none',
       ].join(';');
       document.body.appendChild(insideHost);
-      let insideRoot: Root | null = null;
+      let insideRoot: App | null = null;
       try {
-        insideRoot = createRoot(insideHost);
+        insideRoot = createApp(JCardInsidePrintable, { content });
+        insideRoot.mount(insideHost);
         await new Promise<void>(resolve => {
-          insideRoot!.render(React.createElement(JCardInsidePrintable, { content }));
           requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
         if ((document as any).fonts?.ready) {

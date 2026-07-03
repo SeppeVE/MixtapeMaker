@@ -86,6 +86,9 @@ const JSON_LD = {
 export default defineNuxtConfig({
   compatibilityDate: '2026-07-03',
 
+  // Injects Vercel Analytics on every page (replaces <Analytics /> from App.tsx).
+  modules: ['@vercel/analytics/nuxt'],
+
   // Components keep their original names (NavBar, JCardPreview, ...) instead
   // of being prefixed with their folder path.
   components: [{ path: '~/components', pathPrefix: false }],
@@ -136,9 +139,37 @@ export default defineNuxtConfig({
     },
   },
 
+  // The old Vite build loaded every stylesheet globally at startup (all pages
+  // were statically imported). Keep that behavior so shared classes like
+  // .lp-btn are available on every route regardless of which page loads first.
+  css: [
+    '~/assets/styles/App.css',
+    '~/assets/styles/utilities.css',
+    '~/assets/styles/AuthModal.css',
+    '~/assets/styles/CassetteTape.css',
+    '~/assets/styles/Floaters.css',
+    '~/assets/styles/LibraryPage.css',
+    '~/assets/styles/NavBar.css',
+    '~/assets/styles/SearchBar.css',
+    '~/assets/styles/TapePreview.css',
+    '~/assets/styles/TapeSide.css',
+    '~/assets/styles/Toast.css',
+    '~/assets/styles/home/HomePage.css',
+    '~/assets/styles/jcard/ContentEditor.css',
+    '~/assets/styles/jcard/ImageUpload.css',
+    '~/assets/styles/jcard/JCardLibrary.css',
+    '~/assets/styles/jcard/JCardPreview.css',
+    '~/assets/styles/jcard/JCardSettings.css',
+    '~/assets/styles/jcard/JCardView.css',
+    '~/assets/styles/jcard/jcard.css',
+    '~/assets/styles/mixtape/MixtapeEditor.css',
+    '~/assets/styles/mockComponents.css',
+  ],
+
   routeRules: {
     // Homepage is prerendered for crawlers (replaces the old prerender.mjs step).
-    '/': { prerender: true },
+    // ssr must be re-enabled explicitly because the '/**' rule below also matches '/'.
+    '/': { prerender: true, ssr: true },
     // Legacy redirects, kept from the old react-router config.
     '/editor': { redirect: '/mixtape' },
     '/cards': { redirect: '/library?tab=jcards' },

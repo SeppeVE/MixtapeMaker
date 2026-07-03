@@ -1,4 +1,4 @@
-import { SpotifySearchResponse, SpotifyTrack, Song } from '../types';
+import type { SpotifySearchResponse, SpotifyTrack, Song } from '../types';
 
 /**
  * Search for tracks via our server-side API endpoint.

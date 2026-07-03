@@ -1,4 +1,4 @@
-import { JCardContent, Mixtape, Song } from '../types';
+import type { JCardContent, Mixtape, Song } from '../types';
 import { formatDuration } from './timeUtils';
 import placeholderCover from '~/assets/images/placeholder.jpg';
 

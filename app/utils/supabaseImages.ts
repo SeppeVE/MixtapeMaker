@@ -16,7 +16,7 @@ export async function deleteJCardImage(publicUrl: string): Promise<void> {
     const url = new URL(publicUrl);
     const parts = url.pathname.split(`/${BUCKET}/`);
     if (parts.length < 2) return;
-    await supabase.storage.from(BUCKET).remove([parts[1]]);
+    await supabase.storage.from(BUCKET).remove([parts[1]!]);
   } catch { /* ignore */ }
 }
 

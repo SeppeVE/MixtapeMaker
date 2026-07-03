@@ -242,7 +242,7 @@ async function inlineFontBinaries(css: string): Promise<string> {
   const urlRe = /url\(['"]?(https?:\/\/[^'")\s]+\.(?:woff2?|ttf|otf|eot)[^'")\s]*)['"]?\)/gi;
   const uniqueUrls = new Set<string>();
   let m: RegExpExecArray | null;
-  while ((m = urlRe.exec(css)) !== null) uniqueUrls.add(m[1]);
+  while ((m = urlRe.exec(css)) !== null) uniqueUrls.add(m[1]!);
   if (uniqueUrls.size === 0) return css;
 
   const dataMap = new Map<string, string>();

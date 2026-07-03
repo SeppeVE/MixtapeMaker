@@ -15,7 +15,7 @@ const FLAP_WIDTHS = ['65mm', '63.5mm', '61.5mm', '61.5mm', '62mm', '63.5mm'];
 function san(html: string) {
   if (typeof window === 'undefined') return html;
   const clean = DOMPurify.sanitize(
-    html.replace(/<p>\s*<\/p>/g, '<p><br></p>').replace(/<p> <\/p>/g, '<p><br></p>'),
+    html.replace(/<p>\s*<\/p>/g, '<p><br></p>').replace(/<p> <\/p>/g, '<p><br></p>'),
     { ALLOWED_TAGS, ALLOWED_ATTR, KEEP_CONTENT: true },
   );
   return liftListColors(clean);

@@ -1,4 +1,4 @@
-import { CustomFont } from '../types';
+import type { CustomFont } from '../types';
 
 /**
  * Curated fonts loaded from Google Fonts (see index.html).

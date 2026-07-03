@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { JCard, JCardContent } from '../types';
+import type { JCard, JCardContent } from '../types';
 
 interface DbJCard {
   id: string; user_id: string; mixtape_id: string | null;

@@ -115,12 +115,13 @@ CREATE POLICY "Anyone can view mixtapes via share token"
 
 ```env
 # Spotify Configuration (you should already have these)
-VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id
-VITE_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+NUXT_SPOTIFY_CLIENT_ID=your_spotify_client_id
+NUXT_SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+NUXT_PUBLIC_SPOTIFY_CLIENT_ID=your_spotify_client_id
 
 # Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+NUXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NUXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 3. Replace `your_supabase_project_url` with your Project URL from Step 2

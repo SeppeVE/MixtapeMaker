@@ -1,4 +1,4 @@
-import { Mixtape, JCard } from '../types';
+import type { Mixtape, JCard } from '../types';
 
 const isClient = typeof window !== 'undefined';
 const STORAGE_KEY = 'mixtape-current';

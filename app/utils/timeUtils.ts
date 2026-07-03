@@ -1,4 +1,4 @@
-import { Song } from '../types';
+import type { Song } from '../types';
 
 /**
  * Format seconds to MM:SS format

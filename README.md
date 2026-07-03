@@ -54,8 +54,9 @@ cp .env.example .env
 
 Open the `.env` file and add your Spotify credentials:
 ```
-VITE_SPOTIFY_CLIENT_ID=your_actual_client_id
-VITE_SPOTIFY_CLIENT_SECRET=your_actual_client_secret
+NUXT_SPOTIFY_CLIENT_ID=your_actual_client_id
+NUXT_SPOTIFY_CLIENT_SECRET=your_actual_client_secret
+NUXT_PUBLIC_SPOTIFY_CLIENT_ID=your_actual_client_id
 ```
 
 3. Set up Supabase (for cloud features):
@@ -67,8 +68,8 @@ Follow the instructions in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) to:
 
 Then add your Supabase credentials to `.env`:
 ```
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+NUXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NUXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 4. Start the development server:
@@ -76,7 +77,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 npm run dev
 ```
 
-5. Open your browser to the URL shown (usually http://localhost:5173)
+5. Open your browser to the URL shown (usually http://localhost:3000)
 
 ## Usage
 
@@ -99,7 +100,7 @@ npm run dev
 npm run build
 ```
 
-The built files will be in the `dist` folder.
+The built output will be in the `.output` folder (deployed by Nitro's Vercel preset automatically).
 
 ## Upcoming Features (Stage 3)
 
@@ -110,9 +111,9 @@ The built files will be in the `dist` folder.
 
 ## Tech Stack
 
-- React 18
+- Nuxt 4 (Vue 3)
 - TypeScript
-- Vite
+- Nitro server routes
 - Spotify Web API
 - Supabase (Authentication & Database)
 - Local Storage API

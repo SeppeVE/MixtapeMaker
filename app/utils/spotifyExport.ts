@@ -1,5 +1,5 @@
-import { Mixtape, Song } from '../types';
-import { getStoredTokens, isTokenExpired, refreshAccessToken, SpotifyTokens } from './spotifyAuth';
+import type { Mixtape, Song } from '../types';
+import { getStoredTokens, isTokenExpired, refreshAccessToken, type SpotifyTokens } from './spotifyAuth';
 
 export interface ExportResult {
   playlistUrl: string;

@@ -1,5 +1,7 @@
 # Nuxt Migration Plan
 
+> **Status: executed.** Phases 0–7 are implemented on this branch — the app is now Nuxt 4 and the React/Vite code is removed. Remaining before merge: run the §4 parity checklist on a Vercel preview (needs real Spotify/Supabase credentials), set the new `NUXT_*` env vars in Vercel (see §8 / README), and verify PDF export output against one from the old app. Note: the `NUXT_PUBLIC_*` values must be present at **build** time on Vercel so the prerendered homepage payload picks them up.
+
 Plan for rewriting MixtapeMaker from **React 18 + Vite (SPA + prerendered homepage, Vercel)** to **Nuxt** while keeping every existing feature working.
 
 ---

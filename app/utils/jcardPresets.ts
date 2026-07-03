@@ -1,4 +1,4 @@
-import { JCardContent } from '../types';
+import type { JCardContent } from '../types';
 import { buildBlankJCardContent } from './jcardDefaults';
 
 export interface JCardPreset {

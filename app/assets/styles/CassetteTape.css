@@ -1,0 +1,64 @@
+.cassette-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-xl);
+}
+
+.cassette-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cassette-controls label {
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+}
+
+.cassette-select {
+  padding: 5px 10px;
+  border: 2px solid var(--color-text);
+  background: var(--color-paper);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.cassette-select:focus {
+  outline: none;
+  background: rgba(212, 169, 53, 0.2);
+}
+
+.j-card {
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: var(--spacing-md);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 968px) {
+  .j-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .cassette-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cassette-container {
+    padding: 0 var(--spacing-md);
+  }
+}

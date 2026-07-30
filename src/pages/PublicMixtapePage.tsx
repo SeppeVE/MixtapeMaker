@@ -118,7 +118,7 @@ export const MixtapeDetailView = ({
               <div className="lib-section-head">
                 <span>{mixtape.title}</span>
                 <button className="lp-btn lp-btn-forest" onClick={handleCopy}>
-                  ⎘ Copy to my mixtape
+                  ⎘ Copy to my library
                 </button>
               </div>
               {mixtape.dedicatedTo && (
@@ -133,7 +133,7 @@ export const MixtapeDetailView = ({
                 <ExportToSpotify mixtape={mixtape} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <div className="tape-sides-grid">
                 <ReadOnlySide label="Side A" songs={mixtape.sideA} />
                 <ReadOnlySide label="Side B" songs={mixtape.sideB} />
               </div>

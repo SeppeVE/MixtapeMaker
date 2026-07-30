@@ -132,6 +132,14 @@
   border-bottom: 2.5px solid var(--color-text);
 }
 
+@media (max-width: 768px) {
+  .lib-section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
 .lib-section-sub {
   font-family: var(--font-body);
   font-size: 12px;

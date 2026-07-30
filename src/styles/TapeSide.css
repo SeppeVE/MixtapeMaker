@@ -78,7 +78,8 @@
   box-shadow: var(--shadow-sm);
   cursor: move;
   transition: transform 0.06s, box-shadow 0.06s;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .song-item:hover { transform: translate(-1px,-1px); box-shadow: var(--shadow); }
 
@@ -136,17 +137,15 @@
 .song-item-title {
   font-weight: 700;
   font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .song-item-artist {
   color: var(--color-text-light);
   font-size: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
   margin-top: 2px;
 }
 
@@ -229,4 +228,16 @@
   opacity: 0.55;
   line-height: 1;
   margin-top: 3px;
+}
+
+.tape-sides-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .tape-sides-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }

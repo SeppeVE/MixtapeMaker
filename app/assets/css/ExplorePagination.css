@@ -1,0 +1,67 @@
+/* ── Explore filters (search window) ── */
+.explore-filters {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--color-text);
+}
+
+.explore-filters-label {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--color-mustard);
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+/* ── Explore pagination ── */
+.explore-pager [data-slot='list'] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.explore-pager--left [data-slot='list'] {
+  justify-content: flex-start;
+}
+
+.explore-pager-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--color-paper);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: 2px 2px 0 var(--color-text);
+  cursor: pointer;
+  line-height: 1;
+  user-select: none;
+  transition: transform 0.06s, box-shadow 0.06s, background 0.06s;
+}
+.explore-pager-btn:hover:not(:disabled) { background: var(--color-secondary); }
+.explore-pager-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+.explore-pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.explore-pager-btn--active {
+  background: var(--color-mustard);
+  color: var(--color-text);
+}
+
+.explore-pager-ellipsis {
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  font-family: var(--font-body);
+  font-size: 14px;
+  user-select: none;
+}

@@ -1,6 +1,9 @@
 /* Global stylesheet aggregator.
  * React imported each CSS file per-component; Nuxt loads one global entry.
  * App.css must come first — it defines the :root design tokens everything uses. */
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
 @import './App.css';
 @import './utilities.css';
 
@@ -21,6 +24,7 @@
 
 @import './Library.css';
 @import './LibraryPage.css';
+@import './ExplorePagination.css';
 
 @import './jcard/jcard.css';
 @import './jcard/JCardView.css';

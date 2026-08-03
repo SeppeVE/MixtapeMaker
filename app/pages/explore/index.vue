@@ -5,7 +5,7 @@ import type { Mixtape } from '~/types';
 import { searchPublicMixtapes } from '~/utils/database';
 import { formatDuration } from '~/utils/timeUtils';
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 12;
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -16,25 +16,25 @@ useSeoMeta({
   description: 'Browse public cassette mixtapes made by the community.',
 });
 
-// SSR the initial (unfiltered) list for SEO.
+// SSR the initial (unfiltered, page 1) list for SEO.
 const { data: initial } = await useAsyncData('explore-initial', () => searchPublicMixtapes('', PAGE_SIZE, 0));
 
 const query = ref('');
-const tapes = ref<Mixtape[]>(initial.value ?? []);
+const page = ref(1);
+const tapes = ref<Mixtape[]>(initial.value?.mixtapes ?? []);
+const total = ref(initial.value?.total ?? 0);
 const loading = ref(false);
-const loadingMore = ref(false);
 const error = ref<string | null>(null);
-const hasMore = ref((initial.value?.length ?? 0) === PAGE_SIZE);
 
 let debounce: ReturnType<typeof setTimeout> | null = null;
 
-async function runSearch(q: string) {
+async function runSearch() {
   loading.value = true;
   error.value = null;
   try {
-    const results = await searchPublicMixtapes(q, PAGE_SIZE, 0);
-    tapes.value = results;
-    hasMore.value = results.length === PAGE_SIZE;
+    const { mixtapes, total: count } = await searchPublicMixtapes(query.value, PAGE_SIZE, (page.value - 1) * PAGE_SIZE);
+    tapes.value = mixtapes;
+    total.value = count;
   } catch {
     error.value = 'Failed to load public mixtapes';
   } finally {
@@ -44,21 +44,14 @@ async function runSearch(q: string) {
 
 function onQueryInput(value: string) {
   query.value = value;
+  page.value = 1;
   if (debounce) clearTimeout(debounce);
-  debounce = setTimeout(() => runSearch(value), 300);
+  debounce = setTimeout(() => runSearch(), 300);
 }
 
-async function loadMore() {
-  loadingMore.value = true;
-  try {
-    const results = await searchPublicMixtapes(query.value, PAGE_SIZE, tapes.value.length);
-    tapes.value = [...tapes.value, ...results];
-    hasMore.value = results.length === PAGE_SIZE;
-  } catch {
-    error.value = 'Failed to load more mixtapes';
-  } finally {
-    loadingMore.value = false;
-  }
+function onPageChange(p: number) {
+  page.value = p;
+  runSearch();
 }
 </script>
 
@@ -95,7 +88,17 @@ async function loadMore() {
                 />
               </div>
               <div v-if="!loading && !error" class="search-status-row">
-                <div class="search-status">{{ tapes.length }} result{{ tapes.length === 1 ? '' : 's' }}</div>
+                <div class="search-status">{{ total }} result{{ total === 1 ? '' : 's' }}</div>
+              </div>
+              <div v-if="!loading && !error" class="explore-filters">
+                <div class="explore-filters-label">◆ FILTERS</div>
+                <ExplorePagination
+                  :page="page"
+                  :total="total"
+                  :page-size="PAGE_SIZE"
+                  class="explore-pager--left"
+                  @update:page="onPageChange"
+                />
               </div>
             </div>
           </div>
@@ -115,7 +118,7 @@ async function loadMore() {
           <div v-else-if="error" class="lib-error-state">
             <span class="lib-error-icon">⚠</span>
             <span class="lib-error-msg">{{ error }}</span>
-            <button class="lp-btn lp-btn-mustard" @click="runSearch(query)">↻ Retry</button>
+            <button class="lp-btn lp-btn-mustard" @click="runSearch">↻ Retry</button>
           </div>
 
           <div v-else-if="tapes.length === 0" class="lib-empty">
@@ -154,11 +157,14 @@ async function loadMore() {
                 </div>
               </NuxtLink>
             </div>
-            <div v-if="hasMore" style="display:flex;justify-content:center;margin-top:24px">
-              <button class="lp-btn lp-btn-mustard" :disabled="loadingMore" @click="loadMore">
-                {{ loadingMore ? 'Loading…' : 'Load more' }}
-              </button>
-            </div>
+            <ExplorePagination
+              :page="page"
+              :total="total"
+              :page-size="PAGE_SIZE"
+              class="explore-pager--left"
+              style="margin-top:24px"
+              @update:page="onPageChange"
+            />
           </template>
         </section>
       </div>

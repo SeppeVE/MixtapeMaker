@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
 
-  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt'],
+  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt', '@nuxt/ui'],
 
   // Flat component names (filename only, no directory prefix) to match the
   // original React component names: <NavBar>, <CassetteSVG>, <JCardView>, etc.

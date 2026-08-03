@@ -165,22 +165,22 @@ export async function searchPublicMixtapes(
   query: string,
   limit = 24,
   offset = 0
-): Promise<Mixtape[]> {
+): Promise<{ mixtapes: Mixtape[]; total: number }> {
   let req = supabase
     .from('mixtapes')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('is_public', true);
 
   if (query.trim()) {
     req = req.ilike('title', `%${query.trim()}%`);
   }
 
-  const { data, error } = await req
+  const { data, error, count } = await req
     .order('updated_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) throw error;
-  return data.map(dbToMixtape);
+  return { mixtapes: data.map(dbToMixtape), total: count ?? 0 };
 }
 
 // Load a single public mixtape by id, returning null if it doesn't exist or isn't public

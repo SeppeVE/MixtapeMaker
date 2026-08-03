@@ -45,10 +45,6 @@ function fmtDate(iso: string) {
           </NuxtLink>
         </div>
 
-        <div style="font-family:var(--font-display);font-size:18px;letter-spacing:1px;opacity:0.5;color:var(--color-text)">
-          No account · No cost · 100% in your browser
-        </div>
-
         <!-- Recent tapes for signed-in users -->
         <div v-if="auth.user && recentTapes.length > 0" class="lp-recent">
           <div class="lp-recent-heading">⌯ Your Recent Tapes</div>

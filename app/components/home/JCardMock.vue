@@ -26,8 +26,6 @@ const ART_LINES = [80, 60, 50, 70, 45];
     <!-- J-Card preview area -->
     <div class="mock-jcard-preview-area">
       <div class="mock-jcard-container">
-        <div class="mock-jcard-spine-section">SUMMER DRIVE '94</div>
-
         <div class="mock-jcard-cover-flap">
           <div class="mock-jcard-cover-art">
             <div class="mock-jcard-art-placeholder">
@@ -42,6 +40,8 @@ const ART_LINES = [80, 60, 50, 70, 45];
             </div>
           </div>
         </div>
+
+        <div class="mock-jcard-spine-section">SUMMER DRIVE '94</div>
 
         <div class="mock-jcard-back-panel">
           <div class="mock-jcard-side-title">SIDE A (17:21)</div>

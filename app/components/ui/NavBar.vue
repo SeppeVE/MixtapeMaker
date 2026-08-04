@@ -18,12 +18,14 @@ const ui = useUiStore();
   <nav class="lp-nav">
     <!-- Logo -->
     <NuxtLink to="/" class="lp-logo">
-      <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
-        <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28" />
-      </svg>
+      <img
+        class="lp-logo-icon"
+        src="/android-chrome-192x192.png"
+        width="28"
+        height="28"
+        alt=""
+        aria-hidden="true"
+      >
       <span class="lp-logo-text">Mixtape Maker</span>
     </NuxtLink>
 

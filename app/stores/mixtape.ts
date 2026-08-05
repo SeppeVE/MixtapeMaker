@@ -18,6 +18,18 @@ import {
   saveActiveCardToLocal,
 } from '~/utils/localStorage';
 
+// Content fingerprint used to detect whether a copy is still an exact duplicate
+// of its source (e.g. add-then-remove-again should not "unlock" it).
+function contentSignature(m: Mixtape): string {
+  return JSON.stringify({
+    title: m.title,
+    dedicatedTo: m.dedicatedTo ?? '',
+    cassetteLength: m.cassetteLength,
+    sideA: m.sideA.map((s) => s.id),
+    sideB: m.sideB.map((s) => s.id),
+  });
+}
+
 function blankMixtape(): Mixtape {
   return {
     id: generateId(),
@@ -28,6 +40,7 @@ function blankMixtape(): Mixtape {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isPublic: false,
+    isCopy: false,
   };
 }
 
@@ -40,14 +53,32 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   const activeCard = ref<JCard | null>(null);
   const isSaving = ref(false);
 
+  // Signature of the untouched copy, captured whenever the current mixtape is
+  // (or becomes) an unedited copy. Null once it's not tracking a copy at all.
+  let copySignature: string | null = null;
+  function trackCopySignature(m: Mixtape) {
+    copySignature = m.isCopy ? contentSignature(m) : null;
+  }
+  trackCopySignature(mixtape.value);
+
   // Client-only: hydrate from localStorage and persist on change. The app pages
   // that use this store are client-rendered (ssr:false), so this runs on the client.
   if (import.meta.client) {
     const stored = loadMixtapeFromLocal();
     if (stored) mixtape.value = stored;
+    trackCopySignature(mixtape.value);
     activeCard.value = loadActiveCardFromLocal();
     watch(mixtape, (v) => saveMixtapeToLocal(v), { deep: true });
     watch(activeCard, (v) => saveActiveCardToLocal(v), { deep: true });
+  }
+
+  // Apply a content patch and, if the current mixtape started as an unedited
+  // copy, re-derive isCopy from whether it still matches the original content
+  // (so add-then-remove, or any edit reverted by hand, stays flagged as a copy).
+  function updateMixtape(patch: Partial<Mixtape>) {
+    const next: Mixtape = { ...mixtape.value, ...patch, updatedAt: new Date().toISOString() };
+    if (copySignature !== null) next.isCopy = contentSignature(next) === copySignature;
+    mixtape.value = next;
   }
 
   async function save() {
@@ -58,6 +89,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     isSaving.value = true;
     try {
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
+      trackCopySignature(mixtape.value);
       ui.showToast('Mixtape saved to cloud', 'success');
     } catch (err) {
       console.error('Save failed:', err);
@@ -69,12 +101,14 @@ export const useMixtapeStore = defineStore('mixtape', () => {
 
   function newMixtape() {
     mixtape.value = blankMixtape();
+    trackCopySignature(mixtape.value);
     navigateTo('/mixtape');
     ui.showToast('New mixtape created', 'success');
   }
 
   function loadMixtape(loaded: Mixtape) {
     mixtape.value = loaded;
+    trackCopySignature(mixtape.value);
     navigateTo('/mixtape');
     ui.showToast('Mixtape loaded', 'success');
   }
@@ -111,6 +145,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     mixtape,
     activeCard,
     isSaving,
+    updateMixtape,
     save,
     newMixtape,
     loadMixtape,

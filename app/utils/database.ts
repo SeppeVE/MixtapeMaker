@@ -14,6 +14,7 @@ export interface DatabaseMixtape {
   updated_at: string;
   is_public: boolean;
   share_token: string | null;
+  is_copy: boolean;
 }
 
 // A cloud-saved mixtape always has a UUID id (see saveMixtape below).
@@ -31,6 +32,7 @@ function dbToMixtape(dbMixtape: DatabaseMixtape): Mixtape {
     updatedAt: dbMixtape.updated_at,
     isPublic: dbMixtape.is_public,
     shareToken: dbMixtape.share_token,
+    isCopy: dbMixtape.is_copy ?? false,
   };
 }
 
@@ -46,6 +48,7 @@ function mixtapeToDb(mixtape: Mixtape, _userId: string): Omit<DatabaseMixtape, '
     updated_at: mixtape.updatedAt,
     is_public: mixtape.isPublic,
     share_token: mixtape.shareToken ?? null,
+    is_copy: mixtape.isCopy ?? false,
   };
 }
 
@@ -169,7 +172,8 @@ export async function searchPublicMixtapes(
   let req = supabase
     .from('mixtapes')
     .select('*', { count: 'exact' })
-    .eq('is_public', true);
+    .eq('is_public', true)
+    .eq('is_copy', false);
 
   if (query.trim()) {
     req = req.ilike('title', `%${query.trim()}%`);
@@ -190,6 +194,7 @@ export async function loadPublicMixtape(mixtapeId: string): Promise<Mixtape | nu
     .select('*')
     .eq('id', mixtapeId)
     .eq('is_public', true)
+    .eq('is_copy', false)
     .single();
 
   if (error) {

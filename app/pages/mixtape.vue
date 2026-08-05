@@ -20,7 +20,7 @@ const activeSongs = computed(() => (sideA.value ? mixtape.value.sideA : mixtape.
 const maxDuration = computed(() => (mixtape.value.cassetteLength / 2) * 60);
 
 function update(patch: Partial<Mixtape>) {
-  store.mixtape = { ...store.mixtape, ...patch, updatedAt: new Date().toISOString() };
+  store.updateMixtape(patch);
 }
 
 function doFlip() {
@@ -50,12 +50,10 @@ function handleMoveSong(songId: string, fromSide: Side, toSide: Side) {
   const toKey = toSide === 'A' ? 'sideA' : 'sideB';
   const song = mixtape.value[fromKey].find((s) => s.id === songId);
   if (!song) return;
-  store.mixtape = {
-    ...store.mixtape,
+  store.updateMixtape({
     [fromKey]: mixtape.value[fromKey].filter((s) => s.id !== songId),
     [toKey]: [...mixtape.value[toKey], song],
-    updatedAt: new Date().toISOString(),
-  };
+  });
 }
 
 function handleShuffle() {

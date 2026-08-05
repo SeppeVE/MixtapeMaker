@@ -82,6 +82,7 @@ async function handleDeleteTape(tape: Mixtape) {
 }
 
 async function handleTogglePublic(tape: Mixtape) {
+  if (tape.isCopy) return;
   const next = !tape.isPublic;
   cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, isPublic: next } : t));
   try {
@@ -233,7 +234,8 @@ function newCard() {
                 <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
                 <button
                   :class="`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`"
-                  :title="tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
+                  :disabled="tape.isCopy"
+                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
                   @click="handleTogglePublic(tape)"
                 >
                   {{ tape.isPublic ? '◉ Public' : '◌ Private' }}
@@ -242,6 +244,9 @@ function newCard() {
                   🔗 Copy Link
                 </button>
                 <button class="lib-delete-btn" title="Delete" @click="handleDeleteTape(tape)">×</button>
+                <p v-if="tape.isCopy" class="lib-copy-note">
+                  This is an unedited copy of another mixtape, and will not show up in the explore page
+                </p>
               </div>
               <div class="lib-tape-card-body">
                 <div class="lib-tape-row">

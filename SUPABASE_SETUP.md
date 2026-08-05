@@ -99,6 +99,16 @@ CREATE POLICY "Anyone can view mixtapes via share token"
   USING (share_token IS NOT NULL);
 ```
 
+## Step 3c: Flag Copies from Explore (Optional)
+
+If your `mixtapes` table predates the "copy from explore" feature, run this in the SQL Editor to add it:
+
+```sql
+-- True for a fresh copy of another user's mixtape, cleared as soon as the user
+-- edits it. Used client-side to block "Make Public" on unedited duplicates.
+ALTER TABLE mixtapes ADD COLUMN is_copy boolean NOT NULL DEFAULT false;
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

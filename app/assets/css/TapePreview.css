@@ -243,6 +243,15 @@
 }
 .action-btn-secondary:hover { opacity: 1; }
 
+.action-note {
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.3;
+  opacity: 0.7;
+  padding: 0 2px;
+  margin: -2px 0 2px;
+}
+
 .action-btn-divider {
   border-top: 1px dashed rgba(42,30,40,.3);
   margin: 2px 0;

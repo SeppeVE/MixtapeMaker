@@ -19,6 +19,8 @@ export interface Mixtape {
   updatedAt: string;
   isPublic: boolean;
   shareToken?: string | null;
+  /** True for a fresh copy of another user's mixtape until the user makes a real edit. */
+  isCopy?: boolean;
 }
 
 export interface SpotifyTrack {

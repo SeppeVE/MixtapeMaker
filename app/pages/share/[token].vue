@@ -17,6 +17,7 @@ const notFound = computed(() => !pending.value && !mixtape.value);
 useSeoMeta({
   title: () => (mixtape.value ? `${mixtape.value.title} — Mixtape Maker` : 'Shared Mixtape — Mixtape Maker'),
   ogTitle: () => (mixtape.value ? mixtape.value.title : 'Mixtape Maker'),
+  robots: 'noindex, follow',
 });
 
 if (import.meta.server && notFound.value) {

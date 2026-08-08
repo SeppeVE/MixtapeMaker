@@ -129,6 +129,18 @@
   color: var(--color-mustard);
 }
 
+.lp-hero-headline-kicker {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-lavender);
+  text-shadow: none;
+  margin-bottom: 6px;
+}
+
 .lp-hero-sub {
   font-family: var(--font-body);
   font-size: 16px;

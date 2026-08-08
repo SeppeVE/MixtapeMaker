@@ -24,10 +24,8 @@ const mixtape = useMixtapeStore();
     <div class="lp-hero-inner">
       <!-- Left: copy -->
       <div class="lp-hero-left">
-        <div class="lp-hero-eyebrow icon-button"><span class="icon">◆</span><span>MIXTAPE MAKER</span></div>
-
         <h1 class="lp-hero-headline">
-          MIX.<br />DESIGN.<br /><span class="lp-hero-headline-accent">ENJOY.</span>
+          <span class="sr-only">Mixtape Maker — </span>MIX.<br />DESIGN.<br /><span class="lp-hero-headline-accent">ENJOY.</span>
         </h1>
 
         <p class="lp-hero-sub">

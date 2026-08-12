@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Mixtape } from '../types';
+import { getPendingSaveId, setPendingSaveId, clearPendingSaveId } from './localStorage';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -62,9 +63,22 @@ export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mix
 
   // Legacy cloud tapes use timestamp ids — keep them on update.
   // New local drafts get a UUID so future shares use a standard id format.
+  //
+  // The id we settle on is cached (by local id) in localStorage *before* the
+  // request goes out. If this save's response never makes it back to the
+  // client — closed tab, dropped connection, a second tab still holding the
+  // stale local copy — a retry with the same local id reuses the cached id
+  // instead of minting a new one, so it upserts the same row in place rather
+  // than inserting a duplicate.
   if (!UUID_RE.test(mixtape.id)) {
-    const existing = await loadMixtape(mixtape.id);
-    payload.id = existing ? mixtape.id : crypto.randomUUID();
+    const cached = getPendingSaveId(mixtape.id);
+    if (cached) {
+      payload.id = cached;
+    } else {
+      const existing = await loadMixtape(mixtape.id);
+      payload.id = existing ? mixtape.id : crypto.randomUUID();
+      if (!existing) setPendingSaveId(mixtape.id, payload.id);
+    }
   }
 
   const { data, error } = await supabase
@@ -74,6 +88,9 @@ export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mix
     .single();
 
   if (error) throw error;
+  // The mixtape now carries its cloud id directly, so the local→cloud mapping
+  // is no longer needed.
+  if (payload.id !== mixtape.id) clearPendingSaveId(mixtape.id);
   return dbToMixtape(data);
 }
 

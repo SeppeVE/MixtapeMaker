@@ -62,6 +62,50 @@ export const loadActiveCardFromLocal = (): JCard | null => {
   } catch { return null; }
 };
 
+// ── Pending cloud-save id cache ──────────────────────────────────────────────
+// Maps a mixtape's local (pre-save) id to the cloud id minted for it, written
+// the moment that id is chosen — *before* the save request goes out. This is
+// what makes saveMixtape's first-save-ever id assignment idempotent: if the
+// response for a save never makes it back to the client (tab closed mid-save,
+// dropped connection, a second tab still holding the stale local copy, etc.),
+// a retry looks up the id it already minted last time instead of generating a
+// fresh one and inserting a duplicate row for the same content.
+const PENDING_SAVE_IDS_KEY = 'mixtape-pending-save-ids';
+
+type PendingSaveIds = Record<string, string>;
+
+function loadPendingSaveIds(): PendingSaveIds {
+  if (!isClient) return {};
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_SAVE_IDS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+export const getPendingSaveId = (localId: string): string | null => {
+  return loadPendingSaveIds()[localId] ?? null;
+};
+
+export const setPendingSaveId = (localId: string, cloudId: string): void => {
+  if (!isClient) return;
+  try {
+    const ids = loadPendingSaveIds();
+    ids[localId] = cloudId;
+    localStorage.setItem(PENDING_SAVE_IDS_KEY, JSON.stringify(ids));
+  } catch { /* ignore */ }
+};
+
+export const clearPendingSaveId = (localId: string): void => {
+  if (!isClient) return;
+  try {
+    const ids = loadPendingSaveIds();
+    if (!(localId in ids)) return;
+    delete ids[localId];
+    localStorage.setItem(PENDING_SAVE_IDS_KEY, JSON.stringify(ids));
+  } catch { /* ignore */ }
+};
+
 // ── JCard local storage ──────────────────────────────────────────────────────
 const JCARDS_KEY = 'jcards';
 

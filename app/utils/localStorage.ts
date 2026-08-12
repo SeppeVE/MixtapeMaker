@@ -63,14 +63,17 @@ export const loadActiveCardFromLocal = (): JCard | null => {
 };
 
 // ── Pending cloud-save id cache ──────────────────────────────────────────────
-// Maps a mixtape's local (pre-save) id to the cloud id minted for it, written
-// the moment that id is chosen — *before* the save request goes out. This is
-// what makes saveMixtape's first-save-ever id assignment idempotent: if the
-// response for a save never makes it back to the client (tab closed mid-save,
-// dropped connection, a second tab still holding the stale local copy, etc.),
-// a retry looks up the id it already minted last time instead of generating a
-// fresh one and inserting a duplicate row for the same content.
+// Maps a mixtape's local (pre-save) id to the cloud id minted for it. This is
+// a fast-path only: database.ts derives that cloud id deterministically from
+// the local id (deterministicUuid), so a cache miss just costs one extra
+// loadMixtape() existence check, not a duplicate row — the recomputed id is
+// always the same one. The cache exists to skip that check on repeat saves.
+//
+// Capped at PENDING_SAVE_IDS_CAP entries (oldest evicted first) so an
+// abandoned draft that's saved once and never finished doesn't leave this
+// blob growing forever in localStorage.
 const PENDING_SAVE_IDS_KEY = 'mixtape-pending-save-ids';
+const PENDING_SAVE_IDS_CAP = 200;
 
 type PendingSaveIds = Record<string, string>;
 
@@ -92,6 +95,10 @@ export const setPendingSaveId = (localId: string, cloudId: string): void => {
   try {
     const ids = loadPendingSaveIds();
     ids[localId] = cloudId;
+    const keys = Object.keys(ids);
+    if (keys.length > PENDING_SAVE_IDS_CAP) {
+      for (const key of keys.slice(0, keys.length - PENDING_SAVE_IDS_CAP)) delete ids[key];
+    }
     localStorage.setItem(PENDING_SAVE_IDS_KEY, JSON.stringify(ids));
   } catch { /* ignore */ }
 };

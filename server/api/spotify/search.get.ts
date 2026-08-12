@@ -6,6 +6,13 @@
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 
+// This endpoint is unauthenticated and shares a single app-level Spotify
+// token across every visitor, so it needs its own throttle independent of
+// Spotify's — otherwise one abusive client could burn the shared quota for
+// everyone. 20 requests/minute per IP comfortably covers normal searching.
+const RATE_LIMIT = 20;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
 let cachedToken: string | null = null;
 let tokenExpiry = 0;
 
@@ -35,6 +42,8 @@ async function getAccessToken(): Promise<string> {
 }
 
 export default defineEventHandler(async (event) => {
+  enforceRateLimit(event, 'spotify-search', RATE_LIMIT, RATE_LIMIT_WINDOW_MS);
+
   const q = getQuery(event).q;
   if (!q || typeof q !== 'string' || !q.trim()) {
     throw createError({ statusCode: 400, statusMessage: 'Missing or empty query parameter: q' });

@@ -26,7 +26,7 @@ async function runSearch(q: string) {
     results.value = songs;
     recentSearches.value = [q, ...recentSearches.value.filter((r) => r !== q)].slice(0, 4);
   } catch (err) {
-    error.value = 'Search failed. Check your Spotify credentials.';
+    error.value = err instanceof Error ? err.message : 'Search failed. Check your Spotify credentials.';
     console.error(err);
   } finally {
     isLoading.value = false;

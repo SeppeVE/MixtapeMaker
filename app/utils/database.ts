@@ -1,7 +1,40 @@
 import { supabase } from './supabase';
 import { Mixtape } from '../types';
+import { getPendingSaveId, setPendingSaveId, clearPendingSaveId } from './localStorage';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 32-bit FNV-1a, used four times with different seeds to build 128 bits.
+function fnv1a32(str: string, seed: number): number {
+  let hash = seed >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+// Deterministic (not random) UUID derived from an arbitrary string. The same
+// input always produces the same output, from any tab, any device, with or
+// without a warm cache — unlike crypto.randomUUID(), which mints a different
+// id every call. Used below so a local mixtape id always maps to the same
+// cloud id, making first-save id assignment idempotent by construction
+// rather than by remembering a previous answer. Not cryptographic; a 128-bit
+// hash's collision odds are astronomically below this app's id volume.
+function deterministicUuid(seed: string): string {
+  const chunks = [
+    fnv1a32(seed, 0x811c9dc5),
+    fnv1a32(`a:${seed}`, 0x811c9dc5),
+    fnv1a32(`b:${seed}`, 0x811c9dc5),
+    fnv1a32(`c:${seed}`, 0x811c9dc5),
+  ];
+  const bytes = chunks.map((n) => n.toString(16).padStart(8, '0')).join('').match(/.{2}/g)!;
+  // Stamp version/variant bits so it reads as a well-formed (v5-shaped) UUID.
+  bytes[6] = ((parseInt(bytes[6], 16) & 0x0f) | 0x50).toString(16).padStart(2, '0');
+  bytes[8] = ((parseInt(bytes[8], 16) & 0x3f) | 0x80).toString(16).padStart(2, '0');
+  const hex = bytes.join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 export interface DatabaseMixtape {
   id: string;
@@ -62,9 +95,25 @@ export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mix
 
   // Legacy cloud tapes use timestamp ids — keep them on update.
   // New local drafts get a UUID so future shares use a standard id format.
+  //
+  // That UUID is deterministicUuid(mixtape.id) — a hash of the local id, not
+  // crypto.randomUUID(). Deriving it instead of rolling it means any retry
+  // (closed tab, dropped connection, a second tab still holding the stale
+  // local copy, or the pending-id cache below simply being unavailable —
+  // private browsing, storage eviction, a different device) recomputes the
+  // exact same cloud id and upserts the same row in place, rather than
+  // inserting a duplicate. The localStorage cache is only a fast-path that
+  // skips the loadMixtape() existence check on repeat calls; it is not
+  // required for correctness.
   if (!UUID_RE.test(mixtape.id)) {
-    const existing = await loadMixtape(mixtape.id);
-    payload.id = existing ? mixtape.id : crypto.randomUUID();
+    const cached = getPendingSaveId(mixtape.id);
+    if (cached) {
+      payload.id = cached;
+    } else {
+      const existing = await loadMixtape(mixtape.id);
+      payload.id = existing ? mixtape.id : deterministicUuid(mixtape.id);
+      if (!existing) setPendingSaveId(mixtape.id, payload.id);
+    }
   }
 
   const { data, error } = await supabase
@@ -74,6 +123,9 @@ export async function saveMixtape(mixtape: Mixtape, userId: string): Promise<Mix
     .single();
 
   if (error) throw error;
+  // The mixtape now carries its cloud id directly, so the local→cloud mapping
+  // is no longer needed.
+  if (payload.id !== mixtape.id) clearPendingSaveId(mixtape.id);
   return dbToMixtape(data);
 }
 

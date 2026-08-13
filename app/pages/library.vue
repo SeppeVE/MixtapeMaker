@@ -8,6 +8,7 @@ import { useMixtapeStore } from '~/stores/mixtape';
 import { useJCardLibraryStore } from '~/stores/jcardLibrary';
 import { loadMixtapes, deleteMixtape } from '~/utils/database';
 import { formatDuration } from '~/utils/timeUtils';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -62,7 +63,17 @@ watch(() => auth.user, () => {
 });
 
 async function handleSaveDraftToCloud() {
-  await store.save();
+  const wasUntitled = isMixtapeUntitled(currentDraft.value.title);
+  const saved = await store.save();
+  if (!saved) {
+    // The draft card here has no inline title field, so a blocked save due
+    // to a missing name sends the user to the editor to rename it — store
+    // .save() already toasted the reason. currentDraft *is* the store's
+    // active mixtape already, so just navigate (store.loadMixtape() would
+    // fire its own "Mixtape loaded" toast and stomp the one above).
+    if (wasUntitled) router.push('/mixtape');
+    return;
+  }
   if (auth.user) {
     try {
       cloudTapes.value = await loadMixtapes(auth.user.id);

@@ -5,6 +5,7 @@ import type { Mixtape, CassetteLength, JCard } from '~/types';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { generateId } from '~/utils/timeUtils';
+import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import {
   saveMixtape,
   toggleMixtapePublic,
@@ -33,7 +34,7 @@ function contentSignature(m: Mixtape): string {
 function blankMixtape(): Mixtape {
   return {
     id: generateId(),
-    title: 'Untitled Mixtape',
+    title: DEFAULT_MIXTAPE_TITLE,
     cassetteLength: 90 as CassetteLength,
     sideA: [],
     sideB: [],
@@ -81,19 +82,27 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     mixtape.value = next;
   }
 
-  async function save() {
+  // Returns whether the mixtape was actually saved, so callers can react to a
+  // blocked or failed attempt (e.g. prompt the user to fix the title).
+  async function save(): Promise<boolean> {
     if (!auth.user) {
       ui.openAuth();
-      return;
+      return false;
+    }
+    if (isMixtapeUntitled(mixtape.value.title)) {
+      ui.showToast('Give your mixtape a name before saving to the cloud', 'error');
+      return false;
     }
     isSaving.value = true;
     try {
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
       trackCopySignature(mixtape.value);
       ui.showToast('Mixtape saved to cloud', 'success');
+      return true;
     } catch (err) {
       console.error('Save failed:', err);
       ui.showToast('Failed to save mixtape', 'error');
+      return false;
     } finally {
       isSaving.value = false;
     }

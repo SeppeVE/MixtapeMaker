@@ -2,6 +2,7 @@
 import { ref, computed, nextTick } from 'vue';
 import type { Mixtape, CassetteLength } from '~/types';
 import { formatTime, calculateTotalDuration } from '~/utils/timeUtils';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 
 const props = defineProps<{
   mixtape: Mixtape;
@@ -31,6 +32,7 @@ const editingFor = ref(false);
 const forText = ref(props.mixtape.dedicatedTo ?? '');
 const titleInput = ref<HTMLInputElement | null>(null);
 const forInput = ref<HTMLInputElement | null>(null);
+const titleRequired = ref(false);
 
 const totalA = computed(() => calculateTotalDuration(props.mixtape.sideA));
 const totalB = computed(() => calculateTotalDuration(props.mixtape.sideB));
@@ -38,7 +40,7 @@ const maxDur = computed(() => (props.mixtape.cassetteLength / 2) * 60);
 const accentColor = computed(() => (props.sideA ? '#8FC9B7' : '#B4A0C7'));
 const sideAStatus = computed(() => getSideStatus(totalA.value, maxDur.value));
 const sideBStatus = computed(() => getSideStatus(totalB.value, maxDur.value));
-const isUntitled = computed(() => props.mixtape.title === 'Untitled Mixtape');
+const isUntitled = computed(() => isMixtapeUntitled(props.mixtape.title));
 
 function startEditTitle() {
   titleText.value = props.mixtape.title;
@@ -47,8 +49,19 @@ function startEditTitle() {
 }
 function saveTitle() {
   const trimmed = titleText.value.trim();
-  if (trimmed) emit('update', { title: trimmed });
+  if (trimmed) {
+    emit('update', { title: trimmed });
+    if (!isMixtapeUntitled(trimmed)) titleRequired.value = false;
+  }
   editingTitle.value = false;
+}
+function handleSaveClick() {
+  if (isUntitled.value) {
+    titleRequired.value = true;
+    startEditTitle();
+    return;
+  }
+  emit('save');
 }
 function startEditFor() {
   forText.value = props.mixtape.dedicatedTo ?? '';
@@ -97,6 +110,9 @@ function saveFor() {
               <template v-else>{{ mixtape.title }} <span class="meta-edit-hint">pencil</span></template>
             </span>
           </div>
+          <p v-if="titleRequired && isUntitled" class="meta-title-warning">
+            Give your tape a name before saving to the cloud
+          </p>
 
           <!-- Tape length -->
           <div class="meta-row">
@@ -159,7 +175,7 @@ function saveFor() {
     <div class="preview-panel">
       <div class="panel-titlebar panel-plum">Actions</div>
       <div class="panel-body panel-body-actions">
-        <button class="btn btn-sage action-btn" :disabled="isSaving" @click="emit('save')">
+        <button class="btn btn-sage action-btn" :disabled="isSaving" @click="handleSaveClick">
           <span class="action-btn-icon">💾</span>
           {{ isSaving ? 'Saving to cloud...' : 'Save to cloud' }}
         </button>

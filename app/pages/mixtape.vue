@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import type { Song, Side, Mixtape } from '~/types';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { isCloudId } from '~/utils/database';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 
 const store = useMixtapeStore();
 const router = useRouter();
@@ -95,7 +96,7 @@ function saveTitle() {
       />
       <button
         v-else
-        :class="`lp-nav-title${mixtape.title === 'Untitled Mixtape' ? ' lp-nav-title--untitled' : ''}`"
+        :class="`lp-nav-title${isMixtapeUntitled(mixtape.title) ? ' lp-nav-title--untitled' : ''}`"
         title="Click to rename"
         @click="startEditTitle"
       >

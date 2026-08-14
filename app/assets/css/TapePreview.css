@@ -200,6 +200,13 @@
 
 .meta-placeholder { opacity: 0.45; font-style: italic; }
 
+.meta-title-warning {
+  margin: -2px 0 4px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--color-warning);
+}
+
 .meta-input {
   font-family: var(--font-body);
   font-size: 10px;

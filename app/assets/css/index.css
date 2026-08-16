@@ -25,6 +25,7 @@
 @import './Library.css';
 @import './LibraryPage.css';
 @import './ExplorePagination.css';
+@import './guide/GuidePage.css';
 
 @import './jcard/jcard.css';
 @import './jcard/JCardView.css';

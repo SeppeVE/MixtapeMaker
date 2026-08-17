@@ -3,7 +3,7 @@ import { useSeoMeta, useHead } from '#app';
 
 useSeoMeta({
   title: 'How to record a Spotify mixtape onto a cassette — Mixtape Maker',
-  description: 'Sequence the tracklist in Mixtape Maker, then run one cable from your phone into a tape deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
+  description: 'Make a mixtape of your desired songs in Mixtape Maker, and export it to Spotify. Connect a Spotify player device (laptop or phone usually) to your reciever and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
 });
 
 const TAPE_LENGTHS = [
@@ -96,8 +96,7 @@ useHead({
         <div class="gd-eyebrow">◆ HOW-TO GUIDE</div>
         <h1 class="gd-title">How to record a Spotify mixtape onto a cassette</h1>
         <p class="gd-subhead">
-          Sequence the tracklist in Mixtape Maker, then run one cable from your phone into a tape deck.
-          About 30 min per side · Free, no account.
+          Make a mixtape of your desired songs in Mixtape Maker, and export it to Spotify. Connect a Spotify player device (laptop or phone usually) to your reciever and into your cassette deck.
         </p>
         <nav class="gd-tabs" aria-label="Guide sections">
           <a href="#make-it" class="gd-tab">01 Make it</a>
@@ -117,67 +116,6 @@ useHead({
       </aside>
 
       <main class="gd-main">
-        <!-- ── Before you start ── -->
-        <section id="before-you-start" class="gd-section">
-          <h2 class="gd-h2">Before you start</h2>
-          <p class="gd-p">
-            Recording to tape is analogue and real time: the deck records whatever it hears while the tape
-            rolls. So the job splits in two — first get the running order and the timings right in Mixtape
-            Maker, then play it once, cleanly, into the deck. Nothing here needs an account, a plug-in, or a
-            download.
-          </p>
-
-          <div class="gd-chain">
-            <div class="gd-chain-head">
-              <span>⚇ THE WHOLE CHAIN</span>
-              <span class="gd-chain-count">3 MOVES</span>
-            </div>
-            <div class="gd-chain-grid">
-              <div class="gd-chain-step">
-                <div class="gd-chain-letter gd-chain-letter--a">A</div>
-                <div>
-                  <strong>Sequence it here.</strong>
-                  Search, split across Side A/B, watch the fill meter.
-                </div>
-              </div>
-              <div class="gd-chain-step">
-                <div class="gd-chain-letter gd-chain-letter--b">B</div>
-                <div>
-                  <strong>Wire it up.</strong>
-                  Phone out → 3.5 mm-to-RCA → deck LINE IN.
-                </div>
-              </div>
-              <div class="gd-chain-step">
-                <div class="gd-chain-letter gd-chain-letter--c">C</div>
-                <div>
-                  <strong>Record in real time.</strong>
-                  Press record, then play — the deck takes what it hears.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="gd-callouts">
-            <div class="gd-callout gd-callout--forest">
-              <div class="gd-callout-head">◆ IN THE APP</div>
-              <ul class="gd-callout-list">
-                <li>A tape length: C-60 → 30 min per side</li>
-                <li>Spotify search (no login required)</li>
-                <li>Optional: a printed J-card</li>
-              </ul>
-            </div>
-            <div class="gd-callout gd-callout--plum">
-              <div class="gd-callout-head">◆ IN THE ROOM</div>
-              <ul class="gd-callout-list">
-                <li>Your phone with Spotify</li>
-                <li>One 3.5 mm → stereo RCA cable</li>
-                <li>A cassette deck with LINE IN and REC</li>
-                <li>A blank tape, wound to the start</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
         <!-- ── PART ONE ── -->
         <div id="make-it" class="gd-part gd-part--mustard">
           <div class="gd-part-number">01</div>
@@ -193,7 +131,7 @@ useHead({
             <h3 class="gd-h3">Pick your tape length first</h3>
           </div>
           <p class="gd-p">
-            The length is your budget. Set it before you add songs and the editor will tell you exactly how
+            The length of your tape is your constraint. Set it before you add songs and the editor will tell you exactly how
             much room is left on each side, so you never discover the problem halfway through recording.
           </p>
           <div class="gd-table-wrap">
@@ -215,12 +153,11 @@ useHead({
         <section class="gd-section gd-step">
           <div class="gd-step-head">
             <div class="gd-step-badge">02</div>
-            <h3 class="gd-h3">Search Spotify, add to Side A</h3>
+            <h3 class="gd-h3">Search Spotify, add to the tape</h3>
           </div>
           <p class="gd-p">
             Type a song or artist into the search panel and hit <strong>+ A</strong> or <strong>+ B</strong>
-            on the result. Every track arrives with its real running time, which is what makes the length
-            maths honest.
+            on the result. Add your songs to the desired side of the tape.
           </p>
           <div class="lp-mock-window lp-shadow">
             <div class="mock-title-bar">
@@ -263,9 +200,7 @@ useHead({
             <h3 class="gd-h3">Balance the two sides</h3>
           </div>
           <p class="gd-p">
-            Drag tracks to reorder, and move anything that overflows to Side B. Aim to leave 30–60 seconds
-            of headroom per side: tapes labelled C-60 are rarely exact, and you do not want the last chorus
-            clipped by the reel running out.
+            Drag tracks to reorder, and move anything that overflows to Side B. Tapes usually have a little extra room, so if yo have 30 minutes and 10 seconds on a C-60 side, you should be fine. But try to aim for 30.
           </p>
           <div class="lp-mock-window lp-shadow gd-meter-window">
             <div class="mock-side-header">
@@ -291,7 +226,7 @@ useHead({
           </p>
         </section>
 
-        <section class="gd-section gd-step">
+        <!-- <section class="gd-section gd-step">
           <div class="gd-step-head">
             <div class="gd-step-badge">04</div>
             <h3 class="gd-h3">Print the J-card while you are here</h3>
@@ -304,7 +239,7 @@ useHead({
             ✦ Open J-Card designer
           </NuxtLink>
           <p class="gd-caption">Prints at exact cassette-case size.</p>
-        </section>
+        </section> -->
 
         <!-- ── PART TWO ── -->
         <div id="record-it" class="gd-part gd-part--plum">
@@ -317,25 +252,22 @@ useHead({
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
-            <div class="gd-step-badge">05</div>
+            <div class="gd-step-badge">04</div>
             <h3 class="gd-h3">Plug your phone into the deck</h3>
           </div>
           <p class="gd-p">
-            One cable does it: 3.5 mm mini-jack into your phone's headphone output, red and white RCA
-            plugs into the deck's LINE IN (sometimes labelled REC IN or TAPE IN). Never use MIC IN — it
-            will distort.
+            If you have an actual cassette deck, not a small (often mono) recorder, it should be hooked up to an amp/receiver. In that case you would plug your recording device aux out into the aux in or line in on the amp. Then select the correct source to play on the amp, start Spotify, and you should be able to start recording your tape.
           </p>
         </section>
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
-            <div class="gd-step-badge">06</div>
+            <div class="gd-step-badge">05</div>
             <h3 class="gd-h3">Set the level once, then leave it</h3>
           </div>
           <p class="gd-p">
-            Put your phone at about three-quarters volume, press REC PAUSE on the deck, and play the loudest
-            song in the mix. Turn the deck's record level until the needles or LEDs peak around 0 and only
-            flick above it. Too quiet is hiss; too loud is mush.
+            Set your player device at about three-quarters volume, press REC PAUSE on the deck, and play the loudest
+            song in the mix. Turn the deck's record level until the needles or LEDs averge around 0db. Depending on the tape type being 1, 2 or 4 the peaks can go to +2, +5 or +8db.
           </p>
           <div class="gd-rec-meter">
             <div class="gd-rec-meter-label">REC LEVEL</div>
@@ -352,7 +284,7 @@ useHead({
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
-            <div class="gd-step-badge">07</div>
+            <div class="gd-step-badge">06</div>
             <h3 class="gd-h3">Press record, then press play</h3>
           </div>
           <p class="gd-p">
@@ -369,7 +301,7 @@ useHead({
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
-            <div class="gd-step-badge">08</div>
+            <div class="gd-step-badge">07</div>
             <h3 class="gd-h3">Flip the tape, repeat for Side B</h3>
           </div>
           <p class="gd-p">

@@ -3,7 +3,7 @@ import { useSeoMeta, useHead } from '#app';
 
 useSeoMeta({
   title: 'How to record a Spotify mixtape onto a cassette — Mixtape Maker',
-  description: 'Make a mixtape of your desired songs in Mixtape Maker, and export it to Spotify. Connect a Spotify player device (laptop or phone usually) to your reciever and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
+  description: 'Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
 });
 
 const TAPE_LENGTHS = [
@@ -57,10 +57,9 @@ useHead({
         description: 'Sequence a tracklist in Mixtape Maker, then run one cable from a phone into a tape deck to record it in real time.',
         step: [
           { '@type': 'HowToStep', name: 'Pick your tape length first', text: 'Set the tape length (C-46, C-60, or C-90) before adding songs so the editor can track exactly how much room is left on each side.' },
-          { '@type': 'HowToStep', name: 'Search Spotify, add to Side A', text: 'Search for a song or artist and add results to Side A or Side B. Each track carries its real running time.' },
+          { '@type': 'HowToStep', name: 'Search Spotify, add to the tape', text: 'Search for a song or artist and add results to Side A or Side B. Each track carries its real running time.' },
           { '@type': 'HowToStep', name: 'Balance the two sides', text: 'Reorder tracks and move overflow to Side B, leaving 30–60 seconds of headroom per side.' },
-          { '@type': 'HowToStep', name: 'Print the J-card while you are here', text: 'Export the J-card PDF and print at 100% scale before recording.' },
-          { '@type': 'HowToStep', name: 'Plug your phone into the deck', text: 'Run a 3.5 mm mini-jack to stereo RCA cable from the phone’s headphone output into the deck’s LINE IN.' },
+          { '@type': 'HowToStep', name: 'Plug your phone into the deck', text: 'If you have a full cassette deck hooked up to an amp/receiver, plug your player’s aux out into the amp’s aux in or line in, then select that source on the amp.' },
           { '@type': 'HowToStep', name: 'Set the level once, then leave it', text: 'Play the loudest song in the mix and set the deck’s record level so peaks kiss 0 dB without pinning red.' },
           { '@type': 'HowToStep', name: 'Press record, then press play', text: 'Start the deck first, wait two seconds for the leader tape to pass, then start the music.' },
           { '@type': 'HowToStep', name: 'Flip the tape, repeat for Side B', text: 'Stop the deck, flip the cassette, switch to Side B in the editor, and repeat the same level and routine.' },
@@ -96,7 +95,7 @@ useHead({
         <div class="gd-eyebrow">◆ HOW-TO GUIDE</div>
         <h1 class="gd-title">How to record a Spotify mixtape onto a cassette</h1>
         <p class="gd-subhead">
-          Make a mixtape of your desired songs in Mixtape Maker, and export it to Spotify. Connect a Spotify player device (laptop or phone usually) to your reciever and into your cassette deck.
+          Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck.
         </p>
         <nav class="gd-tabs" aria-label="Guide sections">
           <a href="#make-it" class="gd-tab">01 Make it</a>
@@ -109,7 +108,6 @@ useHead({
     <div class="gd-body">
       <aside class="gd-toc">
         <div class="gd-toc-label">On this page</div>
-        <a href="#before-you-start" class="gd-toc-link">Before you start</a>
         <a href="#make-it" class="gd-toc-link">01 Make the mixtape</a>
         <a href="#record-it" class="gd-toc-link">02 Record it to tape</a>
         <a href="#faq" class="gd-toc-link">? Questions people ask</a>
@@ -200,7 +198,7 @@ useHead({
             <h3 class="gd-h3">Balance the two sides</h3>
           </div>
           <p class="gd-p">
-            Drag tracks to reorder, and move anything that overflows to Side B. Tapes usually have a little extra room, so if yo have 30 minutes and 10 seconds on a C-60 side, you should be fine. But try to aim for 30.
+            Drag tracks to reorder, and move anything that overflows to Side B. Tapes usually have a little extra room, so if you have 30 minutes and 10 seconds on a C-60 side, you should be fine. But try to aim for 30.
           </p>
           <div class="lp-mock-window lp-shadow gd-meter-window">
             <div class="mock-side-header">
@@ -267,7 +265,7 @@ useHead({
           </div>
           <p class="gd-p">
             Set your player device at about three-quarters volume, press REC PAUSE on the deck, and play the loudest
-            song in the mix. Turn the deck's record level until the needles or LEDs averge around 0db. Depending on the tape type being 1, 2 or 4 the peaks can go to +2, +5 or +8db.
+            song in the mix. Turn the deck's record level until the needles or LEDs average around 0 dB. Depending on the tape type being I, II or IV, the peaks can go to +2, +5 or +8 dB.
           </p>
           <div class="gd-rec-meter">
             <div class="gd-rec-meter-label">REC LEVEL</div>
@@ -312,7 +310,7 @@ useHead({
           <div class="gd-warning">
             <span class="gd-warning-icon">⚠</span>
             <span>
-              One thing to know: this is real-time analogue recording through your own speakers-out, the
+              One thing to know: this is real-time analogue recording through your own headphone or line out, the
               same as taping the radio in 1994. Mixtape Maker plans and prints the tape; it does not
               download, rip, or convert anything from Spotify.
             </span>

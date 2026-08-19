@@ -58,7 +58,7 @@ useHead({
         step: [
           { '@type': 'HowToStep', name: 'Pick your tape length first', text: 'Set the tape length (C-46, C-60, or C-90) before adding songs so the editor can track exactly how much room is left on each side.' },
           { '@type': 'HowToStep', name: 'Search Spotify, add to the tape', text: 'Search for a song or artist and add results to Side A or Side B. Each track carries its real running time.' },
-          { '@type': 'HowToStep', name: 'Balance the two sides', text: 'Reorder tracks and move overflow to Side B, leaving 30–60 seconds of headroom per side.' },
+          { '@type': 'HowToStep', name: 'Balance the two sides', text: 'Reorder tracks and move overflow to Side B. A little overage is fine — most tapes run a bit long — but aim to fill each side to its full length.' },
           { '@type': 'HowToStep', name: 'Plug your phone into the deck', text: 'If you have a full cassette deck hooked up to an amp/receiver, plug your player’s aux out into the amp’s aux in or line in, then select that source on the amp.' },
           { '@type': 'HowToStep', name: 'Set the level once, then leave it', text: 'Play the loudest song in the mix and set the deck’s record level so peaks kiss 0 dB without pinning red.' },
           { '@type': 'HowToStep', name: 'Press record, then press play', text: 'Start the deck first, wait two seconds for the leader tape to pass, then start the music.' },

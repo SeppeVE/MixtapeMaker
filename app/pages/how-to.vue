@@ -13,36 +13,24 @@ const TAPE_LENGTHS = [
 ];
 
 const CHECKS = [
-  { title: 'Crossfade off', body: 'Spotify → Settings → Playback. Otherwise tracks bleed into each other for good.' },
   { title: 'Notifications silenced', body: 'Do Not Disturb, system sounds off. The deck records everything.' },
-  { title: 'Playlist in the right order', body: 'Queue Side A only, top to bottom, repeat and shuffle off.' },
+  { title: 'Playlist in the right order', body: 'Queue Side A only, top to bottom, repeat and shuffle off. Maybe set a timer on your phone for ~2-3 minutes befor the end of the recording so you can stop the tape right when it is done.' },
   { title: 'Tape past the leader', body: 'The first two seconds of a cassette record nothing at all.' },
+  { title: 'Spotify private session', body: 'This is mostly if you are making tapes for friends and don\'t want their music in your algorithm.' },
 ];
 
 const FAQS = [
   {
-    q: 'Do I need a special cable?',
-    a: 'No. One 3.5 mm mini-jack to stereo RCA cable — a few euros from any electronics shop. If your deck only has a 3.5 mm line input, a straight mini-jack-to-mini-jack cable works too.',
-  },
-  {
     q: 'Can I record without playing it in real time?',
-    a: 'No — a cassette deck only captures what’s playing through LINE IN as it happens, so a C-60 always takes a full hour to fill both sides. Mixtape Maker plans the running order and prints the J-card, but the recording pass itself can’t be skipped or sped up.',
+    a: 'No, a cassette deck only captures what’s playing through LINE IN as it happens, so a C-60 always takes a full hour to fill both sides. Mixtape Maker plans the running order and prints the J-card, but the recording pass itself can’t be skipped or sped up.',
   },
   {
     q: 'Which blank tape should I buy?',
-    a: 'Any Type I (normal bias) cassette works. Buy fresh stock rather than tape that has sat in a drawer for decades — old binder can shed and clog the heads. Set your length in Mixtape Maker first so the tracklist matches what you buy.',
-  },
-  {
-    q: 'Why do my songs run into each other?',
-    a: 'Spotify’s crossfade is almost certainly on. Turn it off in Settings → Playback (set Crossfade to 0) before you record — once it’s baked onto tape, you can’t undo it.',
-  },
-  {
-    q: 'How do I keep notifications off the tape?',
-    a: 'Put your phone in Do Not Disturb (or Focus) mode and mute system sounds before you press record. LINE IN records anything that plays through the phone, including a text alert chime.',
+    a: 'Any Type 1 blank like a TDK60 or 90 (or other brands) work fine and are not too hard to find. Chrome Type 2 tapes are better but also harder to find. Even pre-recorded tape are perfectly fine to use if they still work and are not moldy.',
   },
   {
     q: 'Do I need Spotify Premium?',
-    a: 'Free works for playback, but Premium makes the recording pass easier: free accounts can’t always play an exact queue on demand on mobile, and free playback has occasional ads — both end up baked into your tape.',
+    a: 'Free works for playback, but Premium makes the recording pass easier: free accounts can’t always play an exact queue on demand on mobile, and free playback has occasional ads which end up onto your tape if you don\'t pause the recording.',
   },
 ];
 
@@ -267,17 +255,6 @@ useHead({
             Set your player device at about three-quarters volume, press REC PAUSE on the deck, and play the loudest
             song in the mix. Turn the deck's record level until the needles or LEDs average around 0 dB. Depending on the tape type being I, II or IV, the peaks can go to +2, +5 or +8 dB.
           </p>
-          <div class="gd-rec-meter">
-            <div class="gd-rec-meter-label">REC LEVEL</div>
-            <div class="gd-rec-meter-track">
-              <div class="gd-rec-meter-fill" />
-              <div class="gd-rec-meter-peak" />
-            </div>
-            <div class="gd-rec-meter-scale">
-              <span>-20</span><span>-10</span><span>-5</span><span>0</span><span>+3</span>
-            </div>
-          </div>
-          <p class="gd-caption">Peaks kissing 0 dB · nothing pinned in the red.</p>
         </section>
 
         <section class="gd-section gd-step">
@@ -287,7 +264,7 @@ useHead({
           </div>
           <p class="gd-p">
             Start the deck first so the leader tape is past the head, wait two seconds, then start the
-            music. Run through the four checks below before you do — a tape is one continuous take.
+            music. Here are a couple of tips I find useful.
           </p>
           <ul class="gd-checklist">
             <li v-for="c in CHECKS" :key="c.title" class="gd-checklist-item">
@@ -304,23 +281,14 @@ useHead({
           </div>
           <p class="gd-p">
             When Side A's last track ends, stop the deck, flip the cassette, and switch to Side B in the
-            editor so the running order stays in front of you. Same level, same routine. Then rewind, slip
-            the J-card in the case, and play it back once — start to finish — before you give it away.
+            editor so the running order stays in front of you. Same level, same routine. Give it a quick listen, start, middle and finish so that the recording went through fully.
+            Then put it in the case along with your custom J-Card and add it to your collection or give it to a friend or loved one.
           </p>
-          <div class="gd-warning">
-            <span class="gd-warning-icon">⚠</span>
-            <span>
-              One thing to know: this is real-time analogue recording through your own headphone or line out, the
-              same as taping the radio in 1994. Mixtape Maker plans and prints the tape; it does not
-              download, rip, or convert anything from Spotify.
-            </span>
-          </div>
         </section>
 
         <!-- ── FAQ ── -->
         <section id="faq" class="gd-section">
           <h2 class="gd-h2">Questions people ask</h2>
-          <p class="gd-p">The six below are the ones that come up most.</p>
           <div class="gd-faq-list">
             <details v-for="f in FAQS" :key="f.q" class="gd-faq-item">
               <summary class="gd-faq-q">{{ f.q }}</summary>

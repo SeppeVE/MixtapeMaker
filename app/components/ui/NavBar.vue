@@ -37,6 +37,7 @@ const ui = useUiStore();
     <!-- Right CTAs -->
     <div class="lp-nav-ctas">
       <span v-if="auth.user" class="lp-nav-user">●● {{ auth.user.email?.split('@')[0] }}</span>
+      <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
       <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
       <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
       <button v-if="auth.user" class="lp-btn lp-btn-paper" @click="auth.signOut()">Sign Out</button>

@@ -21,6 +21,9 @@ const STEPS = [
           <div class="lp-step-tag">{{ s.tag }}</div>
         </div>
       </div>
+      <div style="text-align:center;margin-top:40px">
+        <NuxtLink to="/how-to" class="lp-btn lp-btn-mustard">Read the full recording guide →</NuxtLink>
+      </div>
     </div>
   </section>
 </template>

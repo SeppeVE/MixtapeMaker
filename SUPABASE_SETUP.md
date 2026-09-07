@@ -109,6 +109,36 @@ If your `mixtapes` table predates the "copy from explore" feature, run this in t
 ALTER TABLE mixtapes ADD COLUMN is_copy boolean NOT NULL DEFAULT false;
 ```
 
+## Step 3d: Feedback / Feature Requests (Optional)
+
+Powers the "💡 Feedback" button in the footer. Run this in the SQL Editor:
+
+```sql
+-- Create the feedback table
+CREATE TABLE feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  email TEXT,
+  message TEXT NOT NULL,
+  page TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create an index on created_at for sorting
+CREATE INDEX feedback_created_at_idx ON feedback(created_at DESC);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+-- Anyone (signed in or anonymous) can submit feedback. There is
+-- intentionally no SELECT policy — only readable via the dashboard
+-- (or a service-role key), not from the client.
+CREATE POLICY "Anyone can submit feedback"
+  ON feedback
+  FOR INSERT
+  WITH CHECK (true);
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

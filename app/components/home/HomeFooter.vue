@@ -1,23 +1,33 @@
 <script setup lang="ts">
 import { useMixtapeStore } from '~/stores/mixtape';
+import { useUiStore } from '~/stores/ui';
 
 const mixtape = useMixtapeStore();
+const ui = useUiStore();
 </script>
 
 <template>
   <TapeStrip reverse />
   <footer class="lp-footer">
-    <div class="lp-foot-logo">
-      <svg width="18" height="12" viewBox="0 0 20 14" fill="none" class="align-middle">
-        <rect x="1" y="1" width="18" height="12" rx="2" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <circle cx="6" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <circle cx="14" cy="8" r="2.5" stroke="#2A1E28" stroke-width="1.5" fill="none" />
-        <rect x="4" y="10.5" width="12" height="1" fill="#2A1E28" />
-      </svg>
-      CASSETTE
+    <div class="lp-foot-brand">
+      <div class="lp-foot-logo">
+        <img
+          class="lp-foot-logo-icon"
+          src="/android-chrome-192x192.png"
+          width="18"
+          height="18"
+          alt=""
+          aria-hidden="true"
+        >
+        Mixtape Maker
+      </div>
+      <div class="lp-foot-copyright">Mixtape Maker &copy; 2026</div>
     </div>
     <div class="lp-foot-note">Make mixtapes. Design J-cards. Press play.</div>
     <div class="footer-btn-group">
+      <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
+        💡 Feedback
+      </button>
       <a href="mailto:contact@mixtape-maker.com" class="lp-btn lp-btn-paper footer-btn">✉ Contact</a>
       <a
         href="https://www.buymeacoffee.com/seppe.ve"

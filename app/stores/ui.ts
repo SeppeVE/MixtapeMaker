@@ -3,10 +3,11 @@ import { ref } from 'vue';
 
 export type ToastType = 'success' | 'error' | 'info';
 
-/** Global UI state: toast notifications + the auth modal. */
+/** Global UI state: toast notifications + the auth & feedback modals. */
 export const useUiStore = defineStore('ui', () => {
   const toast = ref<{ message: string; type: ToastType } | null>(null);
   const isAuthModalOpen = ref(false);
+  const isFeedbackModalOpen = ref(false);
 
   function showToast(message: string, type: ToastType) {
     toast.value = { message, type };
@@ -20,6 +21,22 @@ export const useUiStore = defineStore('ui', () => {
   function closeAuth() {
     isAuthModalOpen.value = false;
   }
+  function openFeedback() {
+    isFeedbackModalOpen.value = true;
+  }
+  function closeFeedback() {
+    isFeedbackModalOpen.value = false;
+  }
 
-  return { toast, isAuthModalOpen, showToast, clearToast, openAuth, closeAuth };
+  return {
+    toast,
+    isAuthModalOpen,
+    isFeedbackModalOpen,
+    showToast,
+    clearToast,
+    openAuth,
+    closeAuth,
+    openFeedback,
+    closeFeedback,
+  };
 });

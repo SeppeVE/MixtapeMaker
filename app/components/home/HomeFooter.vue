@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useMixtapeStore } from '~/stores/mixtape';
+import { useUiStore } from '~/stores/ui';
 
 const mixtape = useMixtapeStore();
+const ui = useUiStore();
 </script>
 
 <template>
@@ -18,6 +20,9 @@ const mixtape = useMixtapeStore();
     </div>
     <div class="lp-foot-note">Make mixtapes. Design J-cards. Press play.</div>
     <div class="footer-btn-group">
+      <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
+        💡 Feedback
+      </button>
       <a href="mailto:contact@mixtape-maker.com" class="lp-btn lp-btn-paper footer-btn">✉ Contact</a>
       <a
         href="https://www.buymeacoffee.com/seppe.ve"

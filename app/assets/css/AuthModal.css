@@ -113,6 +113,11 @@
   font-size: 11px;
 }
 
+.turnstile-widget {
+  display: flex;
+  justify-content: center;
+}
+
 .submit-button {
   width: 100%;
   padding: 9px 14px;

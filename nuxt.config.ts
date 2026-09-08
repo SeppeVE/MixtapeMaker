@@ -35,6 +35,7 @@ export default defineNuxtConfig({
       supabaseUrl: '',       // NUXT_PUBLIC_SUPABASE_URL
       supabaseAnonKey: '',   // NUXT_PUBLIC_SUPABASE_ANON_KEY
       spotifyClientId: '',   // NUXT_PUBLIC_SPOTIFY_CLIENT_ID
+      turnstileSiteKey: '',  // NUXT_PUBLIC_TURNSTILE_SITE_KEY
     },
   },
 

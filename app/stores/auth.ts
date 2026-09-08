@@ -31,18 +31,26 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  async function signUp(email: string, password: string) {
+  async function signUp(email: string, password: string, captchaToken?: string) {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      });
       return { error };
     } catch (error) {
       return { error: error as Error };
     }
   }
 
-  async function signIn(email: string, password: string) {
+  async function signIn(email: string, password: string, captchaToken?: string) {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      });
       return { error };
     } catch (error) {
       return { error: error as Error };

@@ -1,36 +1,47 @@
 # Deploying the Nuxt app to Vercel
 
-This is the Nuxt 4 rewrite of Mixtape Maker. It lives in the `nuxt/` subdirectory
-of the repo so the original React/Vite app stays runnable side-by-side during the
-migration. When you're ready to cut over, deploy this folder.
+This is the Nuxt 4 rewrite of Mixtape Maker. The React/Vite app has been fully
+retired — this Nuxt app now lives at the **repo root**, not in a `nuxt/`
+subdirectory.
 
 ## One-time Vercel setup
 
-1. **Project → Settings → General → Root Directory:** set to `nuxt`.
-2. **Framework Preset:** Vercel auto-detects **Nuxt.js** once the root dir is `nuxt/`.
-   Nitro's zero-config `vercel` preset emits `.vercel/output` automatically — you do
-   **not** need a `vercel.json`, a custom build command, or SPA rewrites. (The old
-   root `vercel.json` and `prerender.mjs` belong to the React app; leave them until
-   you retire it, then delete both.)
+1. **Project → Settings → General → Root Directory:** leave blank (repo root).
+2. **Framework Preset:** Vercel auto-detects **Nuxt.js** from the root
+   `nuxt.config.ts`. Nitro's zero-config `vercel` preset emits
+   `.vercel/output` automatically — you do **not** need a `vercel.json`, a
+   custom build command, or SPA rewrites.
 3. Build command / output dir: leave blank (framework defaults). Nuxt runs
    `nuxt build` and Nitro handles routing + the `/api/*` serverless functions.
 
 ## Environment variables (Vercel dashboard → Settings → Environment Variables)
 
-Rename the client vars to the `NUXT_PUBLIC_` prefix; keep the server secrets as-is.
-
-| Purpose | Old (Vite) | New (Nuxt) |
-| --- | --- | --- |
-| Supabase URL (client) | `VITE_SUPABASE_URL` | `NUXT_PUBLIC_SUPABASE_URL` |
-| Supabase anon key (client) | `VITE_SUPABASE_ANON_KEY` | `NUXT_PUBLIC_SUPABASE_ANON_KEY` |
-| Spotify client id (client, PKCE) | `VITE_SPOTIFY_CLIENT_ID` | `NUXT_PUBLIC_SPOTIFY_CLIENT_ID` |
-| Spotify client id (server) | `SPOTIFY_CLIENT_ID` | `SPOTIFY_CLIENT_ID` (unchanged) |
-| Spotify client secret (server) | `SPOTIFY_CLIENT_SECRET` | `SPOTIFY_CLIENT_SECRET` (unchanged) |
+| Purpose | Variable |
+| --- | --- |
+| Supabase URL (client) | `NUXT_PUBLIC_SUPABASE_URL` |
+| Supabase anon key (client) | `NUXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Spotify client id (client, PKCE) | `NUXT_PUBLIC_SPOTIFY_CLIENT_ID` |
+| Turnstile site key (client) | `NUXT_PUBLIC_TURNSTILE_SITE_KEY` |
+| Spotify client id (server, track search) | `SPOTIFY_CLIENT_ID` |
+| Spotify client secret (server, track search) | `SPOTIFY_CLIENT_SECRET` |
 
 The public vars are wired through `runtimeConfig.public` in `nuxt.config.ts`; the
 server secrets are read via `process.env` in `server/api/spotify/search.get.ts`.
 
-Local dev uses `nuxt/.env` (already generated from the React `.env`, gitignored).
+Local dev uses a root-level `.env` (see `.env.example`, gitignored).
+
+**Spotify export needs two separate credentials set correctly, or it breaks:**
+`SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` (server-side, powers track search)
+and `NUXT_PUBLIC_SPOTIFY_CLIENT_ID` (client-side, powers the "Export to
+Spotify" PKCE login — usually the same client id value as `SPOTIFY_CLIENT_ID`,
+just also exposed under the public-prefixed name). Search working does **not**
+mean export will work — it only proves the server-side pair is set. If
+clicking "Connect Spotify" / "Export to Spotify" shows *"Could not start
+Spotify login. Check NUXT_PUBLIC_SPOTIFY_CLIENT_ID"*, that variable is empty
+in whichever Vercel environment (Production/Preview) served the page. Fix:
+add it in the Vercel dashboard for that environment, then **trigger a new
+deployment** — Nuxt bakes `runtimeConfig.public` into the build output, so an
+env var added after the last deploy has no effect until the next build.
 
 ## Rendering strategy (already configured in `nuxt.config.ts` `routeRules`)
 

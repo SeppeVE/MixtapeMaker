@@ -36,9 +36,9 @@ async function handleClick() {
     state.value = 'connecting';
     try {
       await startSpotifyAuth();
-    } catch {
+    } catch (err) {
       state.value = 'error';
-      error.value = 'Could not start Spotify login. Check NUXT_PUBLIC_SPOTIFY_CLIENT_ID.';
+      error.value = err instanceof Error ? err.message : 'Could not start Spotify login.';
     }
     return;
   }

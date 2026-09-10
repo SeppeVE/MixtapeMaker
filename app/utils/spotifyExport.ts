@@ -1,5 +1,6 @@
 import { Mixtape, Song } from '../types';
 import { getStoredTokens, isTokenExpired, refreshAccessToken, SpotifyTokens } from './spotifyAuth';
+import { generateCassetteCoverJpegBase64 } from './cassetteCoverImage';
 
 export interface ExportResult {
   playlistUrl: string;
@@ -25,6 +26,20 @@ async function spotifyFetch(url: string, accessToken: string, options: RequestIn
     throw new Error((err as { error?: { message?: string } }).error?.message ?? `Spotify error ${res.status}`);
   }
   return res.json();
+}
+
+// The images endpoint takes a raw base64 JPEG body (not JSON) and returns 202
+// with no body, so it can't go through spotifyFetch.
+async function uploadPlaylistCover(playlistId: string, accessToken: string, base64Jpeg: string): Promise<void> {
+  const res = await fetch(`${API}/playlists/${playlistId}/images`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'image/jpeg',
+    },
+    body: base64Jpeg,
+  });
+  if (!res.ok) throw new Error(`Spotify cover upload failed (${res.status})`);
 }
 
 export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportResult> {
@@ -59,6 +74,16 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
       body: JSON.stringify({ uris: batch }),
     });
     addedCount += batch.length;
+  }
+
+  // Cover art is best-effort: a failure here (rasterizing, or the upload itself,
+  // e.g. because ugc-image-upload wasn't granted on an older connection) shouldn't
+  // fail an otherwise-successful export.
+  try {
+    const cover = await generateCassetteCoverJpegBase64(mixtape);
+    await uploadPlaylistCover(playlistId, tokens.accessToken, cover);
+  } catch (err) {
+    console.warn('Could not set Spotify playlist cover:', err);
   }
 
   return { playlistUrl, playlistId, addedCount, skippedCount: skippedSongs.length, skippedSongs };

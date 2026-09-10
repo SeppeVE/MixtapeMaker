@@ -5,7 +5,7 @@ const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 export function getSpotifyClientId(): string {
   return (useRuntimeConfig().public.spotifyClientId as string) || '';
 }
-const SCOPES = 'playlist-modify-private playlist-modify-public user-read-private';
+const SCOPES = 'playlist-modify-private playlist-modify-public user-read-private ugc-image-upload';
 const STORAGE_KEY = 'spotify_tokens';
 const VERIFIER_KEY = 'spotify_code_verifier';
 const RETURN_PATH_KEY = 'spotify_return_path';

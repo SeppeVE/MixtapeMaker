@@ -122,6 +122,10 @@ export async function startSpotifyAuth(): Promise<void> {
     response_type: 'code',
     redirect_uri: redirectUri,
     scope: SCOPES,
+    // Force the consent screen even for a user who already approved the app before.
+    // Otherwise Spotify can silently skip it and hand back a token scoped like the
+    // old approval, never actually granting a scope added since then.
+    show_dialog: 'true',
     code_challenge_method: 'S256',
     code_challenge: challenge,
   });

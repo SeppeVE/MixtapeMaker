@@ -44,8 +44,13 @@ async function uploadPlaylistCover(playlistId: string, accessToken: string, base
     body: base64Jpeg,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => null) as { error?: { message?: string } } | null;
-    throw new Error(body?.error?.message ?? `Spotify cover upload failed (${res.status})`);
+    // This endpoint's error body is inconsistent (sometimes JSON, sometimes empty
+    // or plain text), so fall back to the raw response text rather than a generic
+    // status-only message — that text is what actually tells us why it failed.
+    const raw = await res.text().catch(() => '');
+    const parsed = (() => { try { return JSON.parse(raw) as { error?: { message?: string } }; } catch { return null; } })();
+    const detail = parsed?.error?.message ?? raw;
+    throw new Error(`Spotify cover upload failed (${res.status})${detail ? `: ${detail}` : ''}`);
   }
 }
 

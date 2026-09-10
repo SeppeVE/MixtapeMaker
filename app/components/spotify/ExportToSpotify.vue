@@ -47,6 +47,7 @@ async function handleClick() {
   error.value = null;
   try {
     result.value = await exportMixtapeToSpotify(props.mixtape);
+    if (!result.value.coverSet) console.warn('Spotify playlist cover not set:', result.value.coverError);
     state.value = 'success';
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Export failed';

@@ -56,6 +56,7 @@ onMounted(async () => {
       accessToken: data.access_token,
       refreshToken: data.refresh_token ?? '',
       expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+      scope: data.scope ?? '',
     });
     clearAuthSession();
     router.replace(returnPath);

@@ -64,6 +64,9 @@ async function handleClick() {
       <p v-if="result.skippedCount > 0" class="export-skipped">
         {{ result.addedCount }} added · {{ result.skippedCount }} skipped (not on Spotify)
       </p>
+      <p v-if="!result.coverSet" class="export-error">
+        Cover art not set{{ result.coverError ? `: ${result.coverError}` : '' }}
+      </p>
     </div>
     <div v-else-if="state === 'error'" class="export-result">
       <p class="export-error">{{ error }}</p>

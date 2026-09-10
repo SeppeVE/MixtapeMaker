@@ -14,6 +14,13 @@ export interface SpotifyTokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  /** Space-separated scopes actually granted with this token (per Spotify's token response). */
+  scope?: string;
+}
+
+/** True once the stored connection has actually granted the cover-image-upload scope. */
+export function hasImageUploadScope(tokens: SpotifyTokens): boolean {
+  return (tokens.scope ?? '').split(' ').includes('ugc-image-upload');
 }
 
 function generateCodeVerifier(): string {
@@ -86,6 +93,8 @@ export async function refreshAccessToken(): Promise<SpotifyTokens> {
     accessToken: data.access_token,
     refreshToken: data.refresh_token ?? tokens.refreshToken,
     expiresAt: Date.now() + data.expires_in * 1000,
+    // Spotify only echoes `scope` on a refresh when it changed; otherwise keep what we had.
+    scope: data.scope ?? tokens.scope,
   };
   storeTokens(updated);
   return updated;

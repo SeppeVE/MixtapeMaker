@@ -47,6 +47,7 @@ async function handleClick() {
   error.value = null;
   try {
     result.value = await exportMixtapeToSpotify(props.mixtape);
+    if (!result.value.coverSet) console.warn('Spotify playlist cover not set:', result.value.coverError);
     state.value = 'success';
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Export failed';
@@ -63,9 +64,6 @@ async function handleClick() {
       </a>
       <p v-if="result.skippedCount > 0" class="export-skipped">
         {{ result.addedCount }} added · {{ result.skippedCount }} skipped (not on Spotify)
-      </p>
-      <p v-if="!result.coverSet" class="export-error">
-        Cover art not set{{ result.coverError ? `: ${result.coverError}` : '' }}
       </p>
     </div>
     <div v-else-if="state === 'error'" class="export-result">

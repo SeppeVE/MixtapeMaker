@@ -97,7 +97,6 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
       coverSet = true;
     } catch (err) {
       coverError = err instanceof Error ? err.message : 'Could not set playlist cover.';
-      console.warn('Could not set Spotify playlist cover:', err);
     }
   }
 

@@ -1,0 +1,557 @@
+/* ═══════════════════════════════════════════════════════
+   How-to Guide page — scoped to .gd-page
+   Mobile is the desktop layout reflowed/stacked, not a
+   separate design: same sections, same order, same visuals.
+   ═══════════════════════════════════════════════════════ */
+
+.gd-page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-paper);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.gd-header {
+  background: var(--color-text);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.gd-header-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 40px 40px 28px;
+}
+
+.gd-eyebrow {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--color-mustard);
+  opacity: 0.9;
+  margin-bottom: 10px;
+}
+
+.gd-title {
+  font-family: var(--font-display);
+  font-weight: normal;
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: 1px;
+  color: var(--color-paper);
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  margin: 0 0 14px;
+  max-width: 720px;
+}
+
+.gd-subhead {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-sage);
+  opacity: 0.9;
+  max-width: 560px;
+  margin: 0 0 24px;
+}
+
+.gd-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gd-tab {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  background: var(--color-paper);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  padding: 4px 14px 2px;
+  text-decoration: none;
+}
+.gd-tab:hover { background: var(--color-mustard); }
+
+/* ── Body: TOC + main ── */
+.gd-body {
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.gd-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 70px;
+}
+
+.gd-toc-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+.gd-toc-link {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-light);
+  text-decoration: none;
+}
+.gd-toc-link:hover { color: var(--color-primary); }
+
+.gd-main {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: 0;
+}
+
+.gd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 70px;
+}
+
+.gd-h2 {
+  font-family: var(--font-display);
+  font-weight: normal;
+  font-size: 30px;
+  letter-spacing: 1px;
+  color: var(--color-primary);
+  text-shadow: 2px 2px 0 rgba(42, 30, 40, 0.15);
+  margin: 0;
+}
+
+.gd-h3 {
+  font-family: var(--font-display);
+  font-weight: normal;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.gd-p {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: 0.9;
+  max-width: 680px;
+}
+
+.gd-caption {
+  font-family: var(--font-body);
+  font-size: 12px;
+  opacity: 0.65;
+  line-height: 1.5;
+}
+
+/* ── The whole chain ── */
+.gd-chain {
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow);
+  background: var(--color-white);
+}
+
+.gd-chain-head {
+  background: var(--color-text);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding: 6px 14px 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gd-chain-count { opacity: 0.6; }
+
+.gd-chain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gd-chain-step {
+  padding: 16px 18px;
+  display: flex;
+  gap: 12px;
+  border-right: 1.5px solid rgba(42, 30, 40, 0.15);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.gd-chain-step:last-child { border-right: none; }
+.gd-chain-step strong { display: block; font-size: 13px; }
+
+.gd-chain-letter {
+  font-family: var(--font-display);
+  font-size: 18px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-text);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+.gd-chain-letter--a { background: var(--color-seafoam); }
+.gd-chain-letter--b { background: var(--color-mustard); }
+.gd-chain-letter--c { background: var(--color-lavender); }
+
+/* ── In the app / In the room callouts ── */
+.gd-callouts {
+  display: flex;
+  gap: 20px;
+}
+
+.gd-callout {
+  flex: 1;
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-white);
+}
+
+.gd-callout-head {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 6px 12px 4px;
+  color: var(--color-paper);
+}
+.gd-callout--forest .gd-callout-head { background: var(--color-forest); }
+.gd-callout--plum   .gd-callout-head { background: var(--color-plum); }
+
+.gd-callout-list {
+  list-style: none;
+  padding: 12px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.gd-callout-list li::before {
+  content: '· ';
+  opacity: 0.6;
+}
+
+/* ── Part dividers ── */
+.gd-part {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow);
+}
+.gd-part--mustard { background: var(--color-mustard); color: var(--color-text); }
+.gd-part--plum    { background: var(--color-forest);  color: var(--color-paper); }
+
+.gd-part-number {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 0.8;
+  opacity: 0.35;
+}
+
+.gd-part-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.gd-part-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Steps ── */
+.gd-step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gd-step-badge {
+  font-family: var(--font-display);
+  font-size: 16px;
+  background: var(--color-text);
+  color: var(--color-paper);
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Tape length table ── */
+.gd-table-wrap {
+  overflow-x: auto;
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.gd-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.gd-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding: 8px 14px;
+  border-bottom: 2px solid var(--color-text);
+  white-space: nowrap;
+}
+
+.gd-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(42, 30, 40, 0.15);
+}
+.gd-table tr:last-child td { border-bottom: none; }
+
+.gd-table-tape {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+/* ── Search mock rows (extends mock-song-item) ── */
+.gd-search-row {
+  align-items: center;
+  gap: 8px;
+}
+
+.gd-add-btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  background: var(--color-paper);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-text);
+  box-shadow: 1.5px 1.5px 0 var(--color-text);
+  padding: 3px 8px 1px;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.gd-meter-window { max-width: 420px; }
+
+.gd-cta-btn { width: fit-content; }
+
+/* ── Rec level meter ── */
+.gd-rec-meter {
+  max-width: 420px;
+}
+
+.gd-rec-meter-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  opacity: 0.6;
+  margin-bottom: 6px;
+}
+
+.gd-rec-meter-track {
+  height: 18px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--bevel-in);
+  position: relative;
+  overflow: hidden;
+}
+
+.gd-rec-meter-fill {
+  position: absolute;
+  inset: 0;
+  width: 82%;
+  background: linear-gradient(to right, var(--color-forest) 0%, var(--color-forest) 70%, var(--color-mustard) 88%, var(--color-warning) 100%);
+}
+
+.gd-rec-meter-peak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 82%;
+  width: 2px;
+  background: var(--color-text);
+}
+
+.gd-rec-meter-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 12px;
+  opacity: 0.55;
+  margin-top: 4px;
+}
+
+/* ── Checklist ── */
+.gd-checklist {
+  list-style: none;
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-white);
+}
+
+.gd-checklist-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1.5px solid rgba(42, 30, 40, 0.15);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.gd-checklist-item:last-child { border-bottom: none; }
+
+.gd-checklist-mark {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Warning callout ── */
+.gd-warning {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--color-white);
+  border: 2.5px solid var(--color-text);
+  border-left: 6px solid var(--color-mustard);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 18px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.gd-warning-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  color: var(--color-mustard);
+}
+
+/* ── FAQ accordion ── */
+.gd-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gd-faq-item {
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.gd-faq-q {
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: 0.3px;
+  padding: 10px 16px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gd-faq-q::-webkit-details-marker { display: none; }
+.gd-faq-q::before {
+  content: '+';
+  font-size: 16px;
+  width: 16px;
+  flex-shrink: 0;
+}
+.gd-faq-item[open] .gd-faq-q::before { content: '−'; }
+
+.gd-faq-a {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.65;
+  padding: 0 16px 16px 42px;
+  opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Responsive — tablet (≤ 900px)
+   Same layout, reflowed: TOC drops from a sticky rail to a
+   plain block above the content, columns collapse to one.
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .gd-header-inner { padding: 32px 28px 24px; }
+  .gd-title { font-size: 34px; }
+
+  .gd-body {
+    padding: 32px 28px;
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .gd-toc {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+  }
+  .gd-toc-label { width: 100%; }
+
+  .gd-chain-grid { grid-template-columns: 1fr; }
+  .gd-chain-step {
+    border-right: none;
+    border-bottom: 1.5px solid rgba(42, 30, 40, 0.15);
+  }
+  .gd-chain-step:last-child { border-bottom: none; }
+
+  .gd-callouts { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Responsive — mobile (≤ 600px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .gd-header-inner { padding: 24px 20px 20px; }
+  .gd-title { font-size: 27px; }
+  .gd-subhead { font-size: 13px; }
+
+  .gd-body { padding: 24px 20px; }
+  .gd-main { gap: 32px; }
+
+  .gd-h2 { font-size: 24px; }
+  .gd-h3 { font-size: 19px; }
+
+  .gd-part { padding: 16px 18px; gap: 12px; }
+  .gd-part-number { font-size: 38px; }
+  .gd-part-title { font-size: 23px; }
+
+  .gd-search-row { flex-wrap: wrap; }
+}

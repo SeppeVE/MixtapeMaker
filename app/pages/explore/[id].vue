@@ -21,6 +21,7 @@ useSeoMeta({
       ? `A public cassette mixtape: ${mixtape.value.sideA.length + mixtape.value.sideB.length} tracks across Side A & B.`
       : 'A public cassette mixtape on Mixtape Maker.',
   ogTitle: () => (mixtape.value ? mixtape.value.title : 'Mixtape Maker'),
+  robots: 'noindex, follow',
 });
 
 if (import.meta.server && notFound.value) {

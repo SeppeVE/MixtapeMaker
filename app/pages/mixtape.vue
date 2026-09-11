@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import type { Song, Side, Mixtape } from '~/types';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { isCloudId } from '~/utils/database';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 
 const store = useMixtapeStore();
 const router = useRouter();
@@ -20,7 +21,7 @@ const activeSongs = computed(() => (sideA.value ? mixtape.value.sideA : mixtape.
 const maxDuration = computed(() => (mixtape.value.cassetteLength / 2) * 60);
 
 function update(patch: Partial<Mixtape>) {
-  store.mixtape = { ...store.mixtape, ...patch, updatedAt: new Date().toISOString() };
+  store.updateMixtape(patch);
 }
 
 function doFlip() {
@@ -50,12 +51,10 @@ function handleMoveSong(songId: string, fromSide: Side, toSide: Side) {
   const toKey = toSide === 'A' ? 'sideA' : 'sideB';
   const song = mixtape.value[fromKey].find((s) => s.id === songId);
   if (!song) return;
-  store.mixtape = {
-    ...store.mixtape,
+  store.updateMixtape({
     [fromKey]: mixtape.value[fromKey].filter((s) => s.id !== songId),
     [toKey]: [...mixtape.value[toKey], song],
-    updatedAt: new Date().toISOString(),
-  };
+  });
 }
 
 function handleShuffle() {
@@ -97,7 +96,7 @@ function saveTitle() {
       />
       <button
         v-else
-        :class="`lp-nav-title${mixtape.title === 'Untitled Mixtape' ? ' lp-nav-title--untitled' : ''}`"
+        :class="`lp-nav-title${isMixtapeUntitled(mixtape.title) ? ' lp-nav-title--untitled' : ''}`"
         title="Click to rename"
         @click="startEditTitle"
       >

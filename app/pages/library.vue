@@ -8,6 +8,7 @@ import { useMixtapeStore } from '~/stores/mixtape';
 import { useJCardLibraryStore } from '~/stores/jcardLibrary';
 import { loadMixtapes, deleteMixtape } from '~/utils/database';
 import { formatDuration } from '~/utils/timeUtils';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -62,7 +63,17 @@ watch(() => auth.user, () => {
 });
 
 async function handleSaveDraftToCloud() {
-  await store.save();
+  const wasUntitled = isMixtapeUntitled(currentDraft.value.title);
+  const saved = await store.save();
+  if (!saved) {
+    // The draft card here has no inline title field, so a blocked save due
+    // to a missing name sends the user to the editor to rename it — store
+    // .save() already toasted the reason. currentDraft *is* the store's
+    // active mixtape already, so just navigate (store.loadMixtape() would
+    // fire its own "Mixtape loaded" toast and stomp the one above).
+    if (wasUntitled) router.push('/mixtape');
+    return;
+  }
   if (auth.user) {
     try {
       cloudTapes.value = await loadMixtapes(auth.user.id);
@@ -82,6 +93,7 @@ async function handleDeleteTape(tape: Mixtape) {
 }
 
 async function handleTogglePublic(tape: Mixtape) {
+  if (tape.isCopy) return;
   const next = !tape.isPublic;
   cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, isPublic: next } : t));
   try {
@@ -233,7 +245,8 @@ function newCard() {
                 <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
                 <button
                   :class="`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`"
-                  :title="tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
+                  :disabled="tape.isCopy"
+                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
                   @click="handleTogglePublic(tape)"
                 >
                   {{ tape.isPublic ? '◉ Public' : '◌ Private' }}
@@ -242,6 +255,9 @@ function newCard() {
                   🔗 Copy Link
                 </button>
                 <button class="lib-delete-btn" title="Delete" @click="handleDeleteTape(tape)">×</button>
+                <p v-if="tape.isCopy" class="lib-copy-note">
+                  This is an unedited copy of another mixtape, and will not show up in the explore page
+                </p>
               </div>
               <div class="lib-tape-card-body">
                 <div class="lib-tape-row">

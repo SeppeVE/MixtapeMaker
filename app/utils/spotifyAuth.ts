@@ -5,7 +5,7 @@ const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 export function getSpotifyClientId(): string {
   return (useRuntimeConfig().public.spotifyClientId as string) || '';
 }
-const SCOPES = 'playlist-modify-private playlist-modify-public user-read-private';
+const SCOPES = 'playlist-modify-private playlist-modify-public user-read-private ugc-image-upload';
 const STORAGE_KEY = 'spotify_tokens';
 const VERIFIER_KEY = 'spotify_code_verifier';
 const RETURN_PATH_KEY = 'spotify_return_path';
@@ -14,6 +14,13 @@ export interface SpotifyTokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  /** Space-separated scopes actually granted with this token (per Spotify's token response). */
+  scope?: string;
+}
+
+/** True once the stored connection has actually granted the cover-image-upload scope. */
+export function hasImageUploadScope(tokens: SpotifyTokens): boolean {
+  return (tokens.scope ?? '').split(' ').includes('ugc-image-upload');
 }
 
 function generateCodeVerifier(): string {
@@ -86,6 +93,8 @@ export async function refreshAccessToken(): Promise<SpotifyTokens> {
     accessToken: data.access_token,
     refreshToken: data.refresh_token ?? tokens.refreshToken,
     expiresAt: Date.now() + data.expires_in * 1000,
+    // Spotify only echoes `scope` on a refresh when it changed; otherwise keep what we had.
+    scope: data.scope ?? tokens.scope,
   };
   storeTokens(updated);
   return updated;
@@ -113,6 +122,10 @@ export async function startSpotifyAuth(): Promise<void> {
     response_type: 'code',
     redirect_uri: redirectUri,
     scope: SCOPES,
+    // Force the consent screen even for a user who already approved the app before.
+    // Otherwise Spotify can silently skip it and hand back a token scoped like the
+    // old approval, never actually granting a scope added since then.
+    show_dialog: 'true',
     code_challenge_method: 'S256',
     code_challenge: challenge,
   });

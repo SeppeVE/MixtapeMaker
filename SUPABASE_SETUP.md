@@ -99,6 +99,110 @@ CREATE POLICY "Anyone can view mixtapes via share token"
   USING (share_token IS NOT NULL);
 ```
 
+## Step 3c: Flag Copies from Explore (Optional)
+
+If your `mixtapes` table predates the "copy from explore" feature, run this in the SQL Editor to add it:
+
+```sql
+-- True for a fresh copy of another user's mixtape, cleared as soon as the user
+-- edits it. Used client-side to block "Make Public" on unedited duplicates.
+ALTER TABLE mixtapes ADD COLUMN is_copy boolean NOT NULL DEFAULT false;
+```
+
+## Step 3d: Feedback / Feature Requests (Optional)
+
+Powers the "💡 Feedback" button in the footer. Run this in the SQL Editor:
+
+```sql
+-- Create the feedback table. The message cap keeps individual rows (and
+-- repeated spam inserts) bounded while still leaving room for a real bug
+-- report or a detailed feature request.
+CREATE TABLE feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  email TEXT,
+  message TEXT NOT NULL CHECK (char_length(message) <= 2000),
+  page TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create an index on created_at for sorting
+CREATE INDEX feedback_created_at_idx ON feedback(created_at DESC);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+-- Bypasses RLS to check the submitter's own recent rows. The feedback table
+-- has no SELECT policy (see below), so a plain subquery inside the INSERT
+-- policy would see zero rows and the rate limit would never trigger — this
+-- function runs as its owner instead of the calling role.
+CREATE OR REPLACE FUNCTION public.feedback_rate_limit_ok(p_user_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT NOT EXISTS (
+    SELECT 1 FROM feedback
+    WHERE user_id = p_user_id
+      AND created_at > NOW() - INTERVAL '10 minutes'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.feedback_rate_limit_ok(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.feedback_rate_limit_ok(UUID) TO anon, authenticated;
+
+-- Anyone (signed in or anonymous) can submit feedback, but:
+--  - user_id must be their own (or NULL) — nobody can attribute feedback to
+--    someone else's account by passing an arbitrary user_id
+--  - a signed-in user is limited to one submission per 10 minutes
+-- (Anonymous submitters have no server-side identity to rate-limit against;
+-- the client applies a soft, best-effort cooldown of its own for them.)
+-- There is intentionally no SELECT policy — only readable via the dashboard
+-- (or a service-role key), not from the client.
+CREATE POLICY "Anyone can submit feedback"
+  ON feedback
+  FOR INSERT
+  WITH CHECK (
+    (user_id IS NULL OR user_id = auth.uid())
+    AND (auth.uid() IS NULL OR public.feedback_rate_limit_ok(auth.uid()))
+  );
+```
+
+### Step 3e: Harden Feedback — Length Cap, Anti-Spoofing, Rate Limit (Optional)
+
+If your `feedback` table predates the hardening above (message length cap,
+ownership check on `user_id`, and a per-user rate limit), run this instead:
+
+```sql
+ALTER TABLE feedback ADD CONSTRAINT feedback_message_length CHECK (char_length(message) <= 2000);
+
+CREATE OR REPLACE FUNCTION public.feedback_rate_limit_ok(p_user_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT NOT EXISTS (
+    SELECT 1 FROM feedback
+    WHERE user_id = p_user_id
+      AND created_at > NOW() - INTERVAL '10 minutes'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.feedback_rate_limit_ok(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.feedback_rate_limit_ok(UUID) TO anon, authenticated;
+
+DROP POLICY IF EXISTS "Anyone can submit feedback" ON feedback;
+CREATE POLICY "Anyone can submit feedback"
+  ON feedback
+  FOR INSERT
+  WITH CHECK (
+    (user_id IS NULL OR user_id = auth.uid())
+    AND (auth.uid() IS NULL OR public.feedback_rate_limit_ok(auth.uid()))
+  );
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

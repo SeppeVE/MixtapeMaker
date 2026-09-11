@@ -12,6 +12,9 @@ export const searchSpotify = async (query: string): Promise<Song[]> => {
   );
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error('Too many searches — please wait a moment and try again.');
+    }
     throw new Error('Spotify search failed');
   }
 

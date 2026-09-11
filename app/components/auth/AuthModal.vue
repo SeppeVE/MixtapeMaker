@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, useTemplateRef } from 'vue';
+import { useRuntimeConfig } from '#app';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
+import TurnstileWidget from '~/components/auth/TurnstileWidget.vue';
 
 // Self-contained: driven by the ui store (open state) + auth store (actions).
 const ui = useUiStore();
 const auth = useAuthStore();
+
+const captchaRequired = !!useRuntimeConfig().public.turnstileSiteKey;
+const turnstile = useTemplateRef<InstanceType<typeof TurnstileWidget>>('turnstile');
+const captchaToken = ref('');
 
 const isSignUp = ref(false);
 const email = ref('');
@@ -19,6 +25,7 @@ function reset() {
   password.value = '';
   error.value = null;
   success.value = false;
+  captchaToken.value = '';
 }
 
 function close() {
@@ -30,10 +37,17 @@ async function handleSubmit() {
   error.value = null;
   loading.value = true;
   success.value = false;
+
+  if (captchaRequired && !captchaToken.value) {
+    error.value = 'Please complete the captcha.';
+    loading.value = false;
+    return;
+  }
+
   try {
     const { error: err } = isSignUp.value
-      ? await auth.signUp(email.value, password.value)
-      : await auth.signIn(email.value, password.value);
+      ? await auth.signUp(email.value, password.value, captchaToken.value || undefined)
+      : await auth.signIn(email.value, password.value, captchaToken.value || undefined);
     if (err) {
       error.value = err.message;
     } else if (isSignUp.value) {
@@ -48,6 +62,9 @@ async function handleSubmit() {
     error.value = 'An unexpected error occurred';
   } finally {
     loading.value = false;
+    // Turnstile tokens are single-use — always get a fresh one for the next attempt.
+    captchaToken.value = '';
+    turnstile.value?.reset();
   }
 }
 
@@ -105,7 +122,15 @@ async function handleGoogleSignIn() {
           <small v-if="isSignUp">Password must be at least 6 characters</small>
         </div>
 
-        <button type="submit" class="submit-button" :disabled="loading">
+        <TurnstileWidget
+          ref="turnstile"
+          class="form-group"
+          @verify="(token) => (captchaToken = token)"
+          @expire="captchaToken = ''"
+          @error="captchaToken = ''"
+        />
+
+        <button type="submit" class="submit-button" :disabled="loading || (captchaRequired && !captchaToken)">
           {{ loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In' }}
         </button>
       </form>

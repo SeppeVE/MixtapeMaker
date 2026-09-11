@@ -129,6 +129,18 @@
   color: var(--color-mustard);
 }
 
+.lp-hero-headline-kicker {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-lavender);
+  text-shadow: none;
+  margin-bottom: 6px;
+}
+
 .lp-hero-sub {
   font-family: var(--font-body);
   font-size: 16px;
@@ -564,14 +576,35 @@
   gap: 12px;
 }
 
+.lp-foot-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Smaller echo of .lp-logo (NavBar) — same mark, doesn't need header scale */
 .lp-foot-logo {
   font-family: var(--font-display);
-  font-size: 22px;
-  letter-spacing: 2px;
+  font-size: 17px;
+  letter-spacing: 1.5px;
   color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.lp-foot-logo-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.lp-foot-copyright {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text-light);
+  opacity: 0.55;
 }
 
 .lp-foot-note {

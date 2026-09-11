@@ -87,15 +87,22 @@
   display: none;
 }
 
-/* ── Footer: hidden on desktop, visible on mobile ── */
+/* ── Page: designer fills the space, footer pinned below it (like the mixtape editor) ── */
+.jcard-page-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .jcard-page-footer {
-  display: none;
+  flex-shrink: 0;
 }
 
 @media screen and (max-width: 768px) {
-  /* Show the footer on mobile */
-  .jcard-page-footer {
-    display: block;
+  /* Natural scroll on mobile: the page scrolls as a whole and the footer sits at the end */
+  .jcard-page-body {
+    flex: none;
+    overflow: visible;
   }
 
   /* Show the warning */

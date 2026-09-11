@@ -1,5 +1,6 @@
 import { Mixtape, Song } from '../types';
-import { getStoredTokens, isTokenExpired, refreshAccessToken, SpotifyTokens } from './spotifyAuth';
+import { getStoredTokens, hasImageUploadScope, isTokenExpired, refreshAccessToken, SpotifyTokens } from './spotifyAuth';
+import { generateCassetteCoverJpegBase64 } from './cassetteCoverImage';
 
 export interface ExportResult {
   playlistUrl: string;
@@ -7,6 +8,10 @@ export interface ExportResult {
   addedCount: number;
   skippedCount: number;
   skippedSongs: Song[];
+  /** False when the cassette cover couldn't be set — Spotify then shows its own auto-generated collage instead. */
+  coverSet: boolean;
+  /** Human-readable reason the cover wasn't set, when coverSet is false. */
+  coverError?: string;
 }
 
 const API = 'https://api.spotify.com/v1';
@@ -25,6 +30,28 @@ async function spotifyFetch(url: string, accessToken: string, options: RequestIn
     throw new Error((err as { error?: { message?: string } }).error?.message ?? `Spotify error ${res.status}`);
   }
   return res.json();
+}
+
+// The images endpoint takes a raw base64 JPEG body (not JSON) and returns 202
+// with no body, so it can't go through spotifyFetch.
+async function uploadPlaylistCover(playlistId: string, accessToken: string, base64Jpeg: string): Promise<void> {
+  const res = await fetch(`${API}/playlists/${playlistId}/images`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'image/jpeg',
+    },
+    body: base64Jpeg,
+  });
+  if (!res.ok) {
+    // This endpoint's error body is inconsistent (sometimes JSON, sometimes empty
+    // or plain text), so fall back to the raw response text rather than a generic
+    // status-only message — that text is what actually tells us why it failed.
+    const raw = await res.text().catch(() => '');
+    const parsed = (() => { try { return JSON.parse(raw) as { error?: { message?: string } }; } catch { return null; } })();
+    const detail = parsed?.error?.message ?? raw;
+    throw new Error(`Spotify cover upload failed (${res.status})${detail ? `: ${detail}` : ''}`);
+  }
 }
 
 export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportResult> {
@@ -61,5 +88,22 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
     addedCount += batch.length;
   }
 
-  return { playlistUrl, playlistId, addedCount, skippedCount: skippedSongs.length, skippedSongs };
+  // Cover art is best-effort: a failure here shouldn't fail an otherwise-successful
+  // export, but it's surfaced in the result rather than only logged, since a silent
+  // failure here just looks like Spotify's own auto-generated collage cover instead.
+  let coverSet = false;
+  let coverError: string | undefined;
+  if (!hasImageUploadScope(tokens)) {
+    coverError = 'Reconnect Spotify to allow custom cover art (disconnect below, then reconnect).';
+  } else {
+    try {
+      const cover = await generateCassetteCoverJpegBase64(mixtape);
+      await uploadPlaylistCover(playlistId, tokens.accessToken, cover);
+      coverSet = true;
+    } catch (err) {
+      coverError = err instanceof Error ? err.message : 'Could not set playlist cover.';
+    }
+  }
+
+  return { playlistUrl, playlistId, addedCount, skippedCount: skippedSongs.length, skippedSongs, coverSet, coverError };
 }

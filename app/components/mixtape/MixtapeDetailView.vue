@@ -42,6 +42,7 @@ function handleCopy() {
     id: generateId(),
     isPublic: false,
     shareToken: null,
+    isCopy: true,
     createdAt: now,
     updatedAt: now,
   };

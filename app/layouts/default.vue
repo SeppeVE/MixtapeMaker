@@ -9,6 +9,7 @@ const ui = useUiStore();
     <slot />
 
     <AuthModal />
+    <FeedbackModal />
     <Toast
       v-if="ui.toast"
       :message="ui.toast.message"

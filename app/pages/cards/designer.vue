@@ -16,7 +16,7 @@ const router = useRouter();
     <div class="designer-mobile-warning">
       This designer is built for desktop — layout and editing work best on a wider screen.
     </div>
-    <div style="flex:1;overflow-y:auto">
+    <div class="jcard-page-body">
       <JCardView :initial-card="store.activeCard" :current-mixtape="store.mixtape" />
     </div>
     <div class="jcard-page-footer">

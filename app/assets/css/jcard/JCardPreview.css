@@ -91,7 +91,3 @@
   pointer-events: none;
   white-space: nowrap;
 }
-
-.jcard-fold-badge.visible {
-  background: rgba(61, 90, 71, 0.85);
-}

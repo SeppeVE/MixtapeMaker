@@ -19,7 +19,7 @@ export function resolveInsideContent(content: JCardContent): JCardContent {
   };
 }
 
-export type FoldVisibility = 'visible' | 'hidden' | 'faces-tape';
+export type FoldVisibility = 'visible' | 'hidden';
 
 /**
  * Which inside faces can still be seen once the card is accordion-folded and put
@@ -30,8 +30,6 @@ export type FoldVisibility = 'visible' | 'hidden' | 'faces-tape';
  * flap 3's outside, and so on. Only the last flap has a free face. That face is
  * the inside when the last flap has an even index (cover alone, cover + 2 flaps,
  * ...) and the outside otherwise.
- *
- * The spine and back panel inside faces sit against the cassette itself.
  */
 export function insideFlapVisibility(flaps: number): FoldVisibility[] {
   const last = flaps - 1;
@@ -39,9 +37,3 @@ export function insideFlapVisibility(flaps: number): FoldVisibility[] {
     i === last && last % 2 === 0 ? 'visible' : 'hidden',
   );
 }
-
-export const FOLD_VISIBILITY_LABEL: Record<FoldVisibility, string> = {
-  visible: 'visible in the case',
-  hidden: 'hidden when folded',
-  'faces-tape': 'faces the tape',
-};

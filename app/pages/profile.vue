@@ -12,6 +12,7 @@ import {
   deleteAvatar,
   USERNAME_MAX_LENGTH,
   BIO_MAX_LENGTH,
+  deleteOwnAccount,
 } from '~/utils/profileDatabase';
 import { containsProfanity } from '~/utils/profanity';
 
@@ -141,6 +142,31 @@ async function signOut() {
     navigateTo('/');
   } finally {
     signingOut.value = false;
+  }
+}
+
+// ── Delete account ──
+const deleting = ref(false);
+async function deleteAccount() {
+  if (!auth.user || !profile.value) return;
+  const typed = prompt(
+    `This permanently deletes your account, profile, cloud mixtapes, J-cards and uploaded images. It cannot be undone.\n\nType your username (${profile.value.username}) to confirm:`,
+  );
+  if (typed === null) return;
+  if (typed.trim().toLowerCase() !== profile.value.username) {
+    ui.showToast("Username didn't match — nothing was deleted", 'info');
+    return;
+  }
+  deleting.value = true;
+  try {
+    await deleteOwnAccount(auth.user.id);
+    ui.showToast('Your account has been deleted', 'info');
+    navigateTo('/');
+  } catch (err) {
+    console.error(err);
+    ui.showToast('Could not delete your account — please email contact@mixtape-maker.com', 'error');
+  } finally {
+    deleting.value = false;
   }
 }
 
@@ -299,6 +325,18 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             <p class="pf-hint" style="margin:0">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
             <button class="lp-btn lp-btn-plum" :disabled="signingOut" @click="signOut">
               {{ signingOut ? 'Signing out…' : '⏏ Sign Out' }}
+            </button>
+          </div>
+          <div class="pf-danger">
+            <div>
+              <p class="pf-privacy-title">Delete account</p>
+              <p class="pf-hint">
+                Removes your account, profile, cloud mixtapes, J-cards and uploaded images for good. Mixtapes and J-cards
+                saved only in this browser are not touched. See the <NuxtLink to="/privacy" class="pf-inline-link">privacy policy</NuxtLink> for details.
+              </p>
+            </div>
+            <button class="btn pf-danger-btn" :disabled="deleting" @click="deleteAccount">
+              {{ deleting ? 'Deleting…' : '🗑 Delete my account' }}
             </button>
           </div>
         </section>

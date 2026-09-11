@@ -21,7 +21,9 @@ const ui = useUiStore();
         >
         Mixtape Maker
       </div>
-      <div class="lp-foot-copyright">Mixtape Maker &copy; 2026</div>
+      <div class="lp-foot-copyright">
+        Mixtape Maker &copy; 2026 · <NuxtLink to="/privacy" class="lp-foot-link">Privacy</NuxtLink>
+      </div>
     </div>
     <div class="lp-foot-note">Make mixtapes. Design J-cards. Press play.</div>
     <div class="footer-btn-group">

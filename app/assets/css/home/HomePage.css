@@ -607,6 +607,12 @@
   opacity: 0.55;
 }
 
+.lp-foot-link {
+  color: inherit;
+  text-decoration: underline;
+}
+.lp-foot-link:hover { color: var(--color-primary); }
+
 .lp-foot-note {
   font-family: var(--font-body);
   font-size: 11px;

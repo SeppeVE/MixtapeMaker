@@ -434,6 +434,33 @@ GRANT INSERT (bio) ON profiles TO authenticated;
 GRANT UPDATE (bio) ON profiles TO authenticated;
 ```
 
+## Step 3g: Account Deletion
+
+Powers "Delete my account" on `/profile` (a GDPR requirement now that the
+site has profiles). Deleting the `auth.users` row cascades to the profile,
+mixtapes and J-cards; feedback rows keep their text but lose the user link.
+The app removes the user's uploaded files through the storage API before
+calling this, so no service-role key is needed anywhere.
+
+```sql
+CREATE OR REPLACE FUNCTION public.delete_own_account()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not signed in';
+  END IF;
+  DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_own_account() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

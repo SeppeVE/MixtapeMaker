@@ -182,3 +182,35 @@ export async function deleteAvatar(publicUrl: string): Promise<void> {
     await supabase.storage.from(AVATAR_BUCKET).remove([parts[1]]);
   } catch { /* ignore */ }
 }
+
+/** Best-effort: remove every file under {userId}/ in a bucket (one level of folders deep). */
+async function removeUserFiles(bucket: string, userId: string): Promise<void> {
+  try {
+    const { data: entries } = await supabase.storage.from(bucket).list(userId, { limit: 1000 });
+    if (!entries?.length) return;
+    const paths: string[] = [];
+    for (const entry of entries) {
+      if (entry.id) {
+        paths.push(`${userId}/${entry.name}`);
+      } else {
+        // A folder (e.g. jcard-images/{uid}/{cardId}/…): list one level down.
+        const { data: nested } = await supabase.storage.from(bucket).list(`${userId}/${entry.name}`, { limit: 1000 });
+        for (const f of nested ?? []) if (f.id) paths.push(`${userId}/${entry.name}/${f.name}`);
+      }
+    }
+    if (paths.length) await supabase.storage.from(bucket).remove(paths);
+  } catch { /* ignore — the account row is what matters */ }
+}
+
+/**
+ * Permanently delete the signed-in user's account. Uploaded files are removed
+ * first (while the user's storage permissions still apply), then the
+ * delete_own_account() SQL function removes the auth user, which cascades to
+ * the profile, mixtapes, J-cards and feedback attribution. Ends signed out.
+ */
+export async function deleteOwnAccount(userId: string): Promise<void> {
+  await Promise.all([removeUserFiles(AVATAR_BUCKET, userId), removeUserFiles('jcard-images', userId)]);
+  const { error } = await supabase.rpc('delete_own_account');
+  if (error) throw error;
+  await supabase.auth.signOut();
+}

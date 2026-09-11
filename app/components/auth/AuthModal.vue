@@ -135,6 +135,11 @@ async function handleGoogleSignIn() {
         </button>
       </form>
 
+      <p class="auth-privacy">
+        By continuing you agree to how we handle your data, described in the
+        <NuxtLink to="/privacy" @click="ui.closeAuth()">privacy policy</NuxtLink>.
+      </p>
+
       <div class="auth-toggle">
         <template v-if="isSignUp">
           Already have an account? <button @click="isSignUp = false">Sign In</button>

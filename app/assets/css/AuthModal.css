@@ -149,6 +149,19 @@
   box-shadow: none;
 }
 
+.auth-privacy {
+  margin-top: var(--spacing-sm);
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+.auth-privacy a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .auth-toggle {
   margin-top: var(--spacing-md);
   text-align: center;

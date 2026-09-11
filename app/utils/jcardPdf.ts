@@ -1,5 +1,9 @@
 import { createApp, h, type Component } from 'vue';
-import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import {
+  PDFDocument, StandardFonts, rgb,
+  pushGraphicsState, popGraphicsState, concatTransformationMatrix, rectangle, clip, endPath,
+  type PDFFont, type PDFImage, type PDFPage,
+} from 'pdf-lib';
 import { toPng } from 'html-to-image';
 import type { JCardContent, JCardDuplexFlip, JCardPaperSize } from '../types';
 import { JCARD_HEIGHT_MM, computeWidthMm } from '../components/jcard/dimensions';
@@ -9,8 +13,9 @@ import JCardInsidePrintable from '../components/jcard/JCardInsidePrintable.vue';
 const MM_TO_PT = 72 / 25.4;
 const MM_TO_PX = 96 / 25.4;
 const SNAPSHOT_PIXEL_RATIO = 4;
-/** Space between the card and the page edge on a custom ('fit') page, and the minimum on real paper. */
+/** Space between the trimmed card and the page edge on a custom ('fit') page, and the minimum on real paper. */
 const MARGIN_MM = 12;
+const BLEED_MM = 3;
 const CROP_GAP_MM = 1.5;
 const CROP_LEN_MM = 5;
 const CROP_WIDTH_PT = 0.5;
@@ -29,6 +34,8 @@ export const DEFAULT_DUPLEX_FLIP: JCardDuplexFlip = 'long';
 export interface JCardPdfLayout {
   widthMm: number;
   heightMm: number;
+  /** Extra printed area beyond the trim line on every side; 0 when bleed is off. */
+  bleedMm: number;
   /** Paper the user asked for. */
   requestedPaper: JCardPaperSize;
   /** Paper actually used: the requested one, or 'fit' when the card does not fit on it. */
@@ -36,7 +43,7 @@ export interface JCardPdfLayout {
   fitsRequested: boolean;
   pageWmm: number;
   pageHmm: number;
-  /** Card position on the page (distance from the left / bottom page edge). Identical on both pages. */
+  /** Trimmed card position on the page (distance from the left / bottom page edge). Identical on both pages. */
   offsetXmm: number;
   offsetYmm: number;
 }
@@ -50,16 +57,18 @@ export interface JCardPdfLayout {
 export function resolvePdfLayout(content: JCardContent): JCardPdfLayout {
   const widthMm = computeWidthMm(content);
   const heightMm = JCARD_HEIGHT_MM;
+  const bleedMm = content.bleed ? BLEED_MM : 0;
+  const marginMm = MARGIN_MM + bleedMm;
   const requestedPaper = content.paperSize ?? DEFAULT_PAPER;
 
   let paper: JCardPaperSize = requestedPaper;
-  let pageWmm = widthMm + 2 * MARGIN_MM;
-  let pageHmm = heightMm + 2 * MARGIN_MM;
+  let pageWmm = widthMm + 2 * marginMm;
+  let pageHmm = heightMm + 2 * marginMm;
   let fitsRequested = true;
 
   if (requestedPaper !== 'fit') {
     const size = PAPER_SIZES_MM[requestedPaper];
-    fitsRequested = widthMm + 2 * MARGIN_MM <= size.w && heightMm + 2 * MARGIN_MM <= size.h;
+    fitsRequested = widthMm + 2 * marginMm <= size.w && heightMm + 2 * marginMm <= size.h;
     if (fitsRequested) {
       pageWmm = size.w;
       pageHmm = size.h;
@@ -71,6 +80,7 @@ export function resolvePdfLayout(content: JCardContent): JCardPdfLayout {
   return {
     widthMm,
     heightMm,
+    bleedMm,
     requestedPaper,
     paper,
     fitsRequested,
@@ -111,47 +121,36 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const pageW = layout.pageWmm * MM_TO_PT;
   const pageH = layout.pageHmm * MM_TO_PT;
-  const wPt = widthMm * MM_TO_PT;
-  const hPt = heightMm * MM_TO_PT;
+  const bleed = layout.bleedMm * MM_TO_PT;
   const left = layout.offsetXmm * MM_TO_PT;
   const bottom = layout.offsetYmm * MM_TO_PT;
-  const rect = { left, bottom, right: left + wPt, top: bottom + hPt };
+  const rect: CardRect = { left, bottom, right: left + widthMm * MM_TO_PT, top: bottom + heightMm * MM_TO_PT };
+  const settings = printSettingsLine(layout, flip, withInside);
 
   // ── Page 1: outside ─────────────────────────────────────────────────────
-  const outsidePng = await snapshotCard(JCardPrintable, content, widthMm, heightMm);
+  const outsideImage = await pdf.embedPng(await snapshotCard(JCardPrintable, content, widthMm, heightMm));
   const page1 = pdf.addPage([pageW, pageH]);
-  const outsideImage = await pdf.embedPng(outsidePng);
-  page1.drawImage(outsideImage, { x: left, y: bottom, width: wPt, height: hPt });
-  drawCropMarks(page1, rect);
-  drawPageNotes(page1, font, rect, {
-    heading: `OUTSIDE  -  page 1 of ${pageCount}`,
-    settings: printSettingsLine(layout, flip, withInside),
-  });
+  drawCard(page1, outsideImage, rect, bleed);
+  drawCropMarks(page1, rect, bleed);
+  drawPageNotes(page1, font, rect, bleed, { heading: `OUTSIDE  -  page 1 of ${pageCount}`, settings });
 
   // ── Page 2: inside, laid out to sit exactly behind page 1 after the duplex flip ──
   if (withInside) {
-    const insidePng = await snapshotCard(JCardInsidePrintable, content, widthMm, heightMm);
+    const insideImage = await pdf.embedPng(await snapshotCard(JCardInsidePrintable, content, widthMm, heightMm));
     const page2 = pdf.addPage([pageW, pageH]);
-    const insideImage = await pdf.embedPng(insidePng);
     if (flip === 'long') {
       // Flipping on the long edge of a landscape sheet mirrors top/bottom, not left/right.
       // The inside snapshot is drawn left/right-mirrored (book style), so rotate it 180°:
       // the panel order then matches page 1 and every panel lands behind its outside twin.
-      page2.drawImage(insideImage, {
-        x: rect.right,
-        y: rect.top,
-        width: wPt,
-        height: hPt,
-        rotate: degrees(180),
-      });
+      drawRotated180(page2, rect, () => drawCard(page2, insideImage, rect, bleed));
     } else {
       // Short-edge flip mirrors left/right, which is exactly how the inside snapshot is laid out.
-      page2.drawImage(insideImage, { x: left, y: bottom, width: wPt, height: hPt });
+      drawCard(page2, insideImage, rect, bleed);
     }
-    drawCropMarks(page2, rect);
-    drawPageNotes(page2, font, rect, {
+    drawCropMarks(page2, rect, bleed);
+    drawPageNotes(page2, font, rect, bleed, {
       heading: `INSIDE  -  page 2 of 2${flip === 'long' ? '  -  rotated 180° on purpose so it lines up after a long-edge flip' : ''}`,
-      settings: printSettingsLine(layout, flip, withInside),
+      settings,
     });
   }
 
@@ -219,10 +218,60 @@ async function snapshotCard(
   }
 }
 
+/** The trimmed card's box on the page, in PDF points. */
 interface CardRect { left: number; right: number; bottom: number; top: number }
 
-function drawCropMarks(page: PDFPage, { left, right, bottom, top }: CardRect) {
-  const g = CROP_GAP_MM * MM_TO_PT;
+/**
+ * Draw the card at trim size, plus a mirrored bleed around it when requested.
+ * Each bleed strip shows the card reflected across that edge, so the print stays
+ * continuous over the trim line if the cut lands a little off. Reflection keeps the
+ * trimmed area exactly as it is on screen; nothing inside the card moves or scales.
+ */
+function drawCard(page: PDFPage, image: PDFImage, rect: CardRect, bleed: number) {
+  const w = rect.right - rect.left;
+  const h = rect.top - rect.bottom;
+
+  if (bleed > 0) {
+    for (const dx of [-1, 0, 1]) {
+      for (const dy of [-1, 0, 1]) {
+        if (dx === 0 && dy === 0) continue;
+        // Only the strip next to this edge/corner shows through.
+        const clipX = dx < 0 ? rect.left - bleed : dx > 0 ? rect.right : rect.left;
+        const clipY = dy < 0 ? rect.bottom - bleed : dy > 0 ? rect.top : rect.bottom;
+        page.pushOperators(
+          pushGraphicsState(),
+          rectangle(clipX, clipY, dx === 0 ? w : bleed, dy === 0 ? h : bleed),
+          clip(),
+          endPath(),
+        );
+        // A negative size flips the image; anchoring it at the far side reflects it across the edge.
+        page.drawImage(image, {
+          x: dx > 0 ? rect.right + w : rect.left,
+          y: dy > 0 ? rect.top + h : rect.bottom,
+          width: dx === 0 ? w : -w,
+          height: dy === 0 ? h : -h,
+        });
+        page.pushOperators(popGraphicsState());
+      }
+    }
+  }
+
+  page.drawImage(image, { x: rect.left, y: rect.bottom, width: w, height: h });
+}
+
+/** Run `draw` with the page's coordinate system turned 180° around the card's centre. */
+function drawRotated180(page: PDFPage, rect: CardRect, draw: () => void) {
+  page.pushOperators(
+    pushGraphicsState(),
+    concatTransformationMatrix(-1, 0, 0, -1, rect.left + rect.right, rect.bottom + rect.top),
+  );
+  draw();
+  page.pushOperators(popGraphicsState());
+}
+
+/** Crop marks at the trim line, starting just outside the bleed so they never print over it. */
+function drawCropMarks(page: PDFPage, { left, right, bottom, top }: CardRect, bleed: number) {
+  const g = CROP_GAP_MM * MM_TO_PT + bleed;
   const l = CROP_LEN_MM * MM_TO_PT;
   const lineOpts = { thickness: CROP_WIDTH_PT, color: rgb(0, 0, 0) };
   const line = (x1: number, y1: number, x2: number, y2: number) =>
@@ -250,25 +299,26 @@ function printSettingsLine(layout: JCardPdfLayout, flip: JCardDuplexFlip, withIn
 
 /**
  * Small notes in the margins: a heading above the card, print settings and a
- * calibration bar below it. Everything stays within MARGIN_MM of the card so it
+ * calibration bar below it. Everything stays within MARGIN_MM of the bleed so it
  * also fits on a custom page.
  */
 function drawPageNotes(
   page: PDFPage,
   font: PDFFont,
   rect: CardRect,
+  bleed: number,
   notes: { heading: string; settings: string },
 ) {
   const ink = rgb(0.25, 0.25, 0.25);
   const maxWidth = rect.right - rect.left;
 
-  const headingY = rect.top + (CROP_GAP_MM + CROP_LEN_MM + 2) * MM_TO_PT;
+  const headingY = rect.top + bleed + (CROP_GAP_MM + CROP_LEN_MM + 2) * MM_TO_PT;
   page.drawText(fitText(notes.heading, font, NOTE_PT, maxWidth), {
     x: rect.left, y: headingY, size: NOTE_PT, font, color: ink,
   });
 
   // Calibration bar: a horizontal line with end ticks, exactly SCALE_BAR_MM long.
-  const barY = rect.bottom - 9.5 * MM_TO_PT;
+  const barY = rect.bottom - bleed - 9.5 * MM_TO_PT;
   const barEnd = rect.left + SCALE_BAR_MM * MM_TO_PT;
   const tick = 1.2 * MM_TO_PT;
   const barOpts = { thickness: 0.6, color: rgb(0, 0, 0) };

@@ -6,6 +6,7 @@ import type { JCardContent } from '~/types';
 import Spine from './parts/Spine.vue';
 import InsidePanel from './parts/InsidePanel.vue';
 import InsideBackPanel from './parts/InsideBackPanel.vue';
+import { resolveInsideContent } from './inside';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
 
@@ -14,6 +15,7 @@ const props = defineProps<{ content: JCardContent }>();
 const FLAP_WIDTHS = ['65mm', '63.5mm', '61.5mm', '61.5mm', '62mm', '63.5mm'];
 
 const content = computed(() => migrateJCardContent(props.content));
+const insideContent = computed(() => resolveInsideContent(content.value));
 
 const s = computed(() => {
   const flaps = content.value.insideFlapContents ?? Array(6).fill('');
@@ -30,36 +32,29 @@ const classes = computed(() =>
     .join(' '),
 );
 
+// Mirror image of the outside: last flap first, back panel last.
 const reversedFlapIndices = computed(() =>
   Array.from({ length: content.value.flaps }, (_, i) => content.value.flaps - 1 - i),
 );
 
-const isContinuousInside = computed(() => content.value.insideContinuousBackground ?? content.value.continuousBackground);
-
 const continuousInsideBgStyle = computed<CSSProperties | undefined>(() =>
-  isContinuousInside.value
+  insideContent.value.continuousBackground
     ? {
         position: 'absolute',
         inset: 0,
         zIndex: 0,
-        backgroundColor: content.value.insideBackgroundImageUrl ? 'transparent' : content.value.backgroundColor,
-        backgroundImage: content.value.insideBackgroundImageUrl ? `url(${content.value.insideBackgroundImageUrl})` : undefined,
+        backgroundColor: insideContent.value.backgroundImageUrl ? 'transparent' : content.value.backgroundColor,
+        backgroundImage: insideContent.value.backgroundImageUrl ? `url(${insideContent.value.backgroundImageUrl})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
     : undefined,
 );
-
-const insideContent = computed(() => ({
-  ...content.value,
-  backgroundImageUrl: content.value.insideBackgroundImageUrl,
-  continuousBackground: isContinuousInside.value,
-}));
 </script>
 
 <template>
   <div :class="classes">
-    <div v-if="isContinuousInside" :style="continuousInsideBgStyle" />
+    <div v-if="insideContent.continuousBackground" :style="continuousInsideBgStyle" />
 
     <div
       v-for="i in reversedFlapIndices"
@@ -75,7 +70,7 @@ const insideContent = computed(() => ({
     </div>
 
     <div :class="`jcard-part jcard-back${content.shortBack ? ' short' : ''}`" style="position:relative;z-index:1">
-      <InsideBackPanel :content="content" :sanitized-content="s.back" />
+      <InsideBackPanel :content="insideContent" :sanitized-content="s.back" />
     </div>
   </div>
 </template>

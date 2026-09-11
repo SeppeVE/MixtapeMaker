@@ -468,6 +468,10 @@ function blockAttrs(id: Section) {
         Show fold / cut guides
       </label>
       <label class="settings-checkbox-label">
+        <input type="checkbox" :checked="!!content.bleed" @change="patch({ bleed: ($event.target as HTMLInputElement).checked })" />
+        Add 3 mm bleed (mirrors the edges outward so an off cut shows no white)
+      </label>
+      <label class="settings-checkbox-label">
         <input type="checkbox" :checked="exportInside" @change="patch({ exportInside: ($event.target as HTMLInputElement).checked })" />
         Include inside as page 2 (two-sided print)
       </label>
@@ -503,6 +507,7 @@ function blockAttrs(id: Section) {
         <li v-else>Two-sided: off</li>
         <li>Print page 1 alone first and measure the 50 mm bar under the card before printing both sides</li>
         <li>Use card stock of 160–250 g/m² and cut on the crop marks, fold on the dashed guides</li>
+        <li v-if="content.bleed">The ghosted border around the card is the bleed; it is cut away</li>
       </ul>
     </SettingsBlock>
   </div>

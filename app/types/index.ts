@@ -106,6 +106,8 @@ export interface JCardContent {
   exportInside?: boolean;
   /** Duplex flip edge page 2 is laid out for. Defaults to 'long', which is the printer default. */
   duplexFlip?: JCardDuplexFlip;
+  /** Extend the card's edges outward on the PDF so a slightly off cut shows no white paper. */
+  bleed?: boolean;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
   /** @deprecated Use insideFlapContents / insideSpineContent / insideBackContent for per-panel inside content. */

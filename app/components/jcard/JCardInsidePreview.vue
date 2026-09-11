@@ -83,7 +83,7 @@ const cardStyle = computed(() => ({
     <div class="jcard-preview-bar">
       <span class="jcard-preview-dim">
         {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
-        <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">inside - PDF page 2</span>
+        <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">inside - PDF page 2 - shown as if you flipped the card over like a book</span>
       </span>
       <button :class="`btn jcard-actual-btn${actual ? ' active' : ''}`" @click="actual = !actual">
         {{ actual ? 'Scale to fit' : 'Actual size' }}

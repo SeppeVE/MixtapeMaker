@@ -25,7 +25,9 @@ const s = computed(() => {
 });
 
 const classes = computed(() =>
-  ['jcard', 'jcard-printable', content.value.isReversed ? 'reversed' : ''].filter(Boolean).join(' '),
+  ['jcard', 'jcard-printable', content.value.isReversed ? 'reversed' : '', content.value.showCutGuides ? 'show-guides' : '']
+    .filter(Boolean)
+    .join(' '),
 );
 
 const reversedFlapIndices = computed(() =>

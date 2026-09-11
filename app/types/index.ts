@@ -53,6 +53,11 @@ export interface CustomFont {
   mimeType: string;
 }
 
+/** Paper the exported PDF is laid out on. 'fit' = a custom page sized to the card. */
+export type JCardPaperSize = 'a4' | 'letter' | 'fit';
+/** Which paper edge the printer flips the sheet on for two-sided printing. */
+export type JCardDuplexFlip = 'long' | 'short';
+
 export interface JCardContent {
   flaps: 1 | 2 | 3 | 4 | 5 | 6;
   isReversed: boolean;
@@ -95,6 +100,12 @@ export interface JCardContent {
   backRightContent: string;
   /** Show dashed fold/cut guides on the printable export */
   showCutGuides?: boolean;
+  /** Paper size for the exported PDF (landscape). Defaults to 'a4'; falls back to 'fit' when the card is too wide. */
+  paperSize?: JCardPaperSize;
+  /** Add the inside face as page 2 of the PDF. Defaults to true whenever any inside content exists. */
+  exportInside?: boolean;
+  /** Duplex flip edge page 2 is laid out for. Defaults to 'long', which is the printer default. */
+  duplexFlip?: JCardDuplexFlip;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
   /** @deprecated Use insideFlapContents / insideSpineContent / insideBackContent for per-panel inside content. */

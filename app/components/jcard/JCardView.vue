@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import type { JCard, JCardContent, Mixtape } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
+import { useRoute } from 'vue-router';
+import { useUnsavedStore } from '~/stores/unsaved';
 import { generateId } from '~/utils/timeUtils';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
@@ -18,6 +20,7 @@ const props = defineProps<{
 
 const auth = useAuthStore();
 const ui = useUiStore();
+const unsaved = useUnsavedStore();
 
 const COALESCE_MS = 600;
 const MAX_HISTORY = 20;
@@ -41,6 +44,27 @@ function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
 const seed = props.initialCard ?? makeBlank(auth.user?.id ?? 'local', props.currentMixtape);
 const card = ref<JCard>(seed);
 const isSaving = ref(false);
+// Edits made this session that the cloud hasn't confirmed yet. Cleared only by
+// a successful cloud write, so signed-out editing stays "unsaved".
+const cloudDirty = ref(false);
+
+onMounted(() => {
+  unsaved.register('jcard', {
+    path: useRoute().path,
+    kind: 'J-card',
+    title: () => card.value.title,
+    dirty: () => cloudDirty.value,
+    save: async () => {
+      if (!auth.user) {
+        ui.openAuth();
+        return false;
+      }
+      if (timer) clearTimeout(timer);
+      return doSave(card.value, true);
+    },
+  });
+});
+onBeforeUnmount(() => unsaved.unregister('jcard'));
 
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -59,9 +83,11 @@ watch(
   { immediate: true },
 );
 
-async function doSave(target: JCard, feedback: boolean) {
+// Resolves true when the cloud now holds `target` (false when signed out or the sync failed).
+async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
   isSaving.value = true;
   saveJCardToLocal(target); // always persist locally first
+  let cloudOk = false;
   try {
     if (auth.user) {
       let saved: JCard;
@@ -78,6 +104,9 @@ async function doSave(target: JCard, feedback: boolean) {
         }
       }
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
+      // Only mark clean if no further edit was queued while the request was in flight.
+      if (target === lastScheduled) cloudDirty.value = false;
+      cloudOk = true;
     }
     if (feedback) ui.showToast('J-card saved', 'success');
   } catch (e) {
@@ -86,9 +115,12 @@ async function doSave(target: JCard, feedback: boolean) {
   } finally {
     isSaving.value = false;
   }
+  return cloudOk;
 }
 
+let lastScheduled: JCard | null = null;
 function schedule(updated: JCard) {
+  lastScheduled = updated;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => doSave(updated, false), 1200);
 }
@@ -116,6 +148,7 @@ function undo() {
   lastPushMs = 0;
   const prev = histStack[histIdx];
   card.value = prev;
+  cloudDirty.value = true;
   schedule(prev);
   canUndo.value = histIdx > 0;
   canRedo.value = true;
@@ -127,6 +160,7 @@ function redo() {
   lastPushMs = 0;
   const nextCard = histStack[histIdx];
   card.value = nextCard;
+  cloudDirty.value = true;
   schedule(nextCard);
   canUndo.value = true;
   canRedo.value = histIdx < histStack.length - 1;
@@ -145,6 +179,7 @@ useEventListener(typeof document !== 'undefined' ? document : null, 'keydown', (
 function update(partial: Partial<JCard>) {
   const updated = { ...card.value, ...partial, updatedAt: new Date().toISOString() };
   card.value = updated;
+  cloudDirty.value = true;
   pushHistory(updated);
   schedule(updated);
 }
@@ -159,6 +194,7 @@ function setPublic(isPublic: boolean) {
 
 function saveNow() {
   if (timer) clearTimeout(timer);
+  lastScheduled = card.value;
   doSave(card.value, true);
 }
 </script>

@@ -9,6 +9,7 @@ import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { findProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import {
   saveMixtape,
+  isCloudId,
   toggleMixtapePublic,
   enableMixtapeShare,
   disableMixtapeShare,
@@ -18,6 +19,8 @@ import {
   saveMixtapeToLocal,
   loadActiveCardFromLocal,
   saveActiveCardToLocal,
+  loadMixtapeDirtyFromLocal,
+  saveMixtapeDirtyToLocal,
 } from '~/utils/localStorage';
 
 // Content fingerprint used to detect whether a copy is still an exact duplicate
@@ -61,6 +64,9 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   const mixtape = ref<Mixtape>(blankMixtape());
   const activeCard = ref<JCard | null>(null);
   const isSaving = ref(false);
+  // True while the draft has edits the cloud hasn't seen. Persisted so a
+  // reload doesn't silently forget that a tape was never saved.
+  const dirty = ref(false);
 
   // Signature of the untouched copy, captured whenever the current mixtape is
   // (or becomes) an unedited copy. Null once it's not tracking a copy at all.
@@ -77,8 +83,16 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     if (stored) mixtape.value = stored;
     trackCopySignature(mixtape.value);
     activeCard.value = loadActiveCardFromLocal();
+    dirty.value = loadMixtapeDirtyFromLocal();
     watch(mixtape, (v) => saveMixtapeToLocal(v), { deep: true });
     watch(activeCard, (v) => saveActiveCardToLocal(v), { deep: true });
+    watch(dirty, (v) => saveMixtapeDirtyToLocal(v));
+  }
+
+  // Worth warning about: unsaved edits on a tape that actually has content.
+  function hasUnsavedChanges(): boolean {
+    const m = mixtape.value;
+    return dirty.value && (m.sideA.length > 0 || m.sideB.length > 0 || !isMixtapeUntitled(m.title));
   }
 
   // Apply a content patch and, if the current mixtape started as an unedited
@@ -88,6 +102,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     const next: Mixtape = { ...mixtape.value, ...patch, updatedAt: new Date().toISOString() };
     if (copySignature !== null) next.isCopy = contentSignature(next) === copySignature;
     mixtape.value = next;
+    dirty.value = true;
   }
 
   // Returns whether the mixtape was actually saved, so callers can react to a
@@ -111,6 +126,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     try {
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
       trackCopySignature(mixtape.value);
+      dirty.value = false;
       ui.showToast('Mixtape saved to cloud', 'success');
       return true;
     } catch (err) {
@@ -125,6 +141,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   function newMixtape() {
     mixtape.value = blankMixtape();
     trackCopySignature(mixtape.value);
+    dirty.value = false;
     navigateTo('/mixtape');
     ui.showToast('New mixtape created', 'success');
   }
@@ -132,6 +149,8 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   function loadMixtape(loaded: Mixtape) {
     mixtape.value = loaded;
     trackCopySignature(mixtape.value);
+    // A cloud tape starts clean; a local draft or a fresh copy from Explore isn't in the cloud yet.
+    dirty.value = !isCloudId(loaded.id) || loaded.isCopy === true;
     navigateTo('/mixtape');
     ui.showToast('Mixtape loaded', 'success');
   }
@@ -177,6 +196,8 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     mixtape,
     activeCard,
     isSaving,
+    dirty,
+    hasUnsavedChanges,
     updateMixtape,
     save,
     newMixtape,

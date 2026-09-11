@@ -163,6 +163,7 @@ SQL functions the client calls or relies on:
 | `jcard-active` | The card open in the designer. |
 | `jcards` | Locally saved J-cards (also the offline copy of cloud cards). |
 | `mixtape-pending-save-ids` | local id → cloud id cache for first saves (capped at 200). |
+| `mixtape-dirty` | `'1'` while the draft has edits the cloud hasn't seen (drives the leave warning). |
 | Spotify tokens | Access/refresh token for playlist export; never sent to our server. |
 | `mixtape-feedback-last-submit` | Client-side feedback cooldown. |
 | `mixtape-notification-dismissed` (session) | Notification closed in this tab. |
@@ -182,10 +183,12 @@ prop-drilling.
 | `mixtape.ts` | The current `mixtape` draft, `activeCard` for the designer, `isSaving` | `updateMixtape(patch)` (tracks whether a copy is still unedited), `save()`, `togglePublic(tape, bool)` (profanity-gated), `enableShare/disableShare`, `openDesigner(card)`. Persists to localStorage via watchers. |
 | `jcardLibrary.ts` | Merged list of local + cloud cards, which ids are in the cloud | `loadCards()`, `cardStatus(card)` → local/cloud/synced, `uploadCard`, `deleteCard`, `togglePublic` (profanity-gated). |
 | `ui.ts` | Toast, auth-modal open, feedback-modal open | `showToast`, `openAuth`, `openFeedback`… |
+| `unsaved.ts` | Registry of editor pages holding work not yet in the cloud; the navigation waiting on the user | `register/unregister(key, source)`, `shouldAllow(to, from)` (router guard), `stay`, `approve`, `saveAll`. |
 
 Boot order on the client (`plugins/auth.client.ts`): `auth.init()` then
 `profile.init()`. The profile store watches `[auth.loading, auth.user.id]`
-and reloads whenever the user changes.
+and reloads whenever the user changes. `plugins/unsaved.client.ts` installs
+the router guard and the `beforeunload` listener for the unsaved store.
 
 ---
 
@@ -240,6 +243,7 @@ and reloads whenever the user changes.
 - `ui/NavBar.vue` — logo, breadcrumb slot, right-hand buttons (Admin, Guide, Explore, Library, Sign In *or* profile avatar button). Collapses into a hamburger panel under 900px; the panel repeats the breadcrumb slot.
 - `home/HomeFooter.vue` — brand, privacy link, Feedback / Contact / Buy-me-a-coffee. Used on every page.
 - `ui/Toast.vue`, `auth/AuthModal.vue`, `feedback/FeedbackModal.vue` — mounted once in `layouts/default.vue`, driven by the `ui` store.
+- `ui/UnsavedChangesModal.vue` — hazard-striped warning shown when leaving an editor with unsaved work (Stay / Save & leave / Leave without saving). Mounted in the layout, driven by the `unsaved` store.
 - `notifications/NotificationModal.vue` — mounted on the homepage only. Shows the newest notification if its id ≠ `profile.seenNotificationId` and it wasn't closed in this tab.
 
 ### Mixtape editor (`/mixtape`)
@@ -323,6 +327,18 @@ tracks by URI, and uploads the cassette JPEG as cover if the scope allows.
 homepage the modal fetches the single newest row; "Close" writes a
 sessionStorage flag, "Don't show again" writes `seen_notification_id` on the
 profile. A newer notification has a new id, so it shows again automatically.
+
+**Unsaved-changes guard.** The mixtape editor and the J-card designer
+register an `UnsavedSource` (route path, a `dirty()` probe, a `save()`)
+with the `unsaved` store while mounted. The mixtape store keeps a `dirty`
+flag (set on every edit, cleared by a cloud save, persisted in localStorage);
+`JCardView` keeps `cloudDirty` (set on edit/undo/redo, cleared when the
+autosave's cloud write confirms). On any route change away from an editor's
+path the router guard blocks, the styled modal asks, and "Save & leave"
+runs the sources' `save()` before retrying the navigation with a one-shot
+bypass. Tab close / reload use the browser's native `beforeunload` prompt,
+which can't be styled and only appears after the user has interacted with
+the page.
 
 **Account deletion.** `/profile` → type username to confirm →
 `deleteOwnAccount()` removes the user's files from both buckets through the

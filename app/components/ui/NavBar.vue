@@ -52,15 +52,6 @@ function signIn() {
       <span class="lp-logo-text">Mixtape Maker</span>
     </NuxtLink>
 
-    <!-- Profile button: left of the breadcrumbs on desktop, inside the menu panel on mobile -->
-    <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile lp-nav-profile--inline" title="Your profile">
-      <span class="lp-nav-profile-avatar" aria-hidden="true">
-        <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
-        <span v-else>{{ initial }}</span>
-      </span>
-      <span class="lp-nav-profile-name">{{ profileStore.displayName }}</span>
-    </NuxtLink>
-
     <!-- Middle slot -->
     <div v-if="$slots.default" class="lp-nav-links">
       <slot />
@@ -89,19 +80,19 @@ function signIn() {
         <slot />
       </div>
 
-      <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile lp-nav-profile--menu" title="Your profile">
+      <NuxtLink v-if="profileStore.isAdmin" to="/admin" class="lp-btn lp-btn-plum">Admin</NuxtLink>
+      <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
+      <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
+      <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
+      <!-- Sign Out lives on the profile page; signed-in users reach it via the profile button (right-most) -->
+      <button v-if="!auth.user" class="lp-btn lp-btn-paper" @click="signIn">Sign In</button>
+      <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile" title="Your profile">
         <span class="lp-nav-profile-avatar" aria-hidden="true">
           <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
           <span v-else>{{ initial }}</span>
         </span>
         <span class="lp-nav-profile-name">{{ profileStore.displayName }}</span>
       </NuxtLink>
-      <NuxtLink v-if="profileStore.isAdmin" to="/admin" class="lp-btn lp-btn-plum">Admin</NuxtLink>
-      <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
-      <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
-      <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
-      <!-- Sign Out lives on the profile page; signed-in users reach it via the profile button -->
-      <button v-if="!auth.user" class="lp-btn lp-btn-paper" @click="signIn">Sign In</button>
     </div>
   </nav>
 </template>

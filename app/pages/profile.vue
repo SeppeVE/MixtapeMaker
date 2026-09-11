@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useSeoMeta } from '#app';
+import { useSeoMeta, navigateTo } from '#app';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useProfileStore } from '~/stores/profile';
@@ -128,6 +128,19 @@ async function togglePrivate() {
     ui.showToast('Failed to update privacy', 'error');
   } finally {
     privacySaving.value = false;
+  }
+}
+
+// ── Sign out ──
+const signingOut = ref(false);
+async function signOut() {
+  signingOut.value = true;
+  try {
+    await auth.signOut();
+    ui.showToast('Signed out', 'info');
+    navigateTo('/');
+  } finally {
+    signingOut.value = false;
   }
 }
 
@@ -276,6 +289,17 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           <div class="pf-links">
             <NuxtLink to="/library" class="lp-btn lp-btn-paper">📼 Mixtapes</NuxtLink>
             <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper">🎴 J-Cards</NuxtLink>
+          </div>
+        </section>
+
+        <!-- Account -->
+        <section class="lib-section">
+          <div class="lib-section-head"><span>Account</span></div>
+          <div class="pf-privacy-row">
+            <p class="pf-hint" style="margin:0">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
+            <button class="lp-btn lp-btn-plum" :disabled="signingOut" @click="signOut">
+              {{ signingOut ? 'Signing out…' : '⏏ Sign Out' }}
+            </button>
           </div>
         </section>
       </div>

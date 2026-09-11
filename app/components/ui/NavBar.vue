@@ -35,10 +35,6 @@ function signIn() {
   closeMenu();
   ui.openAuth();
 }
-function signOut() {
-  closeMenu();
-  auth.signOut();
-}
 </script>
 
 <template>
@@ -95,8 +91,8 @@ function signOut() {
       <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
       <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
       <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
-      <button v-if="auth.user" class="lp-btn lp-btn-paper" @click="signOut">Sign Out</button>
-      <button v-else class="lp-btn lp-btn-paper" @click="signIn">Sign In</button>
+      <!-- Sign Out lives on the profile page; signed-in users reach it via the profile button -->
+      <button v-if="!auth.user" class="lp-btn lp-btn-paper" @click="signIn">Sign In</button>
     </div>
   </nav>
 </template>

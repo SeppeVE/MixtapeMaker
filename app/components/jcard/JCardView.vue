@@ -9,6 +9,7 @@ import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaul
 import { registerCustomFonts } from '~/utils/fontManager';
 import { saveJCardToLocal } from '~/utils/localStorage';
 import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
+import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 
 const props = defineProps<{
   initialCard: JCard | null;
@@ -148,6 +149,14 @@ function update(partial: Partial<JCard>) {
   schedule(updated);
 }
 
+function setPublic(isPublic: boolean) {
+  if (isPublic && containsProfanity(card.value.title)) {
+    ui.showToast(PROFANITY_MESSAGE('card title'), 'error');
+    return;
+  }
+  update({ isPublic });
+}
+
 function saveNow() {
   if (timer) clearTimeout(timer);
   doSave(card.value, true);
@@ -186,7 +195,7 @@ function saveNow() {
           @title-change="(title: string) => update({ title })"
           @content-change="(content: JCardContent) => update({ content })"
           @mixtape-link="(mixtapeId: string | null) => update({ mixtapeId })"
-          @public-change="(isPublic: boolean) => update({ isPublic })"
+          @public-change="setPublic"
         />
       </aside>
     </div>

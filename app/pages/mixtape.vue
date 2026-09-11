@@ -147,7 +147,7 @@ function saveTitle() {
           @update="update"
           @save="store.save()"
           @new-mixtape="store.newMixtape()"
-          @toggle-public="store.togglePublic(mixtape.id, !mixtape.isPublic)"
+          @toggle-public="store.togglePublic(mixtape, !mixtape.isPublic)"
         />
       </div>
     </div>

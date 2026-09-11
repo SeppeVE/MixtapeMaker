@@ -102,6 +102,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           <div class="pf-header-text">
             <h1 class="pf-username">@{{ profile.username }}</h1>
             <p class="pf-hint">Joined {{ fmtDate(profile.createdAt) }}</p>
+            <p v-if="profile.bio && (!profile.isPrivate || isOwner)" class="pf-bio">{{ profile.bio }}</p>
             <div v-if="isOwner" class="pf-owner-row">
               <span v-if="profile.isPrivate" class="lib-badge lib-badge-private">◌ Private — only you see this</span>
               <NuxtLink to="/profile" class="lp-btn lp-btn-paper" style="font-size:15px">✎ Edit profile</NuxtLink>

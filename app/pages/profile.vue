@@ -11,7 +11,9 @@ import {
   uploadAvatar,
   deleteAvatar,
   USERNAME_MAX_LENGTH,
+  BIO_MAX_LENGTH,
 } from '~/utils/profileDatabase';
+import { containsProfanity } from '~/utils/profanity';
 
 useSeoMeta({ title: 'Your Profile — Mixtape Maker', robots: 'noindex' });
 
@@ -27,7 +29,9 @@ const usernameSaving = ref(false);
 watch(profile, (p) => { if (p) usernameInput.value = p.username; }, { immediate: true });
 
 const usernameNormalized = computed(() => normalizeUsername(usernameInput.value));
-const usernameProblem = computed(() => usernameError(usernameNormalized.value));
+const usernameProblem = computed(
+  () => usernameError(usernameNormalized.value) ?? (containsProfanity(usernameNormalized.value) ? "That username isn't allowed" : null),
+);
 const usernameDirty = computed(() => !!profile.value && usernameNormalized.value !== profile.value.username);
 
 async function saveUsername() {
@@ -40,6 +44,28 @@ async function saveUsername() {
     ui.showToast(isUsernameTakenError(err) ? 'That username is already taken' : 'Failed to update username', 'error');
   } finally {
     usernameSaving.value = false;
+  }
+}
+
+// ── Bio ──
+const bioInput = ref('');
+const bioSaving = ref(false);
+watch(profile, (p) => { if (p) bioInput.value = p.bio ?? ''; }, { immediate: true });
+
+const bioTrimmed = computed(() => bioInput.value.trim());
+const bioDirty = computed(() => !!profile.value && bioTrimmed.value !== (profile.value.bio ?? ''));
+const bioProblem = computed(() => (containsProfanity(bioTrimmed.value) ? "Your bio contains language that isn't allowed" : null));
+
+async function saveBio() {
+  if (!bioDirty.value || bioProblem.value) return;
+  bioSaving.value = true;
+  try {
+    await profileStore.update({ bio: bioTrimmed.value || null });
+    ui.showToast('Bio updated', 'success');
+  } catch {
+    ui.showToast('Failed to update bio', 'error');
+  } finally {
+    bioSaving.value = false;
   }
 }
 
@@ -187,6 +213,31 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           </form>
           <p v-if="usernameDirty && usernameProblem" class="pf-hint pf-hint--warn">{{ usernameProblem }}</p>
           <p v-else class="pf-hint">3–24 characters: lowercase letters, numbers, _ and -. Changing it changes your profile link.</p>
+        </section>
+
+        <!-- Bio -->
+        <section class="lib-section">
+          <div class="lib-section-head">
+            <span>Bio</span>
+            <span class="lib-section-sub">{{ BIO_MAX_LENGTH - bioInput.length }} characters left</span>
+          </div>
+          <form class="pf-bio-form" @submit.prevent="saveBio">
+            <textarea
+              v-model="bioInput"
+              class="pf-textarea"
+              rows="4"
+              :maxlength="BIO_MAX_LENGTH"
+              :disabled="bioSaving"
+              placeholder="A few words about you and the tapes you make…"
+            />
+            <div class="pf-bio-actions">
+              <p v-if="bioDirty && bioProblem" class="pf-hint pf-hint--warn">{{ bioProblem }}</p>
+              <p v-else class="pf-hint">Shown on your public profile page.</p>
+              <button type="submit" class="lp-btn lp-btn-forest" :disabled="!bioDirty || !!bioProblem || bioSaving">
+                {{ bioSaving ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </form>
         </section>
 
         <!-- Privacy -->

@@ -219,6 +219,8 @@ CREATE TABLE profiles (
   -- Keep this regex in sync with USERNAME_RE in app/utils/profileDatabase.ts
   username TEXT NOT NULL UNIQUE CHECK (username ~ '^[a-z0-9_-]{3,24}$'),
   avatar_url TEXT,
+  -- Keep the cap in sync with BIO_MAX_LENGTH in app/utils/profileDatabase.ts
+  bio TEXT CHECK (char_length(bio) <= 300),
   -- When true, /user/{username} only shows "This user has set their profile to private"
   is_private BOOLEAN NOT NULL DEFAULT false,
   -- Unlocks /admin. Only settable from the dashboard / SQL editor, never from the client.
@@ -250,8 +252,8 @@ CREATE POLICY "Users can update their own profile"
 -- Nobody can make themselves admin through the API: the client roles may
 -- only ever write these columns. is_admin stays dashboard/SQL-only.
 REVOKE INSERT, UPDATE ON profiles FROM anon, authenticated;
-GRANT INSERT (id, username, avatar_url, is_private) ON profiles TO authenticated;
-GRANT UPDATE (username, avatar_url, is_private, seen_notification_id, updated_at) ON profiles TO authenticated;
+GRANT INSERT (id, username, avatar_url, bio, is_private) ON profiles TO authenticated;
+GRANT UPDATE (username, avatar_url, bio, is_private, seen_notification_id, updated_at) ON profiles TO authenticated;
 
 -- Default username = the part of the email before the @ (what the nav used
 -- to show), sanitised, with a number appended if it's already taken.
@@ -421,6 +423,16 @@ WHERE id = (SELECT id FROM auth.users WHERE email = 'you@example.com');
 After that, an **Admin** button appears in the nav and `/admin` lets you post
 notifications. Users only ever see the newest one; "Don't show again" is
 remembered per user, "Close" only hides it for the current tab.
+
+### 6. Already ran step 3f before the bio field existed?
+
+If your `profiles` table predates the bio, add it with:
+
+```sql
+ALTER TABLE profiles ADD COLUMN bio TEXT CHECK (char_length(bio) <= 300);
+GRANT INSERT (bio) ON profiles TO authenticated;
+GRANT UPDATE (bio) ON profiles TO authenticated;
+```
 
 ## Step 4: Configure Authentication
 

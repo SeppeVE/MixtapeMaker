@@ -139,6 +139,8 @@ export interface Profile {
   id: string;
   username: string;
   avatarUrl: string | null;
+  /** Short free-text "about me", shown on the public profile page. */
+  bio: string | null;
   /** When true, /user/{username} only shows a "profile is private" notice. */
   isPrivate: boolean;
   isAdmin: boolean;

@@ -107,6 +107,53 @@
 .pf-input:focus { outline: none; }
 .pf-input-wrap:focus-within { background: rgba(212, 169, 53, 0.1); }
 
+/* ── Bio ── */
+.pf-bio-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pf-textarea {
+  width: 100%;
+  max-width: 560px;
+  padding: 8px 10px;
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  box-shadow: var(--bevel-in);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 90px;
+}
+.pf-textarea:focus {
+  outline: none;
+  background: rgba(212, 169, 53, 0.1);
+}
+.pf-textarea:disabled {
+  background: var(--color-paper-dk);
+  cursor: not-allowed;
+}
+.pf-bio-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 560px;
+}
+.pf-bio-actions .pf-hint { margin: 0; }
+.pf-bio {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text);
+  white-space: pre-line;
+  margin: 10px 0 0;
+  max-width: 600px;
+}
+
 /* ── Privacy ── */
 .pf-privacy-row {
   display: flex;

@@ -5,6 +5,7 @@ import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '~/utils/localStorage';
 import { listJCards, upsertJCard, deleteJCard, toggleJCardPublic } from '~/utils/jcardDatabase';
+import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 
 export type StorageStatus = 'local' | 'cloud' | 'synced';
 
@@ -103,6 +104,10 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
   async function togglePublic(card: JCard) {
     if (cardStatus(card) === 'local') return;
     const next = !card.isPublic;
+    if (next && containsProfanity(card.title)) {
+      ui.showToast(PROFANITY_MESSAGE('card title'), 'error');
+      return;
+    }
     const apply = (value: boolean) => {
       allCards.value = allCards.value.map((c) => (c.id === card.id ? { ...c, isPublic: value } : c));
       const local = localCards.value.find((c) => c.id === card.id);

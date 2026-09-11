@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { ref, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { onClickOutside } from '@vueuse/core';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useProfileStore } from '~/stores/profile';
 
 // Self-contained nav. Reads auth/ui stores directly (no prop-drilling).
-// Middle breadcrumb goes in the default slot.
+// Middle breadcrumb goes in the default slot. On narrow screens the CTAs
+// (and the slot links) collapse into a hamburger menu.
 withDefaults(defineProps<{
   library?: boolean;   // show the "Library" button
 }>(), {
@@ -14,10 +18,31 @@ withDefaults(defineProps<{
 const auth = useAuthStore();
 const ui = useUiStore();
 const profileStore = useProfileStore();
+const route = useRoute();
+
+const menuOpen = ref(false);
+const navRef = ref<HTMLElement | null>(null);
+
+function closeMenu() {
+  menuOpen.value = false;
+}
+watch(() => route.fullPath, closeMenu);
+onClickOutside(navRef, closeMenu);
+
+const initial = computed(() => (profileStore.displayName || '?').slice(0, 1).toUpperCase());
+
+function signIn() {
+  closeMenu();
+  ui.openAuth();
+}
+function signOut() {
+  closeMenu();
+  auth.signOut();
+}
 </script>
 
 <template>
-  <nav class="lp-nav">
+  <nav ref="navRef" class="lp-nav" :class="{ 'lp-nav--open': menuOpen }">
     <!-- Logo -->
     <NuxtLink to="/" class="lp-logo">
       <img
@@ -36,26 +61,42 @@ const profileStore = useProfileStore();
       <slot />
     </div>
 
-    <!-- Right CTAs -->
-    <div class="lp-nav-ctas">
-      <NuxtLink v-if="auth.user" to="/profile" class="lp-nav-user" title="Your profile">
-        <img
-          v-if="profileStore.profile?.avatarUrl"
-          :src="profileStore.profile.avatarUrl"
-          class="lp-nav-avatar"
-          alt=""
-          width="22"
-          height="22"
-        >
-        <span v-else aria-hidden="true">●●</span>
-        {{ profileStore.displayName }}
+    <!-- Hamburger (narrow screens only) -->
+    <button
+      class="lp-nav-burger"
+      type="button"
+      :aria-expanded="menuOpen"
+      aria-controls="lp-nav-menu"
+      :aria-label="menuOpen ? 'Close menu' : 'Open menu'"
+      @click="menuOpen = !menuOpen"
+    >
+      <span v-if="auth.user" class="lp-nav-burger-avatar" aria-hidden="true">
+        <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
+        <span v-else>{{ initial }}</span>
+      </span>
+      <span class="lp-nav-burger-icon" aria-hidden="true">{{ menuOpen ? '✕' : '☰' }}</span>
+    </button>
+
+    <!-- Right CTAs (inline on desktop, dropdown panel on mobile) -->
+    <div id="lp-nav-menu" class="lp-nav-ctas">
+      <!-- Slot links repeated inside the mobile panel, since the inline ones are hidden there -->
+      <div v-if="$slots.default" class="lp-nav-menu-links">
+        <slot />
+      </div>
+
+      <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile" title="Your profile">
+        <span class="lp-nav-profile-avatar" aria-hidden="true">
+          <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
+          <span v-else>{{ initial }}</span>
+        </span>
+        <span class="lp-nav-profile-name">{{ profileStore.displayName }}</span>
       </NuxtLink>
       <NuxtLink v-if="profileStore.isAdmin" to="/admin" class="lp-btn lp-btn-plum">Admin</NuxtLink>
       <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
       <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
       <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
-      <button v-if="auth.user" class="lp-btn lp-btn-paper" @click="auth.signOut()">Sign Out</button>
-      <button v-else class="lp-btn lp-btn-paper" @click="ui.openAuth()">Sign In</button>
+      <button v-if="auth.user" class="lp-btn lp-btn-paper" @click="signOut">Sign Out</button>
+      <button v-else class="lp-btn lp-btn-paper" @click="signIn">Sign In</button>
     </div>
   </nav>
 </template>

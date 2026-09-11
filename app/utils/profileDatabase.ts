@@ -5,6 +5,8 @@ import type { Profile } from '../types';
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 24;
 export const USERNAME_RE = /^[a-z0-9_-]{3,24}$/;
+// Keep in sync with the CHECK constraint on profiles.bio in SUPABASE_SETUP.md.
+export const BIO_MAX_LENGTH = 300;
 
 const AVATAR_BUCKET = 'avatars';
 const AVATAR_SIZE = 256;
@@ -13,6 +15,7 @@ interface DbProfile {
   id: string;
   username: string;
   avatar_url: string | null;
+  bio: string | null;
   is_private: boolean;
   is_admin: boolean;
   seen_notification_id: string | null;
@@ -24,6 +27,7 @@ function dbToProfile(r: DbProfile): Profile {
     id: r.id,
     username: r.username,
     avatarUrl: r.avatar_url,
+    bio: r.bio ?? null,
     isPrivate: r.is_private,
     isAdmin: r.is_admin ?? false,
     seenNotificationId: r.seen_notification_id ?? null,
@@ -119,11 +123,12 @@ export async function loadProfilesByIds(ids: string[]): Promise<Map<string, Prof
 
 export async function updateProfile(
   userId: string,
-  patch: Partial<{ username: string; avatarUrl: string | null; isPrivate: boolean; seenNotificationId: string | null }>,
+  patch: Partial<{ username: string; avatarUrl: string | null; bio: string | null; isPrivate: boolean; seenNotificationId: string | null }>,
 ): Promise<Profile> {
   const dbPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.username !== undefined) dbPatch.username = patch.username;
   if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl;
+  if (patch.bio !== undefined) dbPatch.bio = patch.bio ? patch.bio.slice(0, BIO_MAX_LENGTH) : null;
   if (patch.isPrivate !== undefined) dbPatch.is_private = patch.isPrivate;
   if (patch.seenNotificationId !== undefined) dbPatch.seen_notification_id = patch.seenNotificationId;
 

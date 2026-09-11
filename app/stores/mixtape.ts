@@ -6,6 +6,7 @@ import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { generateId } from '~/utils/timeUtils';
 import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import { findProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import {
   saveMixtape,
   toggleMixtapePublic,
@@ -43,6 +44,13 @@ function blankMixtape(): Mixtape {
     isPublic: false,
     isCopy: false,
   };
+}
+
+// Public tapes show up on Explore for everyone, so their user-written text
+// (not the Spotify track names) has to pass the profanity check. Returns the
+// offending field label, or null when clean.
+function publicProfanity(m: Mixtape): string | null {
+  return findProfanity({ 'mixtape title': m.title, 'dedication': m.dedicatedTo });
 }
 
 /** Current working mixtape + active designer card. Replaces useAppMixtapeState. */
@@ -93,6 +101,12 @@ export const useMixtapeStore = defineStore('mixtape', () => {
       ui.showToast('Give your mixtape a name before saving to the cloud', 'error');
       return false;
     }
+    // An already-public tape can't be renamed into something profane.
+    const profane = mixtape.value.isPublic ? publicProfanity(mixtape.value) : null;
+    if (profane) {
+      ui.showToast(PROFANITY_MESSAGE(profane), 'error');
+      return false;
+    }
     isSaving.value = true;
     try {
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
@@ -122,14 +136,23 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     ui.showToast('Mixtape loaded', 'success');
   }
 
-  async function togglePublic(mixtapeId: string, makePublic: boolean) {
+  // Returns whether the change went through, so callers with an optimistic
+  // UI can roll back when it's refused (profanity) or fails.
+  async function togglePublic(tape: Mixtape, makePublic: boolean): Promise<boolean> {
+    const profane = makePublic ? publicProfanity(tape) : null;
+    if (profane) {
+      ui.showToast(PROFANITY_MESSAGE(profane), 'error');
+      return false;
+    }
     try {
-      await toggleMixtapePublic(mixtapeId, makePublic);
-      if (mixtape.value.id === mixtapeId) mixtape.value = { ...mixtape.value, isPublic: makePublic };
+      await toggleMixtapePublic(tape.id, makePublic);
+      if (mixtape.value.id === tape.id) mixtape.value = { ...mixtape.value, isPublic: makePublic };
       ui.showToast(makePublic ? 'Mixtape is now public' : 'Mixtape is now private', 'success');
+      return true;
     } catch (err) {
       console.error('Toggle public failed:', err);
       ui.showToast('Failed to update visibility', 'error');
+      return false;
     }
   }
 

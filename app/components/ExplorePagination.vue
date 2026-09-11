@@ -27,6 +27,7 @@ function go(p: number) {
       :items-per-page="pageSize"
       :show-controls="false"
       :sibling-count="1"
+      show-edges
     >
       <template #prev>
         <button type="button" class="explore-pager-btn" :disabled="page <= 1" @click="go(page - 1)">‹</button>

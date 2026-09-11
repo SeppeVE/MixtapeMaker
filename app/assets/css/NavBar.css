@@ -114,6 +114,10 @@
   padding-left: 6px;
   max-width: 220px;
 }
+/* Desktop: the inline copy next to the logo; the menu copy is for mobile only */
+.lp-nav-profile--menu {
+  display: none;
+}
 .lp-nav-profile-avatar {
   width: 22px;
   height: 22px;
@@ -261,7 +265,11 @@
     padding: 8px 16px 6px;
     box-shadow: 3px 3px 0 var(--color-text);
   }
-  .lp-nav-profile {
+  .lp-nav-profile--inline {
+    display: none;
+  }
+  .lp-nav-profile--menu {
+    display: inline-flex;
     max-width: none;
     justify-content: flex-start;
     padding-left: 12px;

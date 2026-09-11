@@ -52,6 +52,15 @@ function signIn() {
       <span class="lp-logo-text">Mixtape Maker</span>
     </NuxtLink>
 
+    <!-- Profile button: left of the breadcrumbs on desktop, inside the menu panel on mobile -->
+    <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile lp-nav-profile--inline" title="Your profile">
+      <span class="lp-nav-profile-avatar" aria-hidden="true">
+        <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
+        <span v-else>{{ initial }}</span>
+      </span>
+      <span class="lp-nav-profile-name">{{ profileStore.displayName }}</span>
+    </NuxtLink>
+
     <!-- Middle slot -->
     <div v-if="$slots.default" class="lp-nav-links">
       <slot />
@@ -80,7 +89,7 @@ function signIn() {
         <slot />
       </div>
 
-      <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile" title="Your profile">
+      <NuxtLink v-if="auth.user" to="/profile" class="lp-btn lp-btn-paper lp-nav-profile lp-nav-profile--menu" title="Your profile">
         <span class="lp-nav-profile-avatar" aria-hidden="true">
           <img v-if="profileStore.profile?.avatarUrl" :src="profileStore.profile.avatarUrl" alt="" >
           <span v-else>{{ initial }}</span>

@@ -65,14 +65,14 @@ async function doSave(target: JCard, feedback: boolean) {
     if (auth.user) {
       let saved: JCard;
       if (persisted) {
-        saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null });
+        saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
       } else {
         const exists = await loadJCard(target.id);
         if (exists) {
           persisted = true;
-          saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null });
+          saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
         } else {
-          saved = await createJCard(auth.user.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null });
+          saved = await createJCard(auth.user.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
           persisted = true;
         }
       }
@@ -186,6 +186,7 @@ function saveNow() {
           @title-change="(title: string) => update({ title })"
           @content-change="(content: JCardContent) => update({ content })"
           @mixtape-link="(mixtapeId: string | null) => update({ mixtapeId })"
+          @public-change="(isPublic: boolean) => update({ isPublic })"
         />
       </aside>
     </div>

@@ -69,6 +69,14 @@ async function handleDelete(card: JCard) {
             <template v-else>✓ Synced</template>
           </span>
           <button
+            v-if="library.cardStatus(card) !== 'local'"
+            :class="`lib-public-toggle ${card.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`"
+            :title="card.isPublic ? 'Public · shown on your profile and the linked mixtape · click to make private' : 'Private · click to make public'"
+            @click="library.togglePublic(card)"
+          >
+            {{ card.isPublic ? '◉ Public' : '◌ Private' }}
+          </button>
+          <button
             v-if="library.cardStatus(card) === 'local' && auth.user"
             class="jcl-upload-btn btn"
             :disabled="library.uploadingIds.has(card.id)"

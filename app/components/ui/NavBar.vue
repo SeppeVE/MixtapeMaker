@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
+import { useProfileStore } from '~/stores/profile';
 
 // Self-contained nav. Reads auth/ui stores directly (no prop-drilling).
 // Middle breadcrumb goes in the default slot.
@@ -12,6 +13,7 @@ withDefaults(defineProps<{
 
 const auth = useAuthStore();
 const ui = useUiStore();
+const profileStore = useProfileStore();
 </script>
 
 <template>
@@ -36,7 +38,19 @@ const ui = useUiStore();
 
     <!-- Right CTAs -->
     <div class="lp-nav-ctas">
-      <span v-if="auth.user" class="lp-nav-user">●● {{ auth.user.email?.split('@')[0] }}</span>
+      <NuxtLink v-if="auth.user" to="/profile" class="lp-nav-user" title="Your profile">
+        <img
+          v-if="profileStore.profile?.avatarUrl"
+          :src="profileStore.profile.avatarUrl"
+          class="lp-nav-avatar"
+          alt=""
+          width="22"
+          height="22"
+        >
+        <span v-else aria-hidden="true">●●</span>
+        {{ profileStore.displayName }}
+      </NuxtLink>
+      <NuxtLink v-if="profileStore.isAdmin" to="/admin" class="lp-btn lp-btn-plum">Admin</NuxtLink>
       <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
       <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
       <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>

@@ -17,8 +17,12 @@ export default defineNuxtConfig({
     '/explore': { ssr: true },
     '/explore/**': { ssr: true },
     '/share/**': { ssr: true },
+    '/user/**': { ssr: true },
+    '/jcard/**': { ssr: true },
     '/mixtape': { ssr: false },
     '/library': { ssr: false },
+    '/profile': { ssr: false },
+    '/admin': { ssr: false },
     '/cards/**': { ssr: false },
     '/spotify-callback': { ssr: false },
     // Legacy redirects

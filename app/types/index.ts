@@ -10,6 +10,8 @@ export interface Song {
 
 export interface Mixtape {
   id: string;
+  /** Owner's auth user id. Present on cloud-loaded tapes; absent on local drafts. */
+  userId?: string;
   title: string;
   dedicatedTo?: string;
   cassetteLength: 60 | 90 | 120; // minutes
@@ -128,4 +130,29 @@ export interface JCard {
   content: JCardContent;
   createdAt: string;
   updatedAt: string;
+  /** Visible on the owner's public profile and on the linked mixtape's detail page. */
+  isPublic?: boolean;
+}
+
+/** A user's public-facing profile row (mirrors the `profiles` table). */
+export interface Profile {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  /** When true, /user/{username} only shows a "profile is private" notice. */
+  isPrivate: boolean;
+  isAdmin: boolean;
+  /** Id of the last site notification the user dismissed with "Don't show again". */
+  seenNotificationId: string | null;
+  createdAt: string;
+}
+
+/** A site-wide announcement posted from the admin panel. */
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  createdAt: string;
 }

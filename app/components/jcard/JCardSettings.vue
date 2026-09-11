@@ -20,6 +20,7 @@ const emit = defineEmits<{
   titleChange: [title: string];
   contentChange: [content: JCardContent];
   mixtapeLink: [id: string | null];
+  publicChange: [isPublic: boolean];
 }>();
 
 const content = computed(() => migrateJCardContent(props.card.content));
@@ -180,6 +181,11 @@ function blockAttrs(id: Section) {
     <SettingsBlock v-bind="blockAttrs('info')" label="✎ Card info" @toggle="toggle">
       <label class="settings-label">Title</label>
       <input class="settings-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
+      <label class="settings-checkbox-label" style="margin-top:6px">
+        <input type="checkbox" :checked="card.isPublic === true" @change="emit('publicChange', ($event.target as HTMLInputElement).checked)" />
+        Public — show on my profile and the linked mixtape's page
+      </label>
+      <p class="small-info">Needs to be saved to the cloud (sign in) before anyone else can see it.</p>
     </SettingsBlock>
 
     <!-- 1b. Presets -->

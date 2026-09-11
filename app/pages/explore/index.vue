@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSeoMeta, useAsyncData } from '#app';
-import type { Mixtape } from '~/types';
+import type { Mixtape, Profile } from '~/types';
 import { searchPublicMixtapes } from '~/utils/database';
+import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { formatDuration } from '~/utils/timeUtils';
 
 const PAGE_SIZE = 12;
@@ -16,13 +17,29 @@ useSeoMeta({
   description: 'Browse public cassette mixtapes made by the community.',
 });
 
+// Author profiles for a page of tapes, keyed by user id. Best-effort: a
+// failed lookup just drops the bylines rather than the whole page.
+async function fetchAuthors(list: Mixtape[]): Promise<Record<string, Profile>> {
+  try {
+    const map = await loadProfilesByIds(list.map((t) => t.userId).filter((id): id is string => !!id));
+    return Object.fromEntries(map);
+  } catch {
+    return {};
+  }
+}
+
 // SSR the initial (unfiltered, page 1) list for SEO.
-const { data: initial } = await useAsyncData('explore-initial', () => searchPublicMixtapes('', PAGE_SIZE, 0));
+const { data: initial } = await useAsyncData('explore-initial', async () => {
+  const result = await searchPublicMixtapes('', PAGE_SIZE, 0);
+  return { ...result, authors: await fetchAuthors(result.mixtapes) };
+});
 
 const query = ref('');
 const page = ref(1);
 const tapes = ref<Mixtape[]>(initial.value?.mixtapes ?? []);
 const total = ref(initial.value?.total ?? 0);
+const authors = ref<Record<string, Profile>>(initial.value?.authors ?? {});
+const authorOf = (tape: Mixtape) => (tape.userId ? authors.value[tape.userId] : undefined);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -35,6 +52,7 @@ async function runSearch() {
     const { mixtapes, total: count } = await searchPublicMixtapes(query.value, PAGE_SIZE, (page.value - 1) * PAGE_SIZE);
     tapes.value = mixtapes;
     total.value = count;
+    authors.value = await fetchAuthors(mixtapes);
   } catch {
     error.value = 'Failed to load public mixtapes';
   } finally {
@@ -150,6 +168,9 @@ function onPageChange(p: number) {
                     <span class="lib-tape-label">Total</span>
                     <span class="lib-tape-value">{{ formatDuration(totalDuration(tape)) }}</span>
                   </div>
+                </div>
+                <div v-if="authorOf(tape)" class="lib-tape-card-byline">
+                  <AuthorByline :profile="authorOf(tape)!" />
                 </div>
                 <div class="lib-tape-card-footer">
                   <span class="lib-tape-length">C-{{ tape.cassetteLength }}</span>

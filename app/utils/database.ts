@@ -57,6 +57,7 @@ export const isCloudId = (id: string): boolean => UUID_RE.test(id);
 function dbToMixtape(dbMixtape: DatabaseMixtape): Mixtape {
   return {
     id: dbMixtape.id,
+    userId: dbMixtape.user_id,
     title: dbMixtape.title,
     cassetteLength: dbMixtape.cassette_length as 60 | 90 | 120,
     sideA: dbMixtape.side_a as Mixtape['sideA'],
@@ -255,4 +256,18 @@ export async function loadPublicMixtape(mixtapeId: string): Promise<Mixtape | nu
   }
 
   return dbToMixtape(data);
+}
+
+// Public, non-copy mixtapes by one user (their public profile page)
+export async function loadPublicMixtapesByUser(userId: string): Promise<Mixtape[]> {
+  const { data, error } = await supabase
+    .from('mixtapes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_public', true)
+    .eq('is_copy', false)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return data.map(dbToMixtape);
 }

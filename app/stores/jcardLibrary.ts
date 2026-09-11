@@ -4,7 +4,7 @@ import type { JCard } from '~/types';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '~/utils/localStorage';
-import { listJCards, upsertJCard, deleteJCard } from '~/utils/jcardDatabase';
+import { listJCards, upsertJCard, deleteJCard, toggleJCardPublic } from '~/utils/jcardDatabase';
 
 export type StorageStatus = 'local' | 'cloud' | 'synced';
 
@@ -99,6 +99,25 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
     }
   }
 
+  // Only cloud cards can be public — a local-only card isn't reachable by anyone else.
+  async function togglePublic(card: JCard) {
+    if (cardStatus(card) === 'local') return;
+    const next = !card.isPublic;
+    const apply = (value: boolean) => {
+      allCards.value = allCards.value.map((c) => (c.id === card.id ? { ...c, isPublic: value } : c));
+      const local = localCards.value.find((c) => c.id === card.id);
+      if (local) saveJCardToLocal({ ...local, isPublic: value });
+    };
+    apply(next);
+    try {
+      await toggleJCardPublic(card.id, next);
+      ui.showToast(next ? 'J-card is now public' : 'J-card is now private', 'success');
+    } catch {
+      apply(!next);
+      ui.showToast('Failed to update visibility', 'error');
+    }
+  }
+
   return {
     allCards,
     localCards,
@@ -110,5 +129,6 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
     cardStatus,
     uploadCard,
     deleteCard,
+    togglePublic,
   };
 });

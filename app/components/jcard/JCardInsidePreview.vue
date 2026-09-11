@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, nextTick, type CSSProperties } from 'v
 import { useResizeObserver } from '@vueuse/core';
 import type { JCardContent } from '~/types';
 import { computeWidthMm, JCARD_HEIGHT_MM } from './dimensions';
-import { resolveInsideContent, insideFlapVisibility } from './inside';
+import { resolveInsideContent } from './inside';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
 
@@ -48,8 +48,6 @@ const reversedFlapIndices = computed(() =>
   Array.from({ length: content.value.flaps }, (_, i) => content.value.flaps - 1 - i),
 );
 
-const visibility = computed(() => insideFlapVisibility(content.value.flaps));
-
 const continuousInsideBgStyle = computed<CSSProperties | undefined>(() =>
   insideContent.value.continuousBackground
     ? {
@@ -80,7 +78,7 @@ const cardStyle = computed(() => ({
       <span class="jcard-preview-dim">
         {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
         <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">
-          inside, seen as if you flipped the card over like a book. Flaps marked "hidden when folded" end up face-down after an accordion fold.
+          inside, seen as if you flipped the card over like a book
         </span>
       </span>
       <button :class="`btn jcard-actual-btn${actual ? ' active' : ''}`" @click="actual = !actual">
@@ -99,7 +97,6 @@ const cardStyle = computed(() => ({
           :style="{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }"
         >
           <InsidePanel :content="content" :sanitized-content="s.flaps[i]" :flap-index="i" />
-          <span v-if="visibility[i] === 'hidden'" class="jcard-fold-badge">hidden when folded</span>
         </div>
 
         <div class="jcard-part jcard-spine" style="position:relative;z-index:1">

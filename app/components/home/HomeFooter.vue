@@ -25,15 +25,11 @@ const ui = useUiStore();
     </div>
     <div class="lp-foot-note">Make mixtapes. Design J-cards. Press play.</div>
     <div class="footer-btn-group">
-      <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
-        💡 Feedback
-      </button>
-      <a href="mailto:contact@mixtape-maker.com" class="lp-btn lp-btn-paper footer-btn">✉ Contact</a>
       <a
         href="https://www.buymeacoffee.com/seppe.ve"
         target="_blank"
         rel="noreferrer"
-        class="height-max-content"
+        class="height-max-content footer-coffee"
       >
         <img
           src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
@@ -41,6 +37,10 @@ const ui = useUiStore();
           class="footer-logo"
         />
       </a>
+      <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
+        💡 Feedback
+      </button>
+      <a href="mailto:contact@mixtape-maker.com" class="lp-btn lp-btn-paper footer-btn">✉ Contact</a>
     </div>
   </footer>
 </template>

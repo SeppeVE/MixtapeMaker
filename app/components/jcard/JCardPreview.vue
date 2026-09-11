@@ -6,7 +6,7 @@ import { FLAPS_MM, BACK_FULL_MM, BACK_SHORT_MM, SPINE_MM } from './dimensions';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
 
-const props = defineProps<{ content: JCardContent }>();
+const props = defineProps<{ content: JCardContent; label?: string }>();
 
 const FLAP_WIDTHS = ['65mm', '63.5mm', '61.5mm', '61.5mm', '62mm', '63.5mm'];
 
@@ -99,7 +99,10 @@ const cardClass = computed(() =>
 <template>
   <div class="jcard-preview-root">
     <div class="jcard-preview-bar">
-      <span class="jcard-preview-dim">{{ totalWidthMm.toFixed(1) }} × 102 mm</span>
+      <div class="jcard-preview-bar-left">
+        <span v-if="label" class="jcard-preview-label">{{ label }}</span>
+        <span class="jcard-preview-dim">{{ totalWidthMm.toFixed(1) }} × 102 mm</span>
+      </div>
       <button :class="`btn jcard-actual-btn${actual ? ' active' : ''}`" @click="actual = !actual">
         {{ actual ? 'Scale to fit' : 'Actual size' }}
       </button>

@@ -7,7 +7,7 @@ import { resolveInsideContent } from './inside';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
 
-const props = defineProps<{ content: JCardContent }>();
+const props = defineProps<{ content: JCardContent; label?: string }>();
 
 const FLAP_WIDTHS = ['65mm', '63.5mm', '61.5mm', '61.5mm', '62mm', '63.5mm'];
 
@@ -75,12 +75,15 @@ const cardStyle = computed(() => ({
 <template>
   <div class="jcard-preview-root">
     <div class="jcard-preview-bar">
-      <span class="jcard-preview-dim">
-        {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
-        <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">
-          inside, seen as if you flipped the card over like a book
+      <div class="jcard-preview-bar-left">
+        <span v-if="label" class="jcard-preview-label">{{ label }}</span>
+        <span class="jcard-preview-dim">
+          {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
+          <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">
+            seen as if you flipped the card over like a book
+          </span>
         </span>
-      </span>
+      </div>
       <button :class="`btn jcard-actual-btn${actual ? ' active' : ''}`" @click="actual = !actual">
         {{ actual ? 'Scale to fit' : 'Actual size' }}
       </button>

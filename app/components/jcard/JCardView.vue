@@ -172,10 +172,8 @@ function saveNow() {
     <div class="jcard-view-body">
       <div class="jcard-view-main">
         <div class="jcard-view-preview">
-          <span class="jcard-col-label">▧ Outside</span>
-          <JCardPreview :content="card.content" />
-          <span class="jcard-col-label" style="margin-top:8px">◧ Inside</span>
-          <JCardInsidePreview :content="card.content" />
+          <JCardPreview :content="card.content" label="▧ Outside" />
+          <JCardInsidePreview :content="card.content" label="◧ Inside" />
         </div>
       </div>
 

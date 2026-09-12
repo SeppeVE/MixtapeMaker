@@ -20,6 +20,9 @@ A retro-styled web application for creating cassette mixtapes using the Spotify 
 - 📚 Personal library to manage multiple mixtapes
 - 🔄 Load previously saved mixtapes
 - 🗑️ Delete mixtapes from your library
+- 👤 User profiles with username, profile picture and a public page at `/user/{username}` (can be set to private)
+- 🎴 Public J-cards, shown on your profile and on the linked mixtape's Explore page
+- ★ "What's new" notifications for signed-in users, posted from the `/admin` panel
 
 ## Setup
 

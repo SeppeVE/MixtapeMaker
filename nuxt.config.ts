@@ -14,11 +14,16 @@ export default defineNuxtConfig({
   // client-only for the auth-gated app (isolates browser-only code).
   routeRules: {
     '/': { prerender: true },
+    '/privacy': { prerender: true },
     '/explore': { ssr: true },
     '/explore/**': { ssr: true },
     '/share/**': { ssr: true },
+    '/user/**': { ssr: true },
+    '/jcard/**': { ssr: true },
     '/mixtape': { ssr: false },
     '/library': { ssr: false },
+    '/profile': { ssr: false },
+    '/admin': { ssr: false },
     '/cards/**': { ssr: false },
     '/spotify-callback': { ssr: false },
     // Legacy redirects
@@ -69,10 +74,6 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
         { rel: 'canonical', href: 'https://mixtape-maker.com' },
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=VT323&display=swap' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap' },
       ],
       script: [
         {

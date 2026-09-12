@@ -203,6 +203,264 @@ CREATE POLICY "Anyone can submit feedback"
   );
 ```
 
+## Step 3f: User Profiles, Notifications & Public J-Cards
+
+Powers user profiles (`/profile`, `/user/{username}`), author bylines on
+Explore, the "What's new" popup for signed-in users, the `/admin` panel, and
+the Public / Private toggle on J-cards. Run the whole block in the SQL Editor
+**in this order** (each part builds on the previous one):
+
+### 1. Profiles
+
+```sql
+-- One row per account, created automatically on sign-up (trigger below).
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- Keep this regex in sync with USERNAME_RE in app/utils/profileDatabase.ts
+  username TEXT NOT NULL UNIQUE CHECK (username ~ '^[a-z0-9_-]{3,24}$'),
+  avatar_url TEXT,
+  -- Keep the cap in sync with BIO_MAX_LENGTH in app/utils/profileDatabase.ts
+  bio TEXT CHECK (char_length(bio) <= 300),
+  -- When true, /user/{username} only shows "This user has set their profile to private"
+  is_private BOOLEAN NOT NULL DEFAULT false,
+  -- Unlocks /admin. Only settable from the dashboard / SQL editor, never from the client.
+  is_admin BOOLEAN NOT NULL DEFAULT false,
+  -- The notification the user dismissed with "Don't show again". A newer
+  -- notification has a different id, so it shows up again automatically.
+  seen_notification_id UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Everyone can read profiles (needed for bylines and /user/{username}).
+CREATE POLICY "Profiles are viewable by everyone"
+  ON profiles FOR SELECT
+  USING (true);
+
+-- Users manage only their own row.
+CREATE POLICY "Users can insert their own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Nobody can make themselves admin through the API: the client roles may
+-- only ever write these columns. is_admin stays dashboard/SQL-only.
+REVOKE INSERT, UPDATE ON profiles FROM anon, authenticated;
+GRANT INSERT (id, username, avatar_url, bio, is_private) ON profiles TO authenticated;
+GRANT UPDATE (username, avatar_url, bio, is_private, seen_notification_id, updated_at) ON profiles TO authenticated;
+
+-- Default username = the part of the email before the @ (what the nav used
+-- to show), sanitised, with a number appended if it's already taken.
+CREATE OR REPLACE FUNCTION public.generate_username(p_email TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  base TEXT;
+  candidate TEXT;
+  n INT := 0;
+BEGIN
+  base := regexp_replace(lower(split_part(coalesce(p_email, ''), '@', 1)), '[^a-z0-9_-]', '', 'g');
+  base := left(base, 20);
+  IF char_length(base) < 3 THEN
+    base := left('user' || base, 20);
+  END IF;
+  candidate := base;
+  WHILE EXISTS (SELECT 1 FROM profiles WHERE username = candidate) LOOP
+    n := n + 1;
+    candidate := base || n::text;
+  END LOOP;
+  RETURN candidate;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.generate_username(TEXT) FROM PUBLIC;
+
+-- Create the profile row the moment an account is created.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username)
+  VALUES (NEW.id, public.generate_username(NEW.email))
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Backfill profiles for accounts that already exist. (Row by row so the
+-- duplicate-username check sees the rows inserted just before it.)
+DO $$
+DECLARE u RECORD;
+BEGIN
+  FOR u IN
+    SELECT id, email FROM auth.users
+    WHERE NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.users.id)
+  LOOP
+    INSERT INTO profiles (id, username) VALUES (u.id, public.generate_username(u.email));
+  END LOOP;
+END $$;
+
+-- Used by the notification policies below.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT is_admin FROM profiles WHERE id = auth.uid()), false);
+$$;
+
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+```
+
+### 2. Notifications
+
+```sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Keep the caps in sync with NOTIFICATION_*_MAX_LENGTH in app/utils/notificationDatabase.ts
+  title TEXT NOT NULL CHECK (char_length(title) <= 120),
+  body TEXT NOT NULL CHECK (char_length(body) <= 2000),
+  link_url TEXT,
+  link_label TEXT,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX notifications_created_at_idx ON notifications(created_at DESC);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Only signed-in users see notifications (the popup is on the homepage for logged-in users).
+CREATE POLICY "Signed-in users can read notifications"
+  ON notifications FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Only admins can post / remove them.
+CREATE POLICY "Admins can insert notifications"
+  ON notifications FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin() AND created_by = auth.uid());
+
+CREATE POLICY "Admins can delete notifications"
+  ON notifications FOR DELETE
+  TO authenticated
+  USING (public.is_admin());
+
+-- Deleting a notification un-dismisses it for everyone who had dismissed it.
+ALTER TABLE profiles
+  ADD CONSTRAINT profiles_seen_notification_fk
+  FOREIGN KEY (seen_notification_id) REFERENCES notifications(id) ON DELETE SET NULL;
+```
+
+### 3. Public J-cards
+
+```sql
+-- Public cards show on the owner's profile and on the linked mixtape's Explore page.
+ALTER TABLE jcards ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX jcards_public_mixtape_idx ON jcards(mixtape_id) WHERE is_public;
+
+CREATE POLICY "Anyone can view public jcards"
+  ON jcards FOR SELECT
+  USING (is_public = true);
+```
+
+### 4. Avatar storage bucket
+
+```sql
+-- Public bucket; the app uploads a 256×256 JPEG under {user_id}/avatar-….jpg
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg'])
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Avatar images are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload their own avatar"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can update their own avatar"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can delete their own avatar"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+### 5. Make yourself an admin
+
+```sql
+UPDATE profiles
+SET is_admin = true
+WHERE id = (SELECT id FROM auth.users WHERE email = 'you@example.com');
+```
+
+After that, an **Admin** button appears in the nav and `/admin` lets you post
+notifications. Users only ever see the newest one; "Don't show again" is
+remembered per user, "Close" only hides it for the current tab.
+
+### 6. Already ran step 3f before the bio field existed?
+
+If your `profiles` table predates the bio, add it with:
+
+```sql
+ALTER TABLE profiles ADD COLUMN bio TEXT CHECK (char_length(bio) <= 300);
+GRANT INSERT (bio) ON profiles TO authenticated;
+GRANT UPDATE (bio) ON profiles TO authenticated;
+```
+
+## Step 3g: Account Deletion
+
+Powers "Delete my account" on `/profile` (a GDPR requirement now that the
+site has profiles). Deleting the `auth.users` row cascades to the profile,
+mixtapes and J-cards; feedback rows keep their text but lose the user link.
+The app removes the user's uploaded files through the storage API before
+calling this, so no service-role key is needed anywhere.
+
+```sql
+CREATE OR REPLACE FUNCTION public.delete_own_account()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not signed in';
+  END IF;
+  DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_own_account() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

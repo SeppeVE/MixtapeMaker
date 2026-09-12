@@ -555,3 +555,62 @@
 
   .gd-search-row { flex-wrap: wrap; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Privacy policy page — reuses the guide layout (gd-*)
+   ═══════════════════════════════════════════════════════ */
+.gd-list {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: 0.9;
+  max-width: 680px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gd-list li::marker {
+  color: var(--color-primary);
+}
+
+.pv-providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  max-width: 760px;
+}
+.pv-provider {
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+}
+.pv-provider-head {
+  background: var(--color-plum);
+  color: var(--color-paper);
+  padding: 6px 12px 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.pv-provider-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.pv-provider-role {
+  font-family: var(--font-body);
+  font-size: 11px;
+  opacity: 0.85;
+}
+.pv-provider-body {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px 12px;
+  margin: 0;
+}

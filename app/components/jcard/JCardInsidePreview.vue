@@ -3,14 +3,16 @@ import { ref, computed, watch, onMounted, nextTick, type CSSProperties } from 'v
 import { useResizeObserver } from '@vueuse/core';
 import type { JCardContent } from '~/types';
 import { computeWidthMm, JCARD_HEIGHT_MM } from './dimensions';
+import { resolveInsideContent } from './inside';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
 
-const props = defineProps<{ content: JCardContent }>();
+const props = defineProps<{ content: JCardContent; label?: string }>();
 
 const FLAP_WIDTHS = ['65mm', '63.5mm', '61.5mm', '61.5mm', '62mm', '63.5mm'];
 
 const content = computed(() => migrateJCardContent(props.content));
+const insideContent = computed(() => resolveInsideContent(content.value));
 
 const wrapperRef = ref<HTMLDivElement | null>(null);
 const scale = ref(1);
@@ -41,32 +43,24 @@ const s = computed(() => {
   };
 });
 
+// Mirror image of the outside: last flap first, back panel last.
 const reversedFlapIndices = computed(() =>
   Array.from({ length: content.value.flaps }, (_, i) => content.value.flaps - 1 - i),
 );
 
-const isContinuousInside = computed(() => content.value.insideContinuousBackground ?? content.value.continuousBackground);
-
 const continuousInsideBgStyle = computed<CSSProperties | undefined>(() =>
-  isContinuousInside.value
+  insideContent.value.continuousBackground
     ? {
         position: 'absolute',
         inset: 0,
         zIndex: 0,
-        backgroundColor: content.value.insideBackgroundImageUrl ? 'transparent' : content.value.backgroundColor,
-        backgroundImage: content.value.insideBackgroundImageUrl ? `url(${content.value.insideBackgroundImageUrl})` : undefined,
+        backgroundColor: insideContent.value.backgroundImageUrl ? 'transparent' : content.value.backgroundColor,
+        backgroundImage: insideContent.value.backgroundImageUrl ? `url(${insideContent.value.backgroundImageUrl})` : undefined,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
     : undefined,
 );
-
-// Resolved inside settings passed to Spine (reads continuousBackground + backgroundImageUrl).
-const insideContent = computed(() => ({
-  ...content.value,
-  backgroundImageUrl: content.value.insideBackgroundImageUrl,
-  continuousBackground: isContinuousInside.value,
-}));
 
 const wrapperStyle = computed(() =>
   actual.value ? {} : { height: `calc(${JCARD_HEIGHT_MM}mm * ${scale.value} + 48px)` },
@@ -81,10 +75,15 @@ const cardStyle = computed(() => ({
 <template>
   <div class="jcard-preview-root">
     <div class="jcard-preview-bar">
-      <span class="jcard-preview-dim">
-        {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
-        <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">inside - PDF page 2</span>
-      </span>
+      <div class="jcard-preview-bar-left">
+        <span v-if="label" class="jcard-preview-label">{{ label }}</span>
+        <span class="jcard-preview-dim">
+          {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
+          <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">
+            seen as if you flipped the card over like a book
+          </span>
+        </span>
+      </div>
       <button :class="`btn jcard-actual-btn${actual ? ' active' : ''}`" @click="actual = !actual">
         {{ actual ? 'Scale to fit' : 'Actual size' }}
       </button>
@@ -92,7 +91,7 @@ const cardStyle = computed(() => ({
 
     <div ref="wrapperRef" class="jcard-preview-wrapper" :style="wrapperStyle">
       <div :class="`jcard${content.isReversed ? ' reversed' : ''}`" :style="cardStyle">
-        <div v-if="isContinuousInside" :style="continuousInsideBgStyle" />
+        <div v-if="insideContent.continuousBackground" :style="continuousInsideBgStyle" />
 
         <div
           v-for="i in reversedFlapIndices"
@@ -100,12 +99,7 @@ const cardStyle = computed(() => ({
           class="jcard-part"
           :style="{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }"
         >
-          <InsidePanel
-            :content="content"
-            :sanitized-content="s.flaps[i]"
-            :flap-index="i"
-            :label="i === 0 ? 'cover inside' : `flap ${i + 1} inside`"
-          />
+          <InsidePanel :content="content" :sanitized-content="s.flaps[i]" :flap-index="i" />
         </div>
 
         <div class="jcard-part jcard-spine" style="position:relative;z-index:1">
@@ -113,7 +107,7 @@ const cardStyle = computed(() => ({
         </div>
 
         <div :class="`jcard-part jcard-back${content.shortBack ? ' short' : ''}`" style="position:relative;z-index:1">
-          <InsideBackPanel :content="content" :sanitized-content="s.back" />
+          <InsideBackPanel :content="insideContent" :sanitized-content="s.back" />
         </div>
       </div>
     </div>

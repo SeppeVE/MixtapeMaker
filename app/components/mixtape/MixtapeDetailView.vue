@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import type { Mixtape } from '~/types';
+import type { Mixtape, Profile, JCard } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useMixtapeStore } from '~/stores/mixtape';
@@ -13,8 +13,14 @@ const props = withDefaults(defineProps<{
   breadcrumbLabel: string;
   notFoundSub: string;
   showBack?: boolean;
+  /** Who made it — renders a byline linking to their profile. */
+  author?: Profile | null;
+  /** Public J-cards designed for this mixtape, shown below the track list. */
+  jcards?: JCard[];
 }>(), {
   showBack: false,
+  author: null,
+  jcards: () => [],
 });
 
 const auth = useAuthStore();
@@ -40,6 +46,7 @@ function handleCopy() {
   const copy: Mixtape = {
     ...props.mixtape,
     id: generateId(),
+    userId: undefined,
     isPublic: false,
     shareToken: null,
     isCopy: true,
@@ -76,6 +83,9 @@ function handleCopy() {
             <button class="lp-btn lp-btn-forest" @click="handleCopy">⎘ Copy to my library</button>
           </div>
           <p v-if="mixtape.dedicatedTo" style="margin-bottom:16px;font-style:italic">For {{ mixtape.dedicatedTo }}</p>
+          <p v-if="author" style="margin-bottom:16px">
+            <AuthorByline :profile="author" prefix="Made by" />
+          </p>
 
           <div style="max-width:320px;margin-bottom:24px">
             <CassetteSVG :title="mixtape.title" side="A" :float="false" />
@@ -88,6 +98,22 @@ function handleCopy() {
           <div class="tape-sides-grid">
             <ReadOnlySide label="Side A" :songs="mixtape.sideA" />
             <ReadOnlySide label="Side B" :songs="mixtape.sideB" />
+          </div>
+        </section>
+
+        <section v-if="jcards.length > 0" class="lib-section">
+          <div class="lib-section-head">
+            <span>J-Card{{ jcards.length === 1 ? '' : 's' }} for this tape</span>
+            <span class="lib-section-sub">{{ jcards.length }} public design{{ jcards.length === 1 ? '' : 's' }}</span>
+          </div>
+          <div class="detail-jcards">
+            <div v-for="card in jcards" :key="card.id">
+              <h3 class="detail-jcard-title">
+                <span>🎴 {{ card.title || 'Untitled J-Card' }}</span>
+                <NuxtLink :to="`/jcard/${card.id}`" class="pf-inline-link" style="font-family:var(--font-body);font-size:12px">Open ↗</NuxtLink>
+              </h3>
+              <JCardReadOnly :content="card.content" />
+            </div>
           </div>
         </section>
       </div>

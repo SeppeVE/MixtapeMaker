@@ -4,6 +4,7 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+@import './fonts.css';
 @import './App.css';
 @import './utilities.css';
 
@@ -11,6 +12,9 @@
 @import './Toast.css';
 @import './AuthModal.css';
 @import './FeedbackModal.css';
+@import './Notification.css';
+@import './UnsavedChanges.css';
+@import './Profile.css';
 @import './SearchBar.css';
 @import './Floaters.css';
 

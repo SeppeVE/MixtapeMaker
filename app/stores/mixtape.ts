@@ -6,8 +6,10 @@ import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { generateId } from '~/utils/timeUtils';
 import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import { findProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import {
   saveMixtape,
+  isCloudId,
   toggleMixtapePublic,
   enableMixtapeShare,
   disableMixtapeShare,
@@ -17,6 +19,8 @@ import {
   saveMixtapeToLocal,
   loadActiveCardFromLocal,
   saveActiveCardToLocal,
+  loadMixtapeDirtyFromLocal,
+  saveMixtapeDirtyToLocal,
 } from '~/utils/localStorage';
 
 // Content fingerprint used to detect whether a copy is still an exact duplicate
@@ -45,6 +49,13 @@ function blankMixtape(): Mixtape {
   };
 }
 
+// Public tapes show up on Explore for everyone, so their user-written text
+// (not the Spotify track names) has to pass the profanity check. Returns the
+// offending field label, or null when clean.
+function publicProfanity(m: Mixtape): string | null {
+  return findProfanity({ 'mixtape title': m.title, 'dedication': m.dedicatedTo });
+}
+
 /** Current working mixtape + active designer card. Replaces useAppMixtapeState. */
 export const useMixtapeStore = defineStore('mixtape', () => {
   const ui = useUiStore();
@@ -53,6 +64,9 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   const mixtape = ref<Mixtape>(blankMixtape());
   const activeCard = ref<JCard | null>(null);
   const isSaving = ref(false);
+  // True while the draft has edits the cloud hasn't seen. Persisted so a
+  // reload doesn't silently forget that a tape was never saved.
+  const dirty = ref(false);
 
   // Signature of the untouched copy, captured whenever the current mixtape is
   // (or becomes) an unedited copy. Null once it's not tracking a copy at all.
@@ -69,8 +83,16 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     if (stored) mixtape.value = stored;
     trackCopySignature(mixtape.value);
     activeCard.value = loadActiveCardFromLocal();
+    dirty.value = loadMixtapeDirtyFromLocal();
     watch(mixtape, (v) => saveMixtapeToLocal(v), { deep: true });
     watch(activeCard, (v) => saveActiveCardToLocal(v), { deep: true });
+    watch(dirty, (v) => saveMixtapeDirtyToLocal(v));
+  }
+
+  // Worth warning about: unsaved edits on a tape that actually has content.
+  function hasUnsavedChanges(): boolean {
+    const m = mixtape.value;
+    return dirty.value && (m.sideA.length > 0 || m.sideB.length > 0 || !isMixtapeUntitled(m.title));
   }
 
   // Apply a content patch and, if the current mixtape started as an unedited
@@ -80,6 +102,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     const next: Mixtape = { ...mixtape.value, ...patch, updatedAt: new Date().toISOString() };
     if (copySignature !== null) next.isCopy = contentSignature(next) === copySignature;
     mixtape.value = next;
+    dirty.value = true;
   }
 
   // Returns whether the mixtape was actually saved, so callers can react to a
@@ -93,10 +116,17 @@ export const useMixtapeStore = defineStore('mixtape', () => {
       ui.showToast('Give your mixtape a name before saving to the cloud', 'error');
       return false;
     }
+    // An already-public tape can't be renamed into something profane.
+    const profane = mixtape.value.isPublic ? publicProfanity(mixtape.value) : null;
+    if (profane) {
+      ui.showToast(PROFANITY_MESSAGE(profane), 'error');
+      return false;
+    }
     isSaving.value = true;
     try {
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
       trackCopySignature(mixtape.value);
+      dirty.value = false;
       ui.showToast('Mixtape saved to cloud', 'success');
       return true;
     } catch (err) {
@@ -111,6 +141,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   function newMixtape() {
     mixtape.value = blankMixtape();
     trackCopySignature(mixtape.value);
+    dirty.value = false;
     navigateTo('/mixtape');
     ui.showToast('New mixtape created', 'success');
   }
@@ -118,18 +149,29 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   function loadMixtape(loaded: Mixtape) {
     mixtape.value = loaded;
     trackCopySignature(mixtape.value);
+    // A cloud tape starts clean; a local draft or a fresh copy from Explore isn't in the cloud yet.
+    dirty.value = !isCloudId(loaded.id) || loaded.isCopy === true;
     navigateTo('/mixtape');
     ui.showToast('Mixtape loaded', 'success');
   }
 
-  async function togglePublic(mixtapeId: string, makePublic: boolean) {
+  // Returns whether the change went through, so callers with an optimistic
+  // UI can roll back when it's refused (profanity) or fails.
+  async function togglePublic(tape: Mixtape, makePublic: boolean): Promise<boolean> {
+    const profane = makePublic ? publicProfanity(tape) : null;
+    if (profane) {
+      ui.showToast(PROFANITY_MESSAGE(profane), 'error');
+      return false;
+    }
     try {
-      await toggleMixtapePublic(mixtapeId, makePublic);
-      if (mixtape.value.id === mixtapeId) mixtape.value = { ...mixtape.value, isPublic: makePublic };
+      await toggleMixtapePublic(tape.id, makePublic);
+      if (mixtape.value.id === tape.id) mixtape.value = { ...mixtape.value, isPublic: makePublic };
       ui.showToast(makePublic ? 'Mixtape is now public' : 'Mixtape is now private', 'success');
+      return true;
     } catch (err) {
       console.error('Toggle public failed:', err);
       ui.showToast('Failed to update visibility', 'error');
+      return false;
     }
   }
 
@@ -154,6 +196,8 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     mixtape,
     activeCard,
     isSaving,
+    dirty,
+    hasUnsavedChanges,
     updateMixtape,
     save,
     newMixtape,

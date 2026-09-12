@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { JCard, JCardContent, Mixtape, CustomFont } from '~/types';
+import type { JCard, JCardContent, Mixtape, CustomFont, JCardPaperSize, JCardDuplexFlip } from '~/types';
 import { JCARD_PRESETS } from '~/utils/jcardPresets';
 import { type Section, SECTION_COLORS, SETTINGS_COLOR_PRESETS as COLOR_PRESETS } from './settingsSections';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { fontNameFromFile, readFileAsBase64, mimeTypeFromFile, registerCustomFonts } from '~/utils/fontManager';
-import { exportJCardToPDF } from '~/utils/jcardPdf';
+import {
+  exportJCardToPDF, resolvePdfLayout, shouldExportInside, jcardHasInsideContent,
+  PAPER_SIZES_MM, DEFAULT_PAPER, DEFAULT_DUPLEX_FLIP,
+} from '~/utils/jcardPdf';
 
 const props = defineProps<{
   card: JCard;
@@ -17,6 +20,7 @@ const emit = defineEmits<{
   titleChange: [title: string];
   contentChange: [content: JCardContent];
   mixtapeLink: [id: string | null];
+  publicChange: [isPublic: boolean];
 }>();
 
 const content = computed(() => migrateJCardContent(props.card.content));
@@ -154,6 +158,18 @@ function setInsideFlapImageBehind(checked: boolean) {
   patch({ insideFlapImageBehindContents: next });
 }
 
+// Export / print options.
+const pdfLayout = computed(() => resolvePdfLayout(content.value));
+const paperSize = computed<JCardPaperSize>(() => content.value.paperSize ?? DEFAULT_PAPER);
+const duplexFlip = computed<JCardDuplexFlip>(() => content.value.duplexFlip ?? DEFAULT_DUPLEX_FLIP);
+const exportInside = computed(() => shouldExportInside(content.value));
+const insideHasContent = computed(() => jcardHasInsideContent(content.value));
+const paperLabel = computed(() =>
+  pdfLayout.value.paper === 'fit'
+    ? `custom page ${pdfLayout.value.pageWmm.toFixed(0)} × ${pdfLayout.value.pageHmm.toFixed(0)} mm`
+    : `${PAPER_SIZES_MM[pdfLayout.value.paper].label} landscape`,
+);
+
 function blockAttrs(id: Section) {
   return { id, visible: isVisible(id), open: isOpen(id), bg: SECTION_COLORS[id].bg, fg: SECTION_COLORS[id].fg };
 }
@@ -165,6 +181,11 @@ function blockAttrs(id: Section) {
     <SettingsBlock v-bind="blockAttrs('info')" label="✎ Card info" @toggle="toggle">
       <label class="settings-label">Title</label>
       <input class="settings-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
+      <label class="settings-checkbox-label" style="margin-top:6px">
+        <input type="checkbox" :checked="card.isPublic === true" @change="emit('publicChange', ($event.target as HTMLInputElement).checked)" />
+        Public — show on my profile and the linked mixtape's page
+      </label>
+      <p class="small-info">Needs to be saved to the cloud (sign in) before anyone else can see it.</p>
     </SettingsBlock>
 
     <!-- 1b. Presets -->
@@ -202,8 +223,10 @@ function blockAttrs(id: Section) {
       <div class="settings-range-ticks">
         <span v-for="n in 6" :key="n">{{ n }}</span>
       </div>
-      <p v-if="!content.shortBack && content.flaps > 3" class="small-info">
-        Cover + {{ content.flaps - 1 }} Panels — this will not fit on a standard A4 paper, keep this in mind for printing.
+      <p v-if="!pdfLayout.fitsRequested" class="small-info">
+        Cover + {{ content.flaps - 1 }} panels is {{ pdfLayout.widthMm.toFixed(1) }} mm wide — too wide for
+        {{ PAPER_SIZES_MM[pdfLayout.requestedPaper === 'fit' ? 'a4' : pdfLayout.requestedPaper].label }} landscape.
+        The PDF will use a custom page size; print it on larger paper (A3) or at a copy shop.
       </p>
     </SettingsBlock>
 
@@ -432,16 +455,66 @@ function blockAttrs(id: Section) {
 
     <!-- 9. Export -->
     <SettingsBlock v-bind="blockAttrs('export')" label="⇪ Export" @toggle="toggle">
-      <label class="settings-checkbox-label" style="margin-bottom:8px">
+      <label class="settings-label">Paper</label>
+      <select
+        class="settings-select"
+        :value="paperSize"
+        @change="patch({ paperSize: ($event.target as HTMLSelectElement).value as JCardPaperSize })"
+      >
+        <option value="a4">A4 landscape (297 × 210 mm)</option>
+        <option value="letter">US Letter landscape (11 × 8.5 in)</option>
+        <option value="fit">Fit to card (custom page size)</option>
+      </select>
+      <p v-if="!pdfLayout.fitsRequested" class="small-info">
+        The card is wider than this paper — the PDF will use a custom page instead.
+      </p>
+
+      <label class="settings-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.showCutGuides" @change="patch({ showCutGuides: ($event.target as HTMLInputElement).checked })" />
         Show fold / cut guides
       </label>
-      <button class="btn btn-primary" style="width:100%;justify-content:center" :disabled="exporting" @click="handleExport">
+      <label class="settings-checkbox-label">
+        <input type="checkbox" :checked="!!content.bleed" @change="patch({ bleed: ($event.target as HTMLInputElement).checked })" />
+        Add 3 mm bleed (mirrors the edges outward so an off cut shows no white)
+      </label>
+      <label class="settings-checkbox-label">
+        <input type="checkbox" :checked="exportInside" @change="patch({ exportInside: ($event.target as HTMLInputElement).checked })" />
+        Include inside as page 2 (two-sided print)
+      </label>
+      <p v-if="exportInside && !insideHasContent" class="small-info">
+        The inside is empty — page 2 will only carry the background colour.
+      </p>
+
+      <template v-if="exportInside">
+        <label class="settings-label" style="margin-top:6px">Printer flips the sheet on the</label>
+        <select
+          class="settings-select"
+          :value="duplexFlip"
+          @change="patch({ duplexFlip: ($event.target as HTMLSelectElement).value as JCardDuplexFlip })"
+        >
+          <option value="long">Long edge (printer default)</option>
+          <option value="short">Short edge</option>
+        </select>
+        <p class="small-info">
+          Match this to the "two-sided" setting in your print dialog. With "long edge", page 2 looks upside
+          down in the PDF viewer — that is intended, it comes out right after the flip.
+        </p>
+      </template>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" :disabled="exporting" @click="handleExport">
         {{ exporting ? 'Generating...' : 'Export PDF' }}
       </button>
-      <p style="font-size:10px;color:var(--color-text-light);margin-top:6px;font-family:var(--font-body)">
-        Print at 100% / Actual size for correct dimensions.
-      </p>
+
+      <p style="font-size:10px;color:var(--color-text-light);margin:8px 0 2px;font-family:var(--font-body);letter-spacing:0.5px">PRINT SETTINGS</p>
+      <ul style="font-size:10px;color:var(--color-text-light);margin:0;padding-left:14px;font-family:var(--font-body);line-height:1.5">
+        <li>Paper: {{ paperLabel }}</li>
+        <li>Scale: 100% / actual size — never "fit to page" or "shrink to printable area"</li>
+        <li v-if="exportInside">Two-sided: on, flip on {{ duplexFlip }} edge (or feed page 1 back in by hand the same way)</li>
+        <li v-else>Two-sided: off</li>
+        <li>Print page 1 alone first and measure the 50 mm bar under the card before printing both sides</li>
+        <li>Use card stock of 160–250 g/m² and cut on the crop marks, fold on the dashed guides</li>
+        <li v-if="content.bleed">The ghosted border around the card is the bleed; it is cut away</li>
+      </ul>
     </SettingsBlock>
   </div>
 </template>

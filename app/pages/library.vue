@@ -96,9 +96,8 @@ async function handleTogglePublic(tape: Mixtape) {
   if (tape.isCopy) return;
   const next = !tape.isPublic;
   cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, isPublic: next } : t));
-  try {
-    await store.togglePublic(tape.id, next);
-  } catch {
+  const ok = await store.togglePublic(tape, next);
+  if (!ok) {
     cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, isPublic: tape.isPublic } : t));
   }
 }

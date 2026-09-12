@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Song, Side, Mixtape } from '~/types';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { isCloudId } from '~/utils/database';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import { useUnsavedStore } from '~/stores/unsaved';
 
 const store = useMixtapeStore();
 const router = useRouter();
+const unsaved = useUnsavedStore();
+
+// Warn before leaving with edits the cloud hasn't seen (see stores/unsaved.ts).
+onMounted(() => {
+  unsaved.register('mixtape', {
+    path: '/mixtape',
+    kind: 'mixtape',
+    title: () => (isMixtapeUntitled(store.mixtape.title) ? '' : store.mixtape.title),
+    dirty: () => store.hasUnsavedChanges(),
+    save: () => store.save(),
+  });
+});
+onBeforeUnmount(() => unsaved.unregister('mixtape'));
 
 const sideA = ref(true);
 const flipping = ref(false);
@@ -147,7 +161,7 @@ function saveTitle() {
           @update="update"
           @save="store.save()"
           @new-mixtape="store.newMixtape()"
-          @toggle-public="store.togglePublic(mixtape.id, !mixtape.isPublic)"
+          @toggle-public="store.togglePublic(mixtape, !mixtape.isPublic)"
         />
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { CustomFont } from '../types';
 
 /**
- * Curated fonts loaded from Google Fonts (see index.html).
+ * Curated fonts, self-hosted via Fontsource (see app/assets/css/fonts.css).
  * These are always available in the font picker without any upload.
  */
 export const CURATED_FONTS: string[] = [

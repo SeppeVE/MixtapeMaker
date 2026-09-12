@@ -54,6 +54,8 @@
 
 /* ── tape strip decoration ── */
 .lp-tape-strip {
+  position: relative;
+  z-index: 2;
   display: flex;
   width: 100%;
   height: 7px;
@@ -566,6 +568,9 @@
 
 /* ── footer ── */
 .lp-footer {
+  /* Own stacking context so the editor's fixed floating shapes (z-index 1) stay behind it */
+  position: relative;
+  z-index: 2;
   background: var(--color-paper);
   border-top: 3px solid var(--color-text);
   padding: 10px 40px;
@@ -606,6 +611,12 @@
   color: var(--color-text-light);
   opacity: 0.55;
 }
+
+.lp-foot-link {
+  color: inherit;
+  text-decoration: underline;
+}
+.lp-foot-link:hover { color: var(--color-primary); }
 
 .lp-foot-note {
   font-family: var(--font-body);
@@ -741,13 +752,16 @@
     display: none;
   }
 
-  /* Feature bar — single column */
+  /* Feature bar — single column. The extra selector weight beats the tablet
+     rule above that clears the bottom border on the last odd pill. */
   .lp-feature-pill {
     flex: 0 0 100%;
     border-right: none;
+  }
+  .lp-feature-bar-inner .lp-feature-pill:not(:last-child) {
     border-bottom: 2.5px solid var(--color-text);
   }
-  .lp-feature-pill:last-child {
+  .lp-feature-bar-inner .lp-feature-pill:last-child {
     border-bottom: none;
   }
 
@@ -797,5 +811,24 @@
   /* Footer */
   .lp-footer {
     padding: 18px 20px;
+  }
+  .footer-btn-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+  }
+  .footer-btn-group .footer-btn {
+    justify-content: center;
+  }
+  .footer-btn-group .footer-coffee {
+    display: block;
+    width: 100%;
+  }
+  .footer-btn-group .footer-logo {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    transform: none;
   }
 }

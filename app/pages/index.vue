@@ -40,5 +40,6 @@ watch(() => auth.user, loadRecent);
     <HowItWorksSection />
     <CtaSection :recent-tapes="recentTapes" />
     <HomeFooter />
+    <NotificationModal />
   </div>
 </template>

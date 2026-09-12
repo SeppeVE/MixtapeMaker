@@ -10,6 +10,7 @@ const ui = useUiStore();
 
     <AuthModal />
     <FeedbackModal />
+    <UnsavedChangesModal />
     <Toast
       v-if="ui.toast"
       :message="ui.toast.message"

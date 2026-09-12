@@ -41,6 +41,26 @@ export const clearMixtapeFromLocal = (): void => {
   }
 };
 
+// ── "Draft has edits the cloud hasn't seen" flag ────────────────────────────
+const DIRTY_KEY = 'mixtape-dirty';
+
+export const saveMixtapeDirtyToLocal = (dirty: boolean): void => {
+  if (!isClient) return;
+  try {
+    if (dirty) localStorage.setItem(DIRTY_KEY, '1');
+    else localStorage.removeItem(DIRTY_KEY);
+  } catch { /* ignore */ }
+};
+
+export const loadMixtapeDirtyFromLocal = (): boolean => {
+  if (!isClient) return false;
+  try {
+    return localStorage.getItem(DIRTY_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 // ── Active (designer) JCard local storage ────────────────────────────────────
 const ACTIVE_CARD_KEY = 'jcard-active';
 

@@ -1,0 +1,27 @@
+/* Self-hosted web fonts (Fontsource packages, bundled by Vite).
+ * Replaces the Google Fonts stylesheets so visitors' IP addresses are no
+ * longer sent to Google just to load type. Latin subsets only — the app is
+ * English-only and the J-card PDF export embeds every @font-face it finds,
+ * so fewer files keeps that step fast.
+ *
+ * VT323 is the site's display face; the rest are the J-card designer's
+ * built-in fonts (see BUILTIN_FONTS in app/utils/fontManager.ts). */
+@import '@fontsource/vt323/latin-400.css';
+@import '@fontsource/bebas-neue/latin-400.css';
+@import '@fontsource/caveat/latin-400.css';
+@import '@fontsource/caveat/latin-700.css';
+@import '@fontsource/eb-garamond/latin-400.css';
+@import '@fontsource/eb-garamond/latin-700.css';
+@import '@fontsource/eb-garamond/latin-400-italic.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-700.css';
+@import '@fontsource/ibm-plex-sans/latin-400-italic.css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-700.css';
+@import '@fontsource/permanent-marker/latin-400.css';
+@import '@fontsource/playfair-display/latin-400.css';
+@import '@fontsource/playfair-display/latin-700.css';
+@import '@fontsource/playfair-display/latin-400-italic.css';
+@import '@fontsource/special-elite/latin-400.css';

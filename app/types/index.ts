@@ -10,6 +10,8 @@ export interface Song {
 
 export interface Mixtape {
   id: string;
+  /** Owner's auth user id. Present on cloud-loaded tapes; absent on local drafts. */
+  userId?: string;
   title: string;
   dedicatedTo?: string;
   cassetteLength: 60 | 90 | 120; // minutes
@@ -53,6 +55,11 @@ export interface CustomFont {
   mimeType: string;
 }
 
+/** Paper the exported PDF is laid out on. 'fit' = a custom page sized to the card. */
+export type JCardPaperSize = 'a4' | 'letter' | 'fit';
+/** Which paper edge the printer flips the sheet on for two-sided printing. */
+export type JCardDuplexFlip = 'long' | 'short';
+
 export interface JCardContent {
   flaps: 1 | 2 | 3 | 4 | 5 | 6;
   isReversed: boolean;
@@ -95,6 +102,14 @@ export interface JCardContent {
   backRightContent: string;
   /** Show dashed fold/cut guides on the printable export */
   showCutGuides?: boolean;
+  /** Paper size for the exported PDF (landscape). Defaults to 'a4'; falls back to 'fit' when the card is too wide. */
+  paperSize?: JCardPaperSize;
+  /** Add the inside face as page 2 of the PDF. Defaults to true whenever any inside content exists. */
+  exportInside?: boolean;
+  /** Duplex flip edge page 2 is laid out for. Defaults to 'long', which is the printer default. */
+  duplexFlip?: JCardDuplexFlip;
+  /** Extend the card's edges outward on the PDF so a slightly off cut shows no white paper. */
+  bleed?: boolean;
   /** User-uploaded woff2 fonts stored as base64, available across all text editors for this card. */
   customFonts?: CustomFont[];
   /** @deprecated Use insideFlapContents / insideSpineContent / insideBackContent for per-panel inside content. */
@@ -115,4 +130,31 @@ export interface JCard {
   content: JCardContent;
   createdAt: string;
   updatedAt: string;
+  /** Visible on the owner's public profile and on the linked mixtape's detail page. */
+  isPublic?: boolean;
+}
+
+/** A user's public-facing profile row (mirrors the `profiles` table). */
+export interface Profile {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  /** Short free-text "about me", shown on the public profile page. */
+  bio: string | null;
+  /** When true, /user/{username} only shows a "profile is private" notice. */
+  isPrivate: boolean;
+  isAdmin: boolean;
+  /** Id of the last site notification the user dismissed with "Don't show again". */
+  seenNotificationId: string | null;
+  createdAt: string;
+}
+
+/** A site-wide announcement posted from the admin panel. */
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  createdAt: string;
 }

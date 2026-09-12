@@ -48,7 +48,7 @@ function handleDragOver(index: number) {
     <!-- Song list -->
     <div class="song-list">
       <div v-if="songs.length === 0" class="empty-side">
-        ◌ Drop a song here · or press A / B from search
+        ◌ No songs yet · search above and press A / B to add one
       </div>
       <template v-else>
         <div

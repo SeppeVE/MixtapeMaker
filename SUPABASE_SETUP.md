@@ -158,8 +158,8 @@ GRANT EXECUTE ON FUNCTION public.feedback_rate_limit_ok(UUID) TO anon, authentic
 --  - a signed-in user is limited to one submission per 10 minutes
 -- (Anonymous submitters have no server-side identity to rate-limit against;
 -- the client applies a soft, best-effort cooldown of its own for them.)
--- There is intentionally no SELECT policy — only readable via the dashboard
--- (or a service-role key), not from the client.
+-- No SELECT policy for regular users: submitters can't read feedback back.
+-- Admins get read/delete access in Step 3f.7 so the /admin page can show it.
 CREATE POLICY "Anyone can submit feedback"
   ON feedback
   FOR INSERT
@@ -421,7 +421,7 @@ WHERE id = (SELECT id FROM auth.users WHERE email = 'you@example.com');
 ```
 
 After that, an **Admin** button appears in the nav and `/admin` lets you post
-notifications. Users only ever see the newest one; "Don't show again" is
+notifications and (after part 7 below) read feedback. Users only ever see the newest one; "Don't show again" is
 remembered per user, "Close" only hides it for the current tab.
 
 ### 6. Already ran step 3f before the bio field existed?
@@ -433,6 +433,27 @@ ALTER TABLE profiles ADD COLUMN bio TEXT CHECK (char_length(bio) <= 300);
 GRANT INSERT (bio) ON profiles TO authenticated;
 GRANT UPDATE (bio) ON profiles TO authenticated;
 ```
+
+### 7. Feedback in the admin panel
+
+Lets `/admin` list and delete entries from the `feedback` table (Step 3d).
+Requires `is_admin()` from part 1 above.
+
+```sql
+CREATE POLICY "Admins can read feedback"
+  ON feedback FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+
+CREATE POLICY "Admins can delete feedback"
+  ON feedback FOR DELETE
+  TO authenticated
+  USING (public.is_admin());
+```
+
+Non-admins still get an empty result rather than an error, so nothing else
+in the app changes. Delete entries once they've been dealt with: the privacy
+page promises feedback is only kept until it has been read and acted on.
 
 ## Step 3g: Account Deletion
 

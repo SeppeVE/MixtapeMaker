@@ -136,7 +136,7 @@ Full SQL with RLS policies is in `SUPABASE_SETUP.md`. Summary:
 | `jcards` | `user_id` | owner; anyone if `is_public` | `mixtape_id` links a card to a tape. |
 | `profiles` | `id` (= `auth.users.id`) | everyone | Created by a trigger on sign-up. Column-level grants stop clients from writing `is_admin`. |
 | `notifications` | `created_by` | signed-in users | Insert/delete only when `is_admin()` is true. |
-| `feedback` | `user_id` (nullable) | nobody via API | Insert-only, rate-limited per user by a SECURITY DEFINER function. |
+| `feedback` | `user_id` (nullable) | admins (`is_admin()`) | Anyone can insert, rate-limited per user by a SECURITY DEFINER function; admins read/delete from `/admin`. |
 
 Storage buckets:
 
@@ -151,7 +151,7 @@ SQL functions the client calls or relies on:
 | --- | --- |
 | `generate_username(email)` | Email prefix → sanitised unique username; used by the sign-up trigger and backfill. |
 | `handle_new_user()` | Trigger on `auth.users` insert → creates the `profiles` row. |
-| `is_admin()` | Reads the caller's `profiles.is_admin`; used in notification policies. |
+| `is_admin()` | Reads the caller's `profiles.is_admin`; used in notification and feedback policies. |
 | `feedback_rate_limit_ok(uid)` | One feedback per user per 10 minutes. |
 | `delete_own_account()` | Deletes the caller's `auth.users` row; cascades to profile, mixtapes, jcards. Called via `supabase.rpc()`. |
 
@@ -203,7 +203,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | `jcardDatabase.ts` | `jcards` | CRUD, `upsertJCard` for local→cloud upload, public queries by user / by mixtape, `toggleJCardPublic`. |
 | `profileDatabase.ts` | `profiles`, `avatars` bucket | Username rules (`USERNAME_RE`, `normalizeUsername`, `usernameError`), `loadOrCreateOwnProfile` (fallback if the trigger didn't run), `loadProfilesByIds` (bylines), `updateProfile`, avatar upload with canvas crop, `deleteOwnAccount`. |
 | `notificationDatabase.ts` | `notifications` | `loadLatestNotification`, `listNotifications`, `createNotification`, `deleteNotification`. |
-| `feedbackDatabase.ts` | `feedback` | `submitFeedback`, `isRateLimitError`. |
+| `feedbackDatabase.ts` | `feedback` | `submitFeedback`, `isRateLimitError`, `listFeedback`, `deleteFeedback` (admin). |
 | `supabaseImages.ts` | `jcard-images` bucket | Upload with data-URL fallback if the bucket is unavailable; delete by public URL. |
 
 ### Spotify

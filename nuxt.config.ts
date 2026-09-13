@@ -3,8 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
-
-  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt', '@nuxt/ui'],
+  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt', '@nuxt/ui', '@sentry/nuxt/module'],
 
   // Flat component names (filename only, no directory prefix) to match the
   // original React component names: <NavBar>, <CassetteSVG>, <JCardView>, etc.
@@ -119,4 +118,14 @@ export default defineNuxtConfig({
   },
 
   typescript: { typeCheck: false },
+
+  sentry: {
+    org: 'mixtapemaker',
+    project: 'javascript-nuxt',
+    autoInjectServerSentry: 'top-level-import',
+  },
+
+  sourcemap: {
+    client: 'hidden',
+  },
 })

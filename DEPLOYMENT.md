@@ -32,6 +32,18 @@ server secrets are read via `process.env` in `server/api/spotify/search.get.ts`.
 
 Local dev uses `nuxt/.env` (already generated from the React `.env`, gitignored).
 
+### Sentry (optional)
+
+| Purpose | Variable |
+| --- | --- |
+| DSN for the browser SDK | `NUXT_PUBLIC_SENTRY_DSN` |
+| DSN for the Nitro server SDK (falls back to the public one) | `SENTRY_DSN` |
+| Environment label shown in Sentry (optional) | `NUXT_PUBLIC_SENTRY_ENVIRONMENT` / `SENTRY_ENVIRONMENT` |
+| Source-map upload during `nuxt build` (optional) | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
+
+Sentry stays disabled when no DSN is set. Init lives in `sentry.client.config.ts` and
+`sentry.server.config.ts`; the module is registered in `nuxt.config.ts`.
+
 ## Rendering strategy (already configured in `nuxt.config.ts` `routeRules`)
 
 - `/` — prerendered (static, full SEO).

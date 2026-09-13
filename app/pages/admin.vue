@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSeoMeta } from '#app';
-import type { AppNotification } from '~/types';
+import type { AppNotification, FeedbackEntry, Profile } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useProfileStore } from '~/stores/profile';
@@ -12,6 +12,8 @@ import {
   NOTIFICATION_TITLE_MAX_LENGTH,
   NOTIFICATION_BODY_MAX_LENGTH,
 } from '~/utils/notificationDatabase';
+import { listFeedback, deleteFeedback } from '~/utils/feedbackDatabase';
+import { loadProfilesByIds } from '~/utils/profileDatabase';
 
 useSeoMeta({ title: 'Admin — Mixtape Maker', robots: 'noindex' });
 
@@ -45,8 +47,61 @@ async function load() {
   }
 }
 
-onMounted(load);
-watch(allowed, load);
+const feedback = ref<FeedbackEntry[]>([]);
+const feedbackAuthors = ref<Map<string, Profile>>(new Map());
+const feedbackLoading = ref(false);
+const feedbackError = ref<string | null>(null);
+
+async function loadFeedback() {
+  if (!allowed.value) return;
+  feedbackLoading.value = true;
+  feedbackError.value = null;
+  try {
+    feedback.value = await listFeedback();
+    // Feedback only stores the user id; resolve usernames so entries from
+    // signed-in users link to their public profile. Best-effort: a failure
+    // here just leaves the entries unattributed.
+    try {
+      feedbackAuthors.value = await loadProfilesByIds(
+        feedback.value.map((f) => f.userId).filter((id): id is string => !!id),
+      );
+    } catch {
+      feedbackAuthors.value = new Map();
+    }
+  } catch {
+    feedbackError.value = 'Failed to load feedback — is the admin SELECT policy on the feedback table set up?';
+  } finally {
+    feedbackLoading.value = false;
+  }
+}
+
+// Each entry paired with its author's profile (null for anonymous entries
+// and deleted accounts) so the template needs no lookups.
+const feedbackRows = computed(() =>
+  feedback.value.map((entry) => ({
+    entry,
+    author: entry.userId ? feedbackAuthors.value.get(entry.userId) ?? null : null,
+  })),
+);
+
+async function removeFeedback(f: FeedbackEntry) {
+  if (!confirm('Delete this feedback entry? This cannot be undone.')) return;
+  try {
+    await deleteFeedback(f.id);
+    feedback.value = feedback.value.filter((x) => x.id !== f.id);
+    ui.showToast('Feedback deleted', 'info');
+  } catch {
+    ui.showToast('Failed to delete', 'error');
+  }
+}
+
+function loadAll() {
+  load();
+  loadFeedback();
+}
+
+onMounted(loadAll);
+watch(allowed, loadAll);
 
 const canPost = computed(() => !!title.value.trim() && !!body.value.trim() && !posting.value);
 
@@ -100,7 +155,7 @@ const fmtDate = (iso: string) =>
       <div class="lib-header-inner">
         <div>
           <div class="lib-page-eyebrow">◆ SITE ADMIN</div>
-          <h1 class="lib-page-title">Notifications</h1>
+          <h1 class="lib-page-title">Notifications &amp; Feedback</h1>
         </div>
       </div>
     </div>
@@ -177,6 +232,51 @@ const fmtDate = (iso: string) =>
                 <a v-if="n.linkUrl" :href="n.linkUrl" class="pf-inline-link" target="_blank" rel="noopener">{{ n.linkLabel || n.linkUrl }}</a>
               </div>
               <button class="lib-delete-btn" title="Delete" @click="remove(n)">×</button>
+            </li>
+          </ul>
+        </section>
+
+        <section class="lib-section">
+          <div class="lib-section-head">
+            <span>Feedback</span>
+            <span class="lib-section-sub">
+              {{ feedback.length }} {{ feedback.length === 1 ? 'entry' : 'entries' }} · newest first · delete once handled
+            </span>
+          </div>
+
+          <p v-if="feedbackLoading" class="lib-loading">Loading…</p>
+          <div v-else-if="feedbackError" class="lib-error-state">
+            <span class="lib-error-icon">⚠</span>
+            <span class="lib-error-msg">{{ feedbackError }}</span>
+            <button class="lp-btn lp-btn-mustard" @click="loadFeedback">↻ Retry</button>
+          </div>
+          <div v-else-if="feedback.length === 0" class="lib-empty">
+            <div class="lib-empty-icon">💡</div>
+            <p>No feedback yet.</p>
+            <p class="lib-empty-sub">Entries sent through the Feedback button in the footer show up here.</p>
+          </div>
+          <ul v-else class="adm-list">
+            <li v-for="{ entry: f, author } in feedbackRows" :key="f.id" class="adm-item">
+              <div class="adm-item-main">
+                <div class="adm-item-head">
+                  <NuxtLink
+                    v-if="author"
+                    :to="`/user/${author.username}`"
+                    class="pf-inline-link adm-feedback-author"
+                  >@{{ author.username }}</NuxtLink>
+                  <span v-else class="adm-feedback-author adm-feedback-anon">
+                    {{ f.userId ? 'Deleted account' : 'Anonymous' }}
+                  </span>
+                  <span class="adm-item-date">{{ fmtDate(f.createdAt) }}</span>
+                </div>
+                <p class="adm-item-body">{{ f.message }}</p>
+                <div class="adm-feedback-meta">
+                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link">✉ {{ f.email }}</a>
+                  <span v-else>✉ no email left</span>
+                  <span v-if="f.page">· sent from <code>{{ f.page }}</code></span>
+                </div>
+              </div>
+              <button class="lib-delete-btn" title="Delete" @click="removeFeedback(f)">×</button>
             </li>
           </ul>
         </section>

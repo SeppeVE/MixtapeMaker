@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { FeedbackEntry } from '../types';
 
 // Keep in sync with the CHECK constraint on feedback.message in SUPABASE_SETUP.md.
 export const FEEDBACK_MESSAGE_MAX_LENGTH = 2000;
@@ -33,5 +34,45 @@ export async function submitFeedback(
     page: typeof window !== 'undefined' ? window.location.pathname : null,
   });
 
+  if (error) throw error;
+}
+
+interface DbFeedback {
+  id: string;
+  user_id: string | null;
+  email: string | null;
+  message: string;
+  page: string | null;
+  created_at: string;
+}
+
+function dbToFeedback(r: DbFeedback): FeedbackEntry {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    email: r.email,
+    message: r.message,
+    page: r.page,
+    createdAt: r.created_at,
+  };
+}
+
+// Everything in the table, newest first. Only admins get rows back: the
+// SELECT policy in SUPABASE_SETUP.md checks is_admin(), so for anyone else
+// this resolves to an empty list rather than an error.
+export async function listFeedback(): Promise<FeedbackEntry[]> {
+  const { data, error } = await supabase
+    .from('feedback')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbFeedback[]).map(dbToFeedback);
+}
+
+// Admin-only (DELETE policy). Used once a piece of feedback has been dealt
+// with — the privacy page promises feedback is kept only until it's been
+// read and acted on.
+export async function deleteFeedback(id: string): Promise<void> {
+  const { error } = await supabase.from('feedback').delete().eq('id', id);
   if (error) throw error;
 }

@@ -22,6 +22,7 @@
     "@fontsource/vt323": "^5.3.0",
     "@nuxt/ui": "^4.10.0",
     "@pinia/nuxt": "^0.11.0",
+    "@sentry/nuxt": "^10.74.0",
     "@supabase/supabase-js": "^2.39.0",
     "@tiptap/core": "^3.22.4",
     "@tiptap/extension-text-align": "^3.22.4",
@@ -44,5 +45,8 @@
     "typescript": "^5.6.0",
     "vue": "^3.5.0",
     "vue-router": "^4.4.0"
+  },
+  "overrides": {
+    "@vercel/nft": "^0.27.4"
   }
 }

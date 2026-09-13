@@ -149,6 +149,18 @@ export interface Profile {
   createdAt: string;
 }
 
+/** One row of the feedback table, as shown in the admin panel. */
+export interface FeedbackEntry {
+  id: string;
+  /** Null for anonymous submissions and for deleted accounts. */
+  userId: string | null;
+  email: string | null;
+  message: string;
+  /** Pathname the feedback was sent from. */
+  page: string | null;
+  createdAt: string;
+}
+
 /** A site-wide announcement posted from the admin panel. */
 export interface AppNotification {
   id: string;

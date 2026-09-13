@@ -53,6 +53,8 @@ export default defineNuxtConfig({
   // `nuxt build` only when SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
   // are present in the build environment; otherwise the build just skips it.
   sentry: {
+    org: 'mixtapemaker',
+    project: 'javascript-nuxt',
     // Vercel has no `node --import` hook, so import the server config at the
     // top of the Nitro entry instead.
     autoInjectServerSentry: 'top-level-import',
@@ -136,14 +138,4 @@ export default defineNuxtConfig({
   },
 
   typescript: { typeCheck: false },
-
-  sentry: {
-    org: 'mixtapemaker',
-    project: 'javascript-nuxt',
-    autoInjectServerSentry: 'top-level-import',
-  },
-
-  sourcemap: {
-    client: 'hidden',
-  },
 })

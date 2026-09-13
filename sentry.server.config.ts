@@ -1,19 +1,15 @@
-import * as Sentry from "@sentry/nuxt";
- 
+// Server-side (Nitro) Sentry init. Picked up automatically by
+// @sentry/nuxt/module from the project root and injected at the top of the
+// server entry (see `sentry.autoInjectServerSentry` in nuxt.config.ts), which
+// is what Vercel's serverless runtime needs — there is no `node --import`
+// hook to preload it there.
+import * as Sentry from '@sentry/nuxt';
+
+const dsn = process.env.SENTRY_DSN || process.env.NUXT_PUBLIC_SENTRY_DSN;
+
 Sentry.init({
-  dsn: "https://b1f4c1d386690ff7cff244486fa649a6@o4512079437299712.ingest.de.sentry.io/4512079441821776",
-
-  // We recommend adjusting this value in production, or using tracesSampler
-  // for finer control
-  tracesSampleRate: 1.0,
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/nuxt/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
-
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
+  dsn,
+  environment: process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || undefined,
+  tracesSampleRate: 0,
+  enabled: !!dsn,
 });

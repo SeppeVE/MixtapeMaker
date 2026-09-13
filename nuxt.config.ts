@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
+
   modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt', '@nuxt/ui', '@sentry/nuxt/module'],
 
   // Flat component names (filename only, no directory prefix) to match the
@@ -40,8 +41,25 @@ export default defineNuxtConfig({
       supabaseAnonKey: '',   // NUXT_PUBLIC_SUPABASE_ANON_KEY
       spotifyClientId: '',   // NUXT_PUBLIC_SPOTIFY_CLIENT_ID
       turnstileSiteKey: '',  // NUXT_PUBLIC_TURNSTILE_SITE_KEY
+      sentry: {
+        dsn: '',             // NUXT_PUBLIC_SENTRY_DSN
+        environment: '',     // NUXT_PUBLIC_SENTRY_ENVIRONMENT (optional)
+      },
     },
   },
+
+  // Error monitoring. Init lives in sentry.client.config.ts /
+  // sentry.server.config.ts at the project root. Source maps are uploaded on
+  // `nuxt build` only when SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
+  // are present in the build environment; otherwise the build just skips it.
+  sentry: {
+    // Vercel has no `node --import` hook, so import the server config at the
+    // top of the Nitro entry instead.
+    autoInjectServerSentry: 'top-level-import',
+    sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+    telemetry: false,
+  },
+  sourcemap: { client: 'hidden' },
 
   app: {
     head: {

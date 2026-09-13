@@ -42,10 +42,7 @@ Local dev uses `nuxt/.env` (already generated from the React `.env`, gitignored)
 | Source-map upload during `nuxt build` (optional) | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` |
 
 Sentry stays disabled when no DSN is set. Init lives in `sentry.client.config.ts` and
-`sentry.server.config.ts`; the module is registered in `nuxt.config.ts`. To verify a
-deployment, open `/sentry-example-page` and press the button: it raises one error on
-the server (`/api/sentry-example-api`) and one in the browser, both of which should
-appear in the Sentry project. Delete that page and API route once you no longer need them.
+`sentry.server.config.ts`; the module is registered in `nuxt.config.ts`.
 
 ## Rendering strategy (already configured in `nuxt.config.ts` `routeRules`)
 

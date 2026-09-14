@@ -10,11 +10,25 @@ Sentry.init({
   dsn: config.public.sentry.dsn,
   environment: config.public.sentry.environment || undefined,
 
-  // Keep the client bundle lean: only error reporting for now.
-  // Bump these (and add integrations) once we want performance/replay data.
+  integrations: [
+    // Session Replay: a DOM recording of what the user saw around an error.
+    // Text is masked and images/media are blocked before anything leaves the
+    // browser, so mixtape titles, J-card text, emails and cover art never
+    // reach Sentry — only layout, clicks and navigation do.
+    Sentry.replayIntegration({
+      maskAllText: true,
+      blockAllMedia: true,
+    }),
+  ],
+
+  // No performance tracing yet; bump this once we want it.
   tracesSampleRate: 0,
-  replaysSessionSampleRate: 0,
-  replaysOnErrorSampleRate: 0,
+
+  // Replay sampling. Every session that hits an error is recorded (the
+  // buffer holds the last ~60s before the error), plus a 10% sample of
+  // ordinary sessions so we can also see how people use the editor.
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
 
   // Don't spam Sentry from local dev unless a DSN is explicitly set.
   enabled: !!config.public.sentry.dsn,

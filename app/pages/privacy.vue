@@ -52,6 +52,11 @@ const PROVIDERS = [
     what: 'A captcha that runs a Cloudflare script and sees your IP address and browser details to decide whether you are a human.',
   },
   {
+    name: 'Sentry',
+    role: 'Error monitoring',
+    what: 'When something breaks, the error, the page you were on, your browser type and IP address are sent to Sentry so we can fix it. For sessions that hit an error, and a small sample of others, Sentry also records a replay of how the page was used: text is masked and images are blocked before anything leaves your browser, so we see layout and clicks, not what you typed or uploaded.',
+  },
+  {
     name: 'Buy Me a Coffee',
     role: 'Donation link',
     what: 'The button image in the footer is loaded from their servers, which see your IP address. Nothing is shared unless you click through and donate on their site.',
@@ -197,7 +202,8 @@ const PROVIDERS = [
           <h2 class="gd-h2">How long we keep it, and how to delete it</h2>
           <p class="gd-p">
             Your account and everything in it is kept until you delete it. Feedback messages are kept until they've
-            been read and acted on. Analytics are aggregated and hold no personal data.
+            been read and acted on. Analytics are aggregated and hold no personal data. Error reports and session
+            replays in Sentry are deleted automatically after 90 days.
           </p>
           <p class="gd-p">
             You can delete individual mixtapes and J-cards from your library at any time. To remove everything, open

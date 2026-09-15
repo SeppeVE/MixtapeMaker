@@ -41,7 +41,7 @@ plus manual testing.
 .
 ├── app/                     Nuxt app (compatibilityVersion 4 → everything under app/)
 │   ├── app.vue              Root: <NuxtLayout><NuxtPage/></NuxtLayout>
-│   ├── layouts/default.vue  Wraps every page with AuthModal, FeedbackModal, Toast
+│   ├── layouts/default.vue  Wraps every page with AuthModal, FeedbackModal, UnsavedChangesModal, SuccessModal, Toast
 │   ├── pages/               File-based routes (see §3)
 │   ├── components/          Auto-imported by *filename only* (no folder prefix)
 │   │   ├── auth/            AuthModal, TurnstileWidget
@@ -53,7 +53,7 @@ plus manual testing.
 │   │   ├── notifications/   NotificationModal ("What's new" popup)
 │   │   ├── spotify/         ExportToSpotify button
 │   │   ├── tape/            Cassette SVG, editor side lists, read-only side lists
-│   │   ├── ui/              NavBar, SearchBar, Toast, AuthorByline, Floaters
+│   │   ├── ui/              NavBar, SearchBar, Toast, SuccessModal, UnsavedChangesModal, AuthorByline, Floaters
 │   │   └── ExplorePagination.vue
 │   ├── stores/              Pinia stores (see §5)
 │   ├── utils/               Plain TS modules: DB access, Spotify, PDF, helpers (see §6)
@@ -88,7 +88,7 @@ Rendering mode is set per route in `nuxt.config.ts` → `routeRules`.
 | `/` | `pages/index.vue` | prerender | Landing page: hero, feature bar, sections, CTA with recent tapes, footer. Mounts `<NotificationModal>`. |
 | `/mixtape` | `pages/mixtape.vue` | client | The editor: Spotify search, Side A/B lists with drag-reorder, cassette preview, save/public/share. |
 | `/library` | `pages/library.vue` | client | Two tabs (`?tab=jcards`): cloud mixtapes (public toggle, share link, delete) and the J-card grid. |
-| `/cards/designer` | `pages/cards/designer.vue` | client | J-card designer; wraps `<JCardView>` with the store's `activeCard`. |
+| `/cards/designer` | `pages/cards/designer.vue` | client | J-card designer; wraps `<JCardView>` with the store's `activeCard`. Measures whether the previews fit above the footer and, if not, pushes the footer below the fold. |
 | `/explore` | `pages/explore/index.vue` | SSR | Public mixtapes with title search + pagination; author bylines. |
 | `/explore/:id` | `pages/explore/[id].vue` | SSR | One public mixtape + author + public J-cards linked to it. 404 if private. |
 | `/share/:token` | `pages/share/[token].vue` | SSR | A mixtape by share token, public or not. Same view component as explore. |
@@ -137,6 +137,7 @@ Full SQL with RLS policies is in `SUPABASE_SETUP.md`. Summary:
 | `profiles` | `id` (= `auth.users.id`) | everyone | Created by a trigger on sign-up. Column-level grants stop clients from writing `is_admin`. |
 | `notifications` | `created_by` | signed-in users | Insert/delete only when `is_admin()` is true. |
 | `feedback` | `user_id` (nullable) | admins (`is_admin()`) | Anyone can insert, rate-limited per user by a SECURITY DEFINER function; admins read/delete from `/admin`. |
+| `user_preferences` | `user_id` | owner only | Support-prompt suppression (last shown / clicked / opt-out) and the print-checklist mute. Kept off `profiles` because those are world-readable. Created lazily on first write. |
 
 Storage buckets:
 
@@ -167,6 +168,7 @@ SQL functions the client calls or relies on:
 | Spotify tokens | Access/refresh token for playlist export; never sent to our server. |
 | `mixtape-feedback-last-submit` | Client-side feedback cooldown. |
 | `mixtape-notification-dismissed` (session) | Notification closed in this tab. |
+| `supportPromptLastShownAt`, `supportPromptOptOut`, `supportPromptClickedAt`, `printChecklistOptOut` | Support-prompt suppression (`utils/supportPrompt.ts`); mirrored to `user_preferences` when signed in. |
 
 ---
 
@@ -182,7 +184,8 @@ prop-drilling.
 | `profile.ts` | The signed-in user's `Profile`, `loading`, `isAdmin`, `displayName` | `init()` watches auth and loads (or creates) the profile row; `update(patch)`; `markNotificationSeen(id)`. |
 | `mixtape.ts` | The current `mixtape` draft, `activeCard` for the designer, `isSaving` | `updateMixtape(patch)` (tracks whether a copy is still unedited), `save()`, `togglePublic(tape, bool)` (profanity-gated), `enableShare/disableShare`, `openDesigner(card)`. Persists to localStorage via watchers. |
 | `jcardLibrary.ts` | Merged list of local + cloud cards, which ids are in the cloud | `loadCards()`, `cardStatus(card)` → local/cloud/synced, `uploadCard`, `deleteCard`, `togglePublic` (profanity-gated). |
-| `ui.ts` | Toast, auth-modal open, feedback-modal open | `showToast`, `openAuth`, `openFeedback`… |
+| `ui.ts` | Toast, auth-modal open, feedback-modal open, the success modal's content | `showToast`, `openAuth`, `openFeedback`, `openSuccessModal(opts)` (decides whether the coffee block rides along, or falls back to a toast), `hideSupportBlock`, `hideChecklist`. |
+| `support.ts` | Support-prompt suppression state (`SupportPromptState`) | `shouldShowSupportBlock()`, `markSupportBlockShown`, `markSupportBlockClicked`, `optOutOfSupportBlock`, `optOutOfPrintChecklist`. Always writes localStorage; when signed in also syncs with `user_preferences` (merge never drops a suppression). |
 | `unsaved.ts` | Registry of editor pages holding work not yet in the cloud; the navigation waiting on the user | `register/unregister(key, source)`, `shouldAllow(to, from)` (router guard), `stay`, `approve`, `saveAll`. |
 
 Boot order on the client (`plugins/auth.client.ts`): `auth.init()` then
@@ -205,6 +208,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | `notificationDatabase.ts` | `notifications` | `loadLatestNotification`, `listNotifications`, `createNotification`, `deleteNotification`. |
 | `feedbackDatabase.ts` | `feedback` | `submitFeedback`, `isRateLimitError`, `listFeedback`, `deleteFeedback` (admin). |
 | `supabaseImages.ts` | `jcard-images` bucket | Upload with data-URL fallback if the bucket is unavailable; delete by public URL. |
+| `supportDatabase.ts` | `user_preferences` | `loadSupportPrefs` (null when no row), `saveSupportPrefs` (upsert). Errors propagate so the store can stay on localStorage. |
 
 ### Spotify
 
@@ -234,6 +238,9 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | `mixtapeTitle.ts` | `DEFAULT_MIXTAPE_TITLE`, `isMixtapeUntitled` (blocks cloud-saving unnamed tapes). |
 | `timeUtils.ts` | Duration formatting, side-limit maths, `generateId`. |
 | `localStorage.ts` | The keys listed in §4.3. |
+| `supportPrompt.ts` | `SUPPORT_URL`, the coffee-block rules (`evaluateSupportBlock`: opt-out → 180-day donor cooldown → 30-day show cooldown), `mergeSupportState`, and the localStorage read/write for §4.3's support keys. |
+| `mixtapeStats.ts` | `mixtapeFacts(mixtape)` — runtime per side vs. capacity, distinct artists; the "facts, not praise" lines in success modals. |
+| `analytics.ts` | `trackEvent(name, props)` wrapper over Vercel Analytics `track()`; events: `support_block_shown/clicked/opted_out` (with `trigger`), `print_checklist_opted_out`. |
 
 ---
 
@@ -241,8 +248,9 @@ the router guard and the `beforeunload` listener for the unsaved store.
 
 ### Navigation & chrome
 - `ui/NavBar.vue` — logo, breadcrumb slot, right-hand buttons (Admin, Guide, Explore, Library, Sign In *or* profile avatar button). Collapses into a hamburger panel under 900px; the panel repeats the breadcrumb slot.
-- `home/HomeFooter.vue` — brand, privacy link, Feedback / Contact / Buy-me-a-coffee. Used on every page.
+- `home/HomeFooter.vue` — brand, privacy link, Feedback / Contact / Buy-me-a-coffee (tracked as `support_block_clicked` with `trigger: 'footer'`). Used on every page.
 - `ui/Toast.vue`, `auth/AuthModal.vue`, `feedback/FeedbackModal.vue` — mounted once in `layouts/default.vue`, driven by the `ui` store.
+- `ui/SuccessModal.vue` — the post-action confirmation (Spotify playlist link, share link, PDF print checklist) with the rate-limited "Buy me a coffee" footer. Opened via `ui.openSuccessModal()`; closing (×/Escape) never opts out, only the "Don't show this again" links do.
 - `ui/UnsavedChangesModal.vue` — hazard-striped warning shown when leaving an editor with unsaved work (Stay / Save & leave / Leave without saving). Mounted in the layout, driven by the `unsaved` store.
 - `notifications/NotificationModal.vue` — mounted on the homepage only. Shows the newest notification if its id ≠ `profile.seenNotificationId` and it wasn't closed in this tab.
 
@@ -282,7 +290,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 - **Shared page shells:** `.lib-page` + `.lib-header` + `.lib-section` is the standard "app page" frame (library, explore, profile, admin, detail pages). `.gd-page` is the long-form article frame (how-to, privacy).
 - **Buttons:** `.lp-btn` with colour modifiers (`-paper`, `-mustard`, `-plum`, `-forest`, `-seafoam`); `.btn` is the smaller in-panel button.
 - **Breakpoints:** 900px (nav collapses, feature bar goes 2-col), 768px (section heads stack), 600px (single column, stacked footer buttons).
-- Tailwind is loaded (Nuxt UI needs it) but the codebase barely uses it; the few utility classes in use (`transform-origin-top-left`, `transition-opacity`, `height-max-content`…) are hand-written in `utilities.css`. Keep styling in the feature CSS files rather than sprinkling Tailwind classes into templates.
+- Tailwind is loaded (Nuxt UI needs it) but the codebase barely uses it; the few utility classes in use (`transform-origin-top-left`, `transition-opacity`, `footer-btn`…) are hand-written in `utilities.css`. Keep styling in the feature CSS files rather than sprinkling Tailwind classes into templates.
 
 ---
 
@@ -322,6 +330,17 @@ them on A4/Letter/fit pages via `pdf-lib`, mirroring page 2 for duplex.
 → `/spotify-callback` exchanges the code and stores tokens in localStorage →
 back on the page, `exportMixtapeToSpotify()` creates the playlist, adds
 tracks by URI, and uploads the cassette JPEG as cover if the scope allows.
+
+**Support prompt.** Passive placements (footer button, library card, the
+"Made with" line in the PDF margin, the Spotify playlist description) are
+always on. The active ask only rides inside `SuccessModal`, which fires
+*after* a Spotify export, a share-link copy / "Make Public", or a PDF
+download. `ui.openSuccessModal()` asks the `support` store whether the coffee
+block may show (opt-out → 180 days after a click → 30 days after a show),
+marks it shown, and fires `support_block_shown`; if neither the modal's own
+content (link, checklist, facts) nor the block should appear, it shows the
+caller's fallback toast instead. Preferences live in localStorage and, when
+signed in, `user_preferences` (merged on sign-in so no suppression is lost).
 
 **Notifications.** Admin posts via `/admin` (RLS checks `is_admin()`). On the
 homepage the modal fetches the single newest row; "Close" writes a

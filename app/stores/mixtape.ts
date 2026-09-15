@@ -166,7 +166,18 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     try {
       await toggleMixtapePublic(tape.id, makePublic);
       if (mixtape.value.id === tape.id) mixtape.value = { ...mixtape.value, isPublic: makePublic };
-      ui.showToast(makePublic ? 'Mixtape is now public' : 'Mixtape is now private', 'success');
+      if (makePublic) {
+        // Going public is a share: hand over the explore link right away.
+        ui.openSuccessModal({
+          title: 'Mixtape is now public',
+          trigger: 'share',
+          link: { url: `${window.location.origin}/explore/${tape.id}`, openLabel: 'Open public page' },
+          note: 'It now shows up on the Explore page. Anyone with this link can view it.',
+          fallbackToast: 'Mixtape is now public',
+        });
+      } else {
+        ui.showToast('Mixtape is now private', 'success');
+      }
       return true;
     } catch (err) {
       console.error('Toggle public failed:', err);

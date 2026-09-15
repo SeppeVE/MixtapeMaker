@@ -236,6 +236,48 @@
   line-height: 1.6;
 }
 
+/* ── Support card (bottom of the mixtape list) ── */
+.lib-support-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 22px;
+  border: 2px dashed rgba(42, 30, 40, 0.3);
+  background: var(--color-white);
+}
+
+.lib-support-card-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.lib-support-card-text p {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text-light);
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 0;
+}
+
+.lib-support-card-btn {
+  flex-shrink: 0;
+  font-size: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .lib-support-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
+
 /* ── Sync banner (signed-out with local cards) ── */
 .lib-sync-banner {
   display: flex;

@@ -21,6 +21,8 @@ const CROP_LEN_MM = 5;
 const CROP_WIDTH_PT = 0.5;
 const SCALE_BAR_MM = 50;
 const NOTE_PT = 7;
+/** Small credit in the page margin, outside the trim line so it never ends up on the card. */
+const MADE_WITH_LINE = 'Made with mixtape-maker.com';
 
 /** Landscape paper sizes in mm (long edge first). */
 export const PAPER_SIZES_MM: Record<Exclude<JCardPaperSize, 'fit'>, { w: number; h: number; label: string }> = {
@@ -310,11 +312,20 @@ function drawPageNotes(
   notes: { heading: string; settings: string },
 ) {
   const ink = rgb(0.25, 0.25, 0.25);
+  const faint = rgb(0.5, 0.5, 0.5);
   const maxWidth = rect.right - rect.left;
 
+  // Heading top-left, "Made with" credit top-right on the same line; the
+  // heading gives way so the two never collide on a narrow card.
   const headingY = rect.top + bleed + (CROP_GAP_MM + CROP_LEN_MM + 2) * MM_TO_PT;
-  page.drawText(fitText(notes.heading, font, NOTE_PT, maxWidth), {
+  const creditWidth = font.widthOfTextAtSize(MADE_WITH_LINE, NOTE_PT);
+  const creditGap = 4 * MM_TO_PT;
+  const headingWidth = Math.max(maxWidth - creditWidth - creditGap, 0);
+  page.drawText(fitText(notes.heading, font, NOTE_PT, headingWidth), {
     x: rect.left, y: headingY, size: NOTE_PT, font, color: ink,
+  });
+  page.drawText(MADE_WITH_LINE, {
+    x: rect.right - creditWidth, y: headingY, size: NOTE_PT, font, color: faint,
   });
 
   // Calibration bar: a horizontal line with end ticks, exactly SCALE_BAR_MM long.

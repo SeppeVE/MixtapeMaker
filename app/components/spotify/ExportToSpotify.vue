@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import type { Mixtape } from '~/types';
+import { useUiStore } from '~/stores/ui';
 import { exportMixtapeToSpotify, type ExportResult } from '~/utils/spotifyExport';
 import { isAuthenticated, clearTokens, startSpotifyAuth } from '~/utils/spotifyAuth';
+import { mixtapeFacts } from '~/utils/mixtapeStats';
 
 const props = defineProps<{ mixtape: Mixtape }>();
+const ui = useUiStore();
 
 type State = 'idle' | 'connecting' | 'exporting' | 'success' | 'error';
 
@@ -49,6 +52,17 @@ async function handleClick() {
     result.value = await exportMixtapeToSpotify(props.mixtape);
     if (!result.value.coverSet) console.warn('Spotify playlist cover not set:', result.value.coverError);
     state.value = 'success';
+    // The export is already done; the modal only confirms it and hands over the link.
+    const { playlistUrl, addedCount, skippedCount } = result.value;
+    ui.openSuccessModal({
+      title: 'Playlist created',
+      trigger: 'spotify',
+      link: { url: playlistUrl, openLabel: 'Open in Spotify' },
+      note: skippedCount > 0
+        ? `${addedCount} added · ${skippedCount} skipped (not on Spotify)`
+        : undefined,
+      facts: mixtapeFacts(props.mixtape),
+    });
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Export failed';
     state.value = 'error';

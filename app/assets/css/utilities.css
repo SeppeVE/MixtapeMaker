@@ -205,26 +205,16 @@
   z-index: 1;
 }
 
-/* Footer logo sizing */
-.footer-logo {
-  height: 40px;
-  width: 150px;
-  transform: translateY(3px);
-}
-
 /* Vertical alignment */
 .align-middle {
   vertical-align: middle;
-}
-
-.height-max-content {
-  height: max-content;
 }
 
 /* Footer button utilities */
 .footer-btn-group {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .footer-btn {

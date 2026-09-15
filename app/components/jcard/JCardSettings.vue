@@ -9,6 +9,7 @@ import {
   exportJCardToPDF, resolvePdfLayout, shouldExportInside, jcardHasInsideContent,
   PAPER_SIZES_MM, DEFAULT_PAPER, DEFAULT_DUPLEX_FLIP,
 } from '~/utils/jcardPdf';
+import { useUiStore } from '~/stores/ui';
 
 const props = defineProps<{
   card: JCard;
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   publicChange: [isPublic: boolean];
 }>();
 
+const ui = useUiStore();
 const content = computed(() => migrateJCardContent(props.card.content));
 
 function patch(partial: Partial<JCardContent>) {
@@ -112,9 +114,19 @@ async function handleExport() {
     await exportJCardToPDF(content.value, props.card.title || 'jcard');
   } catch (e) {
     console.error(e);
+    ui.showToast('Could not generate the PDF — please try again', 'error');
+    return;
   } finally {
     exporting.value = false;
   }
+  // The file is already downloading. What people need *now* is the print
+  // guidance they would otherwise get wrong; it is muteable on its own.
+  ui.openSuccessModal({
+    title: 'J-card downloaded',
+    trigger: 'pdf',
+    checklist: { heading: 'Before you print', items: printChecklist.value },
+    fallbackToast: 'J-card PDF downloaded',
+  });
 }
 
 function handleApplyPreset(presetId: string) {
@@ -169,6 +181,23 @@ const paperLabel = computed(() =>
     ? `custom page ${pdfLayout.value.pageWmm.toFixed(0)} × ${pdfLayout.value.pageHmm.toFixed(0)} mm`
     : `${PAPER_SIZES_MM[pdfLayout.value.paper].label} landscape`,
 );
+
+// Same guidance as the PRINT SETTINGS list below, condensed for the download modal.
+const printChecklist = computed<string[]>(() => {
+  const items = [
+    `Paper: ${paperLabel.value}`,
+    '100% scale / actual size — turn off "fit to page"',
+  ];
+  if (exportInside.value) {
+    items.push(`Two-sided, flip on the ${duplexFlip.value} edge (match the print dialog)`);
+    items.push('Print page 1 alone first and measure the 50 mm bar before printing both sides');
+  } else {
+    items.push('Two-sided: off');
+  }
+  items.push('Cut on the crop marks, fold on the dashed guides');
+  if (content.value.bleed) items.push('The ghosted border is the bleed — it is cut away');
+  return items;
+});
 
 function blockAttrs(id: Section) {
   return { id, visible: isVisible(id), open: isOpen(id), bg: SECTION_COLORS[id].bg, fg: SECTION_COLORS[id].fg };

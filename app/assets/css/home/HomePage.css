@@ -821,14 +821,4 @@
   .footer-btn-group .footer-btn {
     justify-content: center;
   }
-  .footer-btn-group .footer-coffee {
-    display: block;
-    width: 100%;
-  }
-  .footer-btn-group .footer-logo {
-    width: 100%;
-    max-width: 220px;
-    height: auto;
-    transform: none;
-  }
 }

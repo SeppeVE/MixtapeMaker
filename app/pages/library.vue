@@ -9,6 +9,8 @@ import { useJCardLibraryStore } from '~/stores/jcardLibrary';
 import { loadMixtapes, deleteMixtape } from '~/utils/database';
 import { formatDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import { SUPPORT_URL } from '~/utils/supportPrompt';
+import { trackEvent } from '~/utils/analytics';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -103,16 +105,31 @@ async function handleTogglePublic(tape: Mixtape) {
 }
 
 async function handleShare(tape: Mixtape) {
+  let url: string;
   try {
     const token = tape.shareToken ?? (await store.enableShare(tape.id));
     if (!tape.shareToken) {
       cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, shareToken: token } : t));
     }
-    await navigator.clipboard.writeText(buildShareUrl(token));
-    ui.showToast('Share link copied to clipboard', 'success');
+    url = buildShareUrl(token);
   } catch {
     ui.showToast('Failed to create share link', 'error');
+    return;
   }
+  // Copy is best-effort (clipboard access can be denied); the modal always
+  // carries the link and its own copy button, so a failed copy is not an error.
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(url);
+    copied = true;
+  } catch { /* handled by the modal's copy button */ }
+  ui.openSuccessModal({
+    title: 'Share link ready',
+    trigger: 'share',
+    link: { url, openLabel: 'Open link' },
+    copied,
+    note: 'Anyone with this link can view the mixtape, even while it is private.',
+  });
 }
 
 function openCard(card: JCard) {
@@ -279,6 +296,26 @@ function newCard() {
             </div>
           </div>
         </section>
+
+        <!-- Low-key support card. Passive placement: no suppression, no interruption. -->
+        <aside class="lib-support-card">
+          <div class="lib-support-card-text">
+            <div class="lib-support-card-title">Support the project</div>
+            <p>
+              Mixtape Maker is made by one person, free and without ads.
+              If it earned a spot in your routine, a coffee keeps the tape rolling.
+            </p>
+          </div>
+          <a
+            class="lp-btn lp-btn-mustard lib-support-card-btn"
+            :href="SUPPORT_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click="trackEvent('support_block_clicked', { trigger: 'library' })"
+          >
+            ☕ Buy me a coffee
+          </a>
+        </aside>
       </div>
 
       <!-- J-CARDS TAB -->

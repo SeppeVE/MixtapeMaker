@@ -209,6 +209,13 @@
   height: 100%;
   flex-shrink: 0;
   overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  /* Stacked above .jcl-mini-bg (below) so a transparent panel still shows the
+     continuous image through it, instead of the panel's own paint order
+     (an in-flow sibling) landing on top of the positioned bg layer. */
+  position: relative;
+  z-index: 1;
 }
 
 .jcl-mini-spine {
@@ -223,6 +230,7 @@
 .jcl-mini-bg {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background-size: cover;
   background-position: center;
 }

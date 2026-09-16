@@ -195,6 +195,8 @@
   border-color: rgba(42, 30, 40, 0.3);
 }
 
+/* Badge-shaped toggle — still used by the J-card library and the profile
+   privacy row. Tape cards toggle visibility from a real footer button now. */
 .lib-public-toggle {
   font-family: var(--font-display);
   font-size: 14px;
@@ -332,6 +334,12 @@
   gap: 16px;
 }
 
+/* Own tapes carry a three-button action footer, so they need a wider column
+   than the read-only explore/J-card cards to keep it down to two tidy rows. */
+.lib-cards-grid--tapes {
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+
 /* ── Draft card ── */
 .lib-draft-card {
   display: flex;
@@ -407,17 +415,60 @@
   flex: 1;
 }
 
-.lib-tape-card-actions {
+/* Own-library cards stack title → status → stats → actions, so the title band
+   gets the lighter paper tone to separate it from the status strip below it. */
+.lib-tape-card--owned .lib-tape-card-header {
+  background: var(--color-white);
+}
+
+/* The title owns a full-width row here, so let long tape names use it. */
+.lib-tape-card--owned .lib-tape-card-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.lib-tape-card--owned .lib-tape-row:last-child {
+  border-top: 1px solid rgba(42, 30, 40, 0.35);
+  padding-top: 4px;
+  margin-top: 1px;
+}
+
+/* Status strip under the title — read-only, sits on paper so it reads as
+   information rather than as a row of controls. */
+.lib-tape-card-meta {
+  background: var(--color-paper);
+  border-bottom: 2px solid var(--color-text);
   padding: 6px 10px;
-  border-bottom: 1px solid rgba(42, 30, 40, 0.25);
+}
+
+.lib-tape-card-meta-row {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 
+/* A hair smaller than a stand-alone badge so both badges and the tape spec
+   stay on one line in a grid column, even at C-120 and a long locale date. */
+.lib-tape-card-meta-row .lib-badge {
+  font-size: 13px;
+}
+
+.lib-tape-card-spec {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
 .lib-copy-note {
-  padding: 4px 10px 0;
+  padding-top: 4px;
   font-family: var(--font-body);
   font-size: 11px;
   font-style: italic;
@@ -425,6 +476,39 @@
   color: var(--color-text-light);
   opacity: 0.75;
 }
+
+/* Action footer — every control is a real button on paper, so none of them
+   sink into the mustard the way the old ghost chips did. */
+.lib-tape-card-actions {
+  background: var(--color-paper);
+  border-top: 2px solid var(--color-text);
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lib-tape-action {
+  font-size: 16px;
+  padding: 4px 12px 2px;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+.lib-tape-action:hover { box-shadow: 4px 4px 0 var(--color-text); }
+.lib-tape-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+/* Pushed away from Copy link so the destructive action is never a mis-click. */
+.lib-tape-delete {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 5px 10px 4px;
+}
+.lib-tape-delete:hover { background: var(--color-warning); color: var(--color-paper); }
 
 .lib-tape-card-body {
   padding: 8px 10px 6px;
@@ -536,6 +620,7 @@
 }
 
 /* ── Shared action buttons ── */
+/* Bare ✕ — still used by the admin panel's notification and feedback rows. */
 .lib-delete-btn {
   background: none;
   border: none;

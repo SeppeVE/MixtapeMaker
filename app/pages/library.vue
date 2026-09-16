@@ -219,7 +219,7 @@ function newCard() {
             <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
           </div>
 
-          <div v-else-if="tapesLoading" class="lib-cards-grid">
+          <div v-else-if="tapesLoading" class="lib-cards-grid lib-cards-grid--tapes">
             <div v-for="n in 3" :key="n" class="lib-skeleton-tape">
               <div class="lib-skeleton-header" />
               <div class="lib-skeleton-body">
@@ -244,11 +244,11 @@ function newCard() {
             <button class="lp-btn lp-btn-mustard" style="margin-top:8px" @click="store.newMixtape()">▶ Make a Tape</button>
           </div>
 
-          <div v-else class="lib-cards-grid">
+          <div v-else class="lib-cards-grid lib-cards-grid--tapes">
             <div
               v-for="tape in cloudTapes"
               :key="tape.id"
-              class="lib-tape-card"
+              class="lib-tape-card lib-tape-card--owned"
               role="button"
               :tabindex="0"
               @click="store.loadMixtape(tape)"
@@ -257,20 +257,19 @@ function newCard() {
               <div class="lib-tape-card-header">
                 <span class="lib-tape-card-title">{{ tape.title }}</span>
               </div>
-              <div class="lib-tape-card-actions" @click.stop>
-                <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
-                <button
-                  :class="`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`"
-                  :disabled="tape.isCopy"
-                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
-                  @click="handleTogglePublic(tape)"
-                >
-                  {{ tape.isPublic ? '◉ Public' : '◌ Private' }}
-                </button>
-                <button class="lib-public-toggle lib-badge-private" title="Copy share link" @click="handleShare(tape)">
-                  🔗 Copy Link
-                </button>
-                <button class="lib-delete-btn" title="Delete" @click="handleDeleteTape(tape)">×</button>
+              <!-- Read-only status strip: badges say what the tape *is*, never what you can do to it. -->
+              <div class="lib-tape-card-meta">
+                <div class="lib-tape-card-meta-row">
+                  <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
+                  <span
+                    class="lib-badge"
+                    :class="tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'"
+                    :title="tape.isPublic ? 'Public · listed on the explore page' : 'Private · not listed on the explore page'"
+                  >
+                    {{ tape.isPublic ? '👁 Public' : '👁 Private' }}
+                  </span>
+                  <span class="lib-tape-card-spec">C-{{ tape.cassetteLength }} · {{ fmtDate(tape.updatedAt) }}</span>
+                </div>
                 <p v-if="tape.isCopy" class="lib-copy-note">
                   This is an unedited copy of another mixtape, and will not show up in the explore page
                 </p>
@@ -289,9 +288,22 @@ function newCard() {
                   <span class="lib-tape-value">{{ formatDuration(totalDuration(tape)) }}</span>
                 </div>
               </div>
-              <div class="lib-tape-card-footer">
-                <span class="lib-tape-length">C-{{ tape.cassetteLength }}</span>
-                <span class="lib-tape-date">{{ fmtDate(tape.updatedAt) }}</span>
+              <!-- Action footer: everything here is a real button on paper, not a chip on mustard. -->
+              <div class="lib-tape-card-actions" @click.stop>
+                <button class="lp-btn lp-btn-plum lib-tape-action" title="Copy share link" @click="handleShare(tape)">
+                  🔗 Copy link
+                </button>
+                <button
+                  class="lp-btn lp-btn-paper lib-tape-action"
+                  :disabled="tape.isCopy"
+                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Hide this tape from the explore page' : 'Show this tape on the explore page'"
+                  @click="handleTogglePublic(tape)"
+                >
+                  {{ tape.isPublic ? 'Make private' : 'Make public' }}
+                </button>
+                <button class="btn lib-tape-delete" title="Delete tape" @click="handleDeleteTape(tape)">
+                  🗑 Delete
+                </button>
               </div>
             </div>
           </div>

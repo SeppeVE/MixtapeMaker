@@ -573,41 +573,41 @@
   z-index: 2;
   background: var(--color-paper);
   border-top: 3px solid var(--color-text);
-  padding: 10px 40px;
+  padding: 26px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 20px;
 }
 
 .lp-foot-brand {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
 }
 
-/* Smaller echo of .lp-logo (NavBar) — same mark, doesn't need header scale */
+/* Echo of .lp-logo (NavBar) — same mark, scaled up to match the bigger footer */
 .lp-foot-logo {
   font-family: var(--font-display);
-  font-size: 17px;
-  letter-spacing: 1.5px;
+  font-size: 22px;
+  letter-spacing: 2px;
   color: var(--color-text);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .lp-foot-logo-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
 .lp-foot-copyright {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--color-text-light);
   opacity: 0.55;
 }
@@ -620,7 +620,7 @@
 
 .lp-foot-note {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 15px;
   color: var(--color-text-light);
   opacity: 0.6;
 }
@@ -708,8 +708,8 @@
   .lp-footer {
     flex-direction: column;
     align-items: flex-start;
-    padding: 20px 28px;
-    gap: 14px;
+    padding: 28px 28px;
+    gap: 20px;
   }
 
   .lp-cassette-float {
@@ -810,15 +810,18 @@
 
   /* Footer */
   .lp-footer {
-    padding: 18px 20px;
+    padding: 24px 20px;
   }
   .footer-btn-group {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
-    gap: 12px;
+    gap: 14px;
   }
   .footer-btn-group .footer-btn {
     justify-content: center;
+  }
+  .footer-btn-group img[alt="Featured on TinyShelf"] {
+    margin: 0 auto;
   }
 }

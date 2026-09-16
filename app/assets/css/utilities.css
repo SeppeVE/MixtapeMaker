@@ -213,8 +213,9 @@
 /* Footer button utilities */
 .footer-btn-group {
   display: flex;
-  gap: 10px;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 10px 16px;
 }
 
 .footer-btn {

@@ -40,6 +40,10 @@ const ui = useUiStore();
       >
         ☕ Buy me a coffee
       </a>
+      <a href="https://www.tinyshelf.co/?ref=mixtape-maker.com" title="Featured on TinyShelf">
+        <img src="https://www.tinyshelf.co/badge/tinyshelf-badge-light-amber-1cdea1ce.svg"
+             alt="Featured on TinyShelf" width="216" height="64"/>
+      </a>
     </div>
   </footer>
 </template>

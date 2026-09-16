@@ -343,7 +343,7 @@ function newCard() {
               + New Card
             </button>
           </div>
-          <JCardLibrary embedded @open-card="openCard" @new-card="newCard" />
+          <JCardLibrary embedded :mixtapes="cloudTapes" @open-card="openCard" @new-card="newCard" />
         </section>
       </div>
     </div>

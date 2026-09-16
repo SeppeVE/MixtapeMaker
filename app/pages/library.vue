@@ -288,19 +288,23 @@ function newCard() {
                   <span class="lib-tape-value">{{ formatDuration(totalDuration(tape)) }}</span>
                 </div>
               </div>
-              <!-- Action footer: everything here is a real button on paper, not a chip on mustard. -->
+              <!-- Action footer: everything here is a real button on paper, not a chip on mustard.
+                   The two share controls share a row when the card is wide enough and stack
+                   when it isn't; Delete stays pinned to the right either way. -->
               <div class="lib-tape-card-actions" @click.stop>
-                <button class="lp-btn lp-btn-plum lib-tape-action" title="Copy share link" @click="handleShare(tape)">
-                  🔗 Copy link
-                </button>
-                <button
-                  class="lp-btn lp-btn-paper lib-tape-action"
-                  :disabled="tape.isCopy"
-                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Hide this tape from the explore page' : 'Show this tape on the explore page'"
-                  @click="handleTogglePublic(tape)"
-                >
-                  {{ tape.isPublic ? 'Make private' : 'Make public' }}
-                </button>
+                <div class="lib-tape-card-actions-main">
+                  <button class="lp-btn lp-btn-plum lib-tape-action" title="Copy share link" @click="handleShare(tape)">
+                    🔗 Copy link
+                  </button>
+                  <button
+                    class="lp-btn lp-btn-paper lib-tape-action"
+                    :disabled="tape.isCopy"
+                    :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Hide this tape from the explore page' : 'Show this tape on the explore page'"
+                    @click="handleTogglePublic(tape)"
+                  >
+                    {{ tape.isPublic ? 'Make private' : 'Make public' }}
+                  </button>
+                </div>
                 <button class="btn lib-tape-delete" title="Delete tape" @click="handleDeleteTape(tape)">
                   🗑 Delete
                 </button>

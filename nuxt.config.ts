@@ -3,8 +3,16 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
+  devServer: { host: 'localhost', port: 3100 },
 
-  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@vercel/analytics/nuxt', '@nuxt/ui', '@sentry/nuxt/module'],
+  modules: [
+    '@pinia/nuxt', 
+    '@vueuse/nuxt', 
+    '@vercel/analytics/nuxt', 
+    '@nuxt/ui', 
+    '@sentry/nuxt/module',
+    ['unplugin-icons/nuxt', { autoInstall: true }],
+  ],
 
   // Flat component names (filename only, no directory prefix) to match the
   // original React component names: <NavBar>, <CassetteSVG>, <JCardView>, etc.

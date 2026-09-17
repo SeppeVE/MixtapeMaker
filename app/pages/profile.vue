@@ -301,6 +301,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               :disabled="privacySaving"
               @click="togglePrivate"
             >
+              <VisibilityToggleIcon :is-public="!profile.isPrivate" />
               {{ profile.isPrivate ? 'Make public' : 'Make private' }}
             </button>
           </div>

@@ -151,6 +151,7 @@ async function handlePrint(card: JCard) {
             :title="card.isPublic ? 'Hide this card from your profile' : 'Show this card on your profile'"
             @click="library.togglePublic(card)"
           >
+            <VisibilityToggleIcon :is-public="card.isPublic" />
             {{ card.isPublic ? 'Make private' : 'Make public' }}
           </button>
           <button class="btn jcl-delete" title="Delete card" @click="handleDelete(card)">

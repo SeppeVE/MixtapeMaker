@@ -185,7 +185,9 @@ function saveFor() {
           :title="!isCloudSaved ? 'Save to cloud first' : mixtape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : undefined"
           @click="emit('togglePublic')"
         >
-          <span class="action-btn-icon">{{ mixtape.isPublic ? '◉' : '◌' }}</span>
+          <span class="action-btn-icon">
+            <VisibilityToggleIcon :is-public="mixtape.isPublic" />
+          </span>
           {{ mixtape.isPublic ? 'Make Private' : 'Make Public' }}
         </button>
         <p v-if="mixtape.isCopy" class="action-note">

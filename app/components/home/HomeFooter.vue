@@ -25,20 +25,13 @@ const ui = useUiStore();
         Mixtape Maker &copy; 2026 · <NuxtLink to="/privacy" class="lp-foot-link">Privacy</NuxtLink>
       </div>
     </div>
-    <div class="lp-foot-note">Free, ad-free, made by one person. Make mixtapes. Design J-cards. Press play.</div>
+    <div class="lp-foot-note">Make mixtapes. Design J-cards. Record.</div>    
     <div class="footer-btn-group">
       <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
         💡 Feedback
       </button>
-      <a href="mailto:contact@mixtape-maker.com" class="lp-btn lp-btn-paper footer-btn">✉ Contact</a>
-      <a
-        :href="SUPPORT_URL"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="lp-btn lp-btn-mustard footer-btn"
-        @click="trackEvent('support_block_clicked', { trigger: 'footer' })"
-      >
-        ☕ Buy me a coffee
+      <a href="https://www.buymeacoffee.com/seppe.ve">
+        <img src="https://img.buymeacoffee.com/button-api/?text=Support me&emoji=☕&slug=seppe.ve&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" />
       </a>
       <a href="https://www.tinyshelf.co/?ref=mixtape-maker.com" title="Featured on TinyShelf">
         <img src="https://www.tinyshelf.co/badge/tinyshelf-badge-light-amber-1cdea1ce.svg"

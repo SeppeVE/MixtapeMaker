@@ -302,6 +302,7 @@ function newCard() {
                     :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Hide this tape from the explore page' : 'Show this tape on the explore page'"
                     @click="handleTogglePublic(tape)"
                   >
+                    <VisibilityToggleIcon :is-public="tape.isPublic" />
                     {{ tape.isPublic ? 'Make private' : 'Make public' }}
                   </button>
                 </div>

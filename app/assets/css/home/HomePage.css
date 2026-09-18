@@ -437,7 +437,7 @@
   gap: 10px;
 }
 
-.lp-cta-card-icon { font-size: 32px; }
+.lp-cta-card-icon { font-size: 32px; color: var(--color-paper); }
 
 .lp-cta-card-title {
   font-family: var(--font-display);
@@ -571,59 +571,86 @@
   /* Own stacking context so the editor's fixed floating shapes (z-index 1) stay behind it */
   position: relative;
   z-index: 2;
-  background: var(--color-paper);
   border-top: 3px solid var(--color-text);
-  padding: 10px 40px;
+}
+
+/* Top row — brand left, actions right, on paper */
+.lp-foot-main {
+  background: var(--color-paper);
+  padding: 26px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 20px;
 }
 
 .lp-foot-brand {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Smaller echo of .lp-logo (NavBar) — same mark, doesn't need header scale */
+.lp-foot-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Echo of .lp-logo (NavBar) — same mark, scaled up to match the bigger footer */
 .lp-foot-logo {
   font-family: var(--font-display);
-  font-size: 17px;
-  letter-spacing: 1.5px;
+  font-size: 26px;
+  letter-spacing: 2px;
   color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .lp-foot-logo-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
-.lp-foot-copyright {
-  font-family: var(--font-body);
-  font-size: 10px;
+.lp-foot-note {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.5px;
   color: var(--color-text-light);
-  opacity: 0.55;
+  opacity: 0.75;
+}
+
+/* Bottom rail — credits left, featured badge right, on plum */
+.lp-foot-rail {
+  background: var(--color-plum);
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Segments are flex items so a wrapped line never opens with a stray separator */
+.lp-foot-credits {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-paper);
+  opacity: 0.8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 7px;
+}
+
+.lp-foot-credits > span:not(:last-child)::after {
+  content: ' ·';
 }
 
 .lp-foot-link {
   color: inherit;
   text-decoration: underline;
 }
-.lp-foot-link:hover { color: var(--color-primary); }
-
-.lp-foot-note {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--color-text-light);
-  opacity: 0.6;
-}
+.lp-foot-link:hover { color: var(--color-secondary); }
 
 /* ═══════════════════════════════════════════════════════
    Responsive — tablet  (≤ 900px)
@@ -705,11 +732,14 @@
   }
 
   /* Footer — stack */
-  .lp-footer {
+  .lp-foot-main {
     flex-direction: column;
     align-items: flex-start;
-    padding: 20px 28px;
-    gap: 14px;
+    padding: 28px 28px;
+    gap: 20px;
+  }
+  .lp-foot-rail {
+    padding: 14px 28px;
   }
 
   .lp-cassette-float {
@@ -809,26 +839,28 @@
   }
 
   /* Footer */
-  .lp-footer {
+  .lp-foot-main {
+    padding: 24px 20px;
+  }
+  .lp-foot-rail {
+    flex-direction: column;
+    align-items: stretch;
     padding: 18px 20px;
+    gap: 14px;
+  }
+  .lp-foot-rail a {
+    display: block;
   }
   .footer-btn-group {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
-    gap: 12px;
+    gap: 14px;
   }
   .footer-btn-group .footer-btn {
     justify-content: center;
   }
-  .footer-btn-group .footer-coffee {
-    display: block;
-    width: 100%;
-  }
-  .footer-btn-group .footer-logo {
-    width: 100%;
-    max-width: 220px;
-    height: auto;
-    transform: none;
+  .lp-foot-rail img[alt="Featured on TinyShelf"] {
+    margin: 0 auto;
   }
 }

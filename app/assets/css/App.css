@@ -87,6 +87,21 @@ body {
 .btn:active  { transform: translate(2px,2px); box-shadow: none; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+.visibility-toggle-icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Generic inline icon — drops into any flex button/badge/label alongside text. */
+.icon-inline {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+  display: block;
+}
+
 .btn-primary {
   background: var(--color-primary);
   color: var(--color-paper);

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import type { Song, Side } from '~/types';
 import { searchSpotify } from '~/utils/spotify';
+import IconMusicNote from '~icons/material-symbols/music-note-rounded';
 
 const props = defineProps<{
   sideA: Song[];
@@ -48,7 +49,7 @@ function onTape(song: Song) {
 <template>
   <div class="search-bar">
     <div class="search-window">
-      <div class="search-window-title">♪ Spotify</div>
+      <div class="search-window-title" style="display:flex;align-items:center;gap:5px"><IconMusicNote class="icon-inline" aria-hidden="true" /> Spotify</div>
 
       <div class="search-form-area">
         <form class="search-form" @submit.prevent="runSearch(query)">

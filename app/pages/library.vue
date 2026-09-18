@@ -9,6 +9,18 @@ import { useJCardLibraryStore } from '~/stores/jcardLibrary';
 import { loadMixtapes, deleteMixtape } from '~/utils/database';
 import { formatDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import { SUPPORT_URL } from '~/utils/supportPrompt';
+import { trackEvent } from '~/utils/analytics';
+import IconEye from '~icons/mdi/eye';
+import IconEyeOff from '~icons/mdi/eye-off';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconCloud from '~icons/ic/baseline-wb-cloudy';
+import IconLink from '~icons/material-symbols/add-link-rounded';
+import IconTrash from '~icons/material-symbols/delete-outline';
+import IconSave from '~icons/material-symbols/save-rounded';
+import IconWarning from '~icons/material-symbols/warning-rounded';
+import IconCoffee from '~icons/material-symbols/coffee-rounded';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -103,16 +115,31 @@ async function handleTogglePublic(tape: Mixtape) {
 }
 
 async function handleShare(tape: Mixtape) {
+  let url: string;
   try {
     const token = tape.shareToken ?? (await store.enableShare(tape.id));
     if (!tape.shareToken) {
       cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, shareToken: token } : t));
     }
-    await navigator.clipboard.writeText(buildShareUrl(token));
-    ui.showToast('Share link copied to clipboard', 'success');
+    url = buildShareUrl(token);
   } catch {
     ui.showToast('Failed to create share link', 'error');
+    return;
   }
+  // Copy is best-effort (clipboard access can be denied); the modal always
+  // carries the link and its own copy button, so a failed copy is not an error.
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(url);
+    copied = true;
+  } catch { /* handled by the modal's copy button */ }
+  ui.openSuccessModal({
+    title: 'Share link ready',
+    trigger: 'share',
+    link: { url, openLabel: 'Open link' },
+    copied,
+    note: 'Anyone with this link can view the mixtape, even while it is private.',
+  });
 }
 
 function openCard(card: JCard) {
@@ -139,11 +166,11 @@ function newCard() {
         </div>
         <div class="lib-tabs">
           <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
-            📼 Mixtapes
+            <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
             <span v-if="cloudTapes.length > 0" class="lib-tab-count">{{ cloudTapes.length + (draftIsUnsaved ? 1 : 0) }}</span>
           </button>
           <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
-            🎴 J-Cards
+            <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
             <span v-if="jcardLibrary.allCards.length > 0" class="lib-tab-count">{{ jcardLibrary.allCards.length }}</span>
           </button>
         </div>
@@ -175,14 +202,15 @@ function newCard() {
               </div>
             </div>
             <div class="lib-draft-card-right" @click.stop>
-              <span class="lib-badge lib-badge-local">💾 Local</span>
+              <span class="lib-badge lib-badge-local"><IconSave class="icon-inline" aria-hidden="true" /> Local</span>
               <button
                 class="lp-btn lp-btn-forest"
                 style="font-size:16px;padding:4px 14px 2px"
                 :disabled="store.isSaving"
                 @click="auth.user ? handleSaveDraftToCloud() : ui.openAuth()"
               >
-                {{ store.isSaving ? 'Saving…' : '☁ Save to Cloud' }}
+                <IconCloud v-if="!store.isSaving" class="icon-inline" aria-hidden="true" />
+                {{ store.isSaving ? 'Saving…' : 'Save to Cloud' }}
               </button>
             </div>
           </div>
@@ -197,12 +225,12 @@ function newCard() {
           </div>
 
           <div v-if="!auth.user" class="lib-sign-gate">
-            <div class="lib-sign-gate-icon">☁</div>
+            <IconCloud class="lib-sign-gate-icon" aria-hidden="true" />
             <p class="lib-sign-gate-text">Sign in to save tapes across devices and access them anywhere.</p>
             <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
           </div>
 
-          <div v-else-if="tapesLoading" class="lib-cards-grid">
+          <div v-else-if="tapesLoading" class="lib-cards-grid lib-cards-grid--tapes">
             <div v-for="n in 3" :key="n" class="lib-skeleton-tape">
               <div class="lib-skeleton-header" />
               <div class="lib-skeleton-body">
@@ -215,23 +243,23 @@ function newCard() {
           </div>
 
           <div v-else-if="tapesError" class="lib-error-state">
-            <span class="lib-error-icon">⚠</span>
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ tapesError }}</span>
             <button class="lp-btn lp-btn-mustard" style="font-size:14px;padding:4px 14px 2px" @click="loadTapes">↻ Retry</button>
           </div>
 
           <div v-else-if="cloudTapes.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">📼</div>
+            <IconCassette class="lib-empty-icon" aria-hidden="true" />
             <p>No cloud tapes yet.</p>
             <p class="lib-empty-sub">Build a mixtape and hit "Save to Cloud" from the editor.</p>
             <button class="lp-btn lp-btn-mustard" style="margin-top:8px" @click="store.newMixtape()">▶ Make a Tape</button>
           </div>
 
-          <div v-else class="lib-cards-grid">
+          <div v-else class="lib-cards-grid lib-cards-grid--tapes">
             <div
               v-for="tape in cloudTapes"
               :key="tape.id"
-              class="lib-tape-card"
+              class="lib-tape-card lib-tape-card--owned"
               role="button"
               :tabindex="0"
               @click="store.loadMixtape(tape)"
@@ -240,20 +268,20 @@ function newCard() {
               <div class="lib-tape-card-header">
                 <span class="lib-tape-card-title">{{ tape.title }}</span>
               </div>
-              <div class="lib-tape-card-actions" @click.stop>
-                <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
-                <button
-                  :class="`lib-public-toggle ${tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'}`"
-                  :disabled="tape.isCopy"
-                  :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Public · click to make private' : 'Private · click to make public'"
-                  @click="handleTogglePublic(tape)"
-                >
-                  {{ tape.isPublic ? '◉ Public' : '◌ Private' }}
-                </button>
-                <button class="lib-public-toggle lib-badge-private" title="Copy share link" @click="handleShare(tape)">
-                  🔗 Copy Link
-                </button>
-                <button class="lib-delete-btn" title="Delete" @click="handleDeleteTape(tape)">×</button>
+              <!-- Read-only status strip: badges say what the tape *is*, never what you can do to it. -->
+              <div class="lib-tape-card-meta">
+                <div class="lib-tape-card-meta-row">
+                  <span class="lib-badge lib-badge-cloud"><IconCloud class="icon-inline" aria-hidden="true" /> Cloud</span>
+                  <span
+                    class="lib-badge"
+                    :class="tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'"
+                    :title="tape.isPublic ? 'Public · listed on the explore page' : 'Private · not listed on the explore page'"
+                  >
+                    <component :is="tape.isPublic ? IconEye : IconEyeOff" class="visibility-toggle-icon" aria-hidden="true" />
+                    {{ tape.isPublic ? 'Public' : 'Private' }}
+                  </span>
+                  <span class="lib-tape-card-spec">C-{{ tape.cassetteLength }} · {{ fmtDate(tape.updatedAt) }}</span>
+                </div>
                 <p v-if="tape.isCopy" class="lib-copy-note">
                   This is an unedited copy of another mixtape, and will not show up in the explore page
                 </p>
@@ -272,13 +300,51 @@ function newCard() {
                   <span class="lib-tape-value">{{ formatDuration(totalDuration(tape)) }}</span>
                 </div>
               </div>
-              <div class="lib-tape-card-footer">
-                <span class="lib-tape-length">C-{{ tape.cassetteLength }}</span>
-                <span class="lib-tape-date">{{ fmtDate(tape.updatedAt) }}</span>
+              <!-- Action footer: everything here is a real button on paper, not a chip on mustard.
+                   The two share controls share a row when the card is wide enough and stack
+                   when it isn't; Delete stays pinned to the right either way. -->
+              <div class="lib-tape-card-actions" @click.stop>
+                <div class="lib-tape-card-actions-main">
+                  <button class="lp-btn lp-btn-plum lib-tape-action" title="Copy share link" @click="handleShare(tape)">
+                    <IconLink class="icon-inline" aria-hidden="true" /> Copy link
+                  </button>
+                  <button
+                    class="lp-btn lp-btn-paper lib-tape-action"
+                    :disabled="tape.isCopy"
+                    :title="tape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : tape.isPublic ? 'Hide this tape from the explore page' : 'Show this tape on the explore page'"
+                    @click="handleTogglePublic(tape)"
+                  >
+                    <VisibilityToggleIcon :is-public="tape.isPublic" />
+                    {{ tape.isPublic ? 'Make private' : 'Make public' }}
+                  </button>
+                </div>
+                <button class="btn lib-tape-delete" title="Delete tape" @click="handleDeleteTape(tape)">
+                  <IconTrash class="icon-inline" aria-hidden="true" /> Delete
+                </button>
               </div>
             </div>
           </div>
         </section>
+
+        <!-- Low-key support card. Passive placement: no suppression, no interruption. -->
+        <aside class="lib-support-card">
+          <div class="lib-support-card-text">
+            <div class="lib-support-card-title">Support the project</div>
+            <p>
+              Mixtape Maker is made by one person, free and without ads.
+              If it earned a spot in your routine, a coffee keeps the tape rolling.
+            </p>
+          </div>
+          <a
+            class="lp-btn lp-btn-mustard lib-support-card-btn"
+            :href="SUPPORT_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click="trackEvent('support_block_clicked', { trigger: 'library' })"
+          >
+            <IconCoffee class="icon-inline" aria-hidden="true" /> Buy me a coffee
+          </a>
+        </aside>
       </div>
 
       <!-- J-CARDS TAB -->
@@ -290,7 +356,7 @@ function newCard() {
               + New Card
             </button>
           </div>
-          <JCardLibrary embedded @open-card="openCard" @new-card="newCard" />
+          <JCardLibrary embedded :mixtapes="cloudTapes" @open-card="openCard" @new-card="newCard" />
         </section>
       </div>
     </div>

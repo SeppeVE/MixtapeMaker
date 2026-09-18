@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import type { Song, Side } from '~/types';
 import { formatTime, calculateTotalDuration } from '~/utils/timeUtils';
+import IconWarning from '~icons/material-symbols/warning-rounded';
 
 const props = defineProps<{
   side: Side;
@@ -41,7 +42,7 @@ function handleDragOver(index: number) {
       <span class="side-title">⚏ The Deck · Side {{ side }}</span>
       <div :class="`time-info${over ? ' over-limit' : ''}`">
         <span>{{ songs.length }} trk · {{ formatTime(totalDuration) }}</span>
-        <span v-if="over" class="time-warning"> ⚠ +{{ formatTime(totalDuration - maxDuration) }}</span>
+        <span v-if="over" class="time-warning"><IconWarning class="icon-inline" aria-hidden="true" /> +{{ formatTime(totalDuration - maxDuration) }}</span>
       </div>
     </div>
 

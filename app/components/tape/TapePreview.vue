@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue';
 import type { Mixtape, CassetteLength } from '~/types';
 import { formatTime, calculateTotalDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import IconSave from '~icons/material-symbols/save-rounded';
 
 const props = defineProps<{
   mixtape: Mixtape;
@@ -176,7 +177,7 @@ function saveFor() {
       <div class="panel-titlebar panel-plum">Actions</div>
       <div class="panel-body panel-body-actions">
         <button class="btn btn-sage action-btn" :disabled="isSaving" @click="handleSaveClick">
-          <span class="action-btn-icon">💾</span>
+          <IconSave class="action-btn-icon" aria-hidden="true" />
           {{ isSaving ? 'Saving to cloud...' : 'Save to cloud' }}
         </button>
         <button
@@ -185,7 +186,9 @@ function saveFor() {
           :title="!isCloudSaved ? 'Save to cloud first' : mixtape.isCopy ? 'This is an unedited copy of another mixtape, and will not show up in the explore page' : undefined"
           @click="emit('togglePublic')"
         >
-          <span class="action-btn-icon">{{ mixtape.isPublic ? '◉' : '◌' }}</span>
+          <span class="action-btn-icon">
+            <VisibilityToggleIcon :is-public="mixtape.isPublic" />
+          </span>
           {{ mixtape.isPublic ? 'Make Private' : 'Make Public' }}
         </button>
         <p v-if="mixtape.isCopy" class="action-note">

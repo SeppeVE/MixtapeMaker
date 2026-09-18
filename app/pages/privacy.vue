@@ -133,6 +133,10 @@ const PROVIDERS = [
                   <td>So the "What's new" popup stops showing once you click "Don't show again".</td>
                 </tr>
                 <tr>
+                  <td class="gd-table-tape">Support-prompt preferences</td>
+                  <td>When the "Buy me a coffee" note was last shown, whether you muted it or the print checklist, and when you last clicked through — so we don't keep asking, on any of your devices. Nobody else can read these.</td>
+                </tr>
+                <tr>
                   <td class="gd-table-tape">Timestamps</td>
                   <td>When your account and items were created or last changed, used for sorting and for the "Joined" date on your profile.</td>
                 </tr>
@@ -193,7 +197,7 @@ const PROVIDERS = [
             <li>The mixtape and J-card you're currently working on, plus J-cards you haven't uploaded.</li>
             <li>Your login session token, so you stay signed in.</li>
             <li>Your Spotify access token if you connected Spotify for playlist export. It is never sent to our server.</li>
-            <li>Small flags such as "feedback sent recently" and "notification closed in this tab".</li>
+            <li>Small flags such as "feedback sent recently", "notification closed in this tab" and, when signed out, whether you muted the "Buy me a coffee" note or the print checklist.</li>
           </ul>
           <p class="gd-p">Clearing your browser's site data removes all of it.</p>
         </section>

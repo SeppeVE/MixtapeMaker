@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import IconSparkle from '~icons/material-symbols/auto-awesome-rounded';
+</script>
+
 <template>
   <section id="jcard" class="lp-section" style="background:var(--color-sage);border-bottom:3px solid var(--color-text)">
     <!-- Geo decorations -->
@@ -26,8 +30,8 @@
             <li>Export as print-ready PDF or high-res PNG</li>
           </ul>
           <div>
-            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-plum" style="font-size:22px;padding:7px 22px 4px;display:inline-block">
-              ✦ Design your J-Card →
+            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-plum" style="font-size:22px;padding:7px 22px 4px">
+              <IconSparkle class="icon-inline" aria-hidden="true" /> Design your J-Card →
             </NuxtLink>
           </div>
         </div>

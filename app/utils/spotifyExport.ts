@@ -70,7 +70,7 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
     method: 'POST',
     body: JSON.stringify({
       name: mixtape.title,
-      description: 'Exported from https://mixtape-maker.com',
+      description: 'Made with Mixtape Maker — https://mixtape-maker.com',
       public: false,
     }),
   });

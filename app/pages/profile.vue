@@ -15,6 +15,12 @@ import {
   deleteOwnAccount,
 } from '~/utils/profileDatabase';
 import { containsProfanity } from '~/utils/profanity';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconTrash from '~icons/material-symbols/delete-outline';
+import IconWarning from '~icons/material-symbols/warning-rounded';
+import IconSmiley from '~icons/material-symbols/sentiment-satisfied-rounded';
+import IconLogout from '~icons/material-symbols/logout-rounded';
 
 useSeoMeta({ title: 'Your Profile — Mixtape Maker', robots: 'noindex' });
 
@@ -194,7 +200,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
 
     <div class="lib-content">
       <div v-if="!auth.user && !auth.loading" class="lib-sign-gate">
-        <div class="lib-sign-gate-icon">☺</div>
+        <IconSmiley class="lib-sign-gate-icon" aria-hidden="true" />
         <p class="lib-sign-gate-text">Sign in to set up your profile, pick a username and choose a profile picture.</p>
         <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
       </div>
@@ -202,7 +208,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       <p v-else-if="auth.loading || profileStore.loading" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="profileStore.error || !profile" class="lib-error-state">
-        <span class="lib-error-icon">⚠</span>
+        <IconWarning class="lib-error-icon" aria-hidden="true" />
         <span class="lib-error-msg">{{ profileStore.error ?? 'Profile unavailable' }}</span>
         <button class="lp-btn lp-btn-mustard" @click="profileStore.load()">↻ Retry</button>
       </div>
@@ -301,6 +307,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               :disabled="privacySaving"
               @click="togglePrivate"
             >
+              <VisibilityToggleIcon :is-public="!profile.isPrivate" />
               {{ profile.isPrivate ? 'Make public' : 'Make private' }}
             </button>
           </div>
@@ -313,8 +320,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             Which mixtapes and J-cards appear on your profile is controlled per item with the Public / Private toggles in your library.
           </p>
           <div class="pf-links">
-            <NuxtLink to="/library" class="lp-btn lp-btn-paper">📼 Mixtapes</NuxtLink>
-            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper">🎴 J-Cards</NuxtLink>
+            <NuxtLink to="/library" class="lp-btn lp-btn-paper"><IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes</NuxtLink>
+            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper"><IconCard class="icon-inline" aria-hidden="true" /> J-Cards</NuxtLink>
           </div>
         </section>
 
@@ -324,7 +331,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           <div class="pf-privacy-row">
             <p class="pf-hint" style="margin:0">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
             <button class="lp-btn lp-btn-plum" :disabled="signingOut" @click="signOut">
-              {{ signingOut ? 'Signing out…' : '⏏ Sign Out' }}
+              <IconLogout v-if="!signingOut" class="icon-inline" aria-hidden="true" />
+              {{ signingOut ? 'Signing out…' : 'Sign Out' }}
             </button>
           </div>
           <div class="pf-danger">
@@ -336,7 +344,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               </p>
             </div>
             <button class="btn pf-danger-btn" :disabled="deleting" @click="deleteAccount">
-              {{ deleting ? 'Deleting…' : '🗑 Delete my account' }}
+              <IconTrash v-if="!deleting" class="icon-inline" aria-hidden="true" />
+              {{ deleting ? 'Deleting…' : 'Delete my account' }}
             </button>
           </div>
         </section>

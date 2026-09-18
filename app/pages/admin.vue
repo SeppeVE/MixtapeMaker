@@ -14,6 +14,11 @@ import {
 } from '~/utils/notificationDatabase';
 import { listFeedback, deleteFeedback } from '~/utils/feedbackDatabase';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
+import IconLightbulb from '~icons/mdi/lightbulb-outline';
+import IconLock from '~icons/material-symbols/lock-rounded';
+import IconStar from '~icons/material-symbols/star-rounded';
+import IconWarning from '~icons/material-symbols/warning-rounded';
+import IconMail from '~icons/material-symbols/mail-rounded';
 
 useSeoMeta({ title: 'Admin — Mixtape Maker', robots: 'noindex' });
 
@@ -164,7 +169,7 @@ const fmtDate = (iso: string) =>
       <p v-if="!ready" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="!allowed" class="lib-empty">
-        <div class="lib-empty-icon">🔒</div>
+        <IconLock class="lib-empty-icon" aria-hidden="true" />
         <p>Admins only.</p>
         <p class="lib-empty-sub">{{ auth.user ? 'Your account does not have admin access.' : 'Sign in with an admin account.' }}</p>
         <button v-if="!auth.user" class="lp-btn lp-btn-plum" style="margin-top:8px" @click="ui.openAuth()">Sign In →</button>
@@ -198,7 +203,8 @@ const fmtDate = (iso: string) =>
             </div>
             <div class="adm-form-actions">
               <button type="submit" class="lp-btn lp-btn-forest" :disabled="!canPost">
-                {{ posting ? 'Posting…' : '★ Post notification' }}
+                <IconStar v-if="!posting" class="icon-inline" aria-hidden="true" />
+                {{ posting ? 'Posting…' : 'Post notification' }}
               </button>
             </div>
           </form>
@@ -212,12 +218,12 @@ const fmtDate = (iso: string) =>
 
           <p v-if="loading" class="lib-loading">Loading…</p>
           <div v-else-if="error" class="lib-error-state">
-            <span class="lib-error-icon">⚠</span>
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ error }}</span>
             <button class="lp-btn lp-btn-mustard" @click="load">↻ Retry</button>
           </div>
           <div v-else-if="notifications.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">★</div>
+            <IconStar class="lib-empty-icon" aria-hidden="true" />
             <p>No notifications posted yet.</p>
           </div>
           <ul v-else class="adm-list">
@@ -246,12 +252,12 @@ const fmtDate = (iso: string) =>
 
           <p v-if="feedbackLoading" class="lib-loading">Loading…</p>
           <div v-else-if="feedbackError" class="lib-error-state">
-            <span class="lib-error-icon">⚠</span>
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ feedbackError }}</span>
             <button class="lp-btn lp-btn-mustard" @click="loadFeedback">↻ Retry</button>
           </div>
           <div v-else-if="feedback.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">💡</div>
+            <IconLightbulb class="lib-empty-icon" aria-hidden="true" />
             <p>No feedback yet.</p>
             <p class="lib-empty-sub">Entries sent through the Feedback button in the footer show up here.</p>
           </div>
@@ -271,8 +277,8 @@ const fmtDate = (iso: string) =>
                 </div>
                 <p class="adm-item-body">{{ f.message }}</p>
                 <div class="adm-feedback-meta">
-                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link">✉ {{ f.email }}</a>
-                  <span v-else>✉ no email left</span>
+                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link" style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> {{ f.email }}</a>
+                  <span v-else style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> no email left</span>
                   <span v-if="f.page">· sent from <code>{{ f.page }}</code></span>
                 </div>
               </div>

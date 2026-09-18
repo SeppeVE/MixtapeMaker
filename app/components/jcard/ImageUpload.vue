@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { uploadJCardImage } from '~/utils/supabaseImages';
+import IconCheck from '~icons/material-symbols/check-rounded';
 
 const props = defineProps<{
   label: string;
@@ -83,7 +84,7 @@ const filename = computed(() =>
       <div class="img-upload-drop-text">
         <span v-if="uploading" class="img-upload-spinner">Uploading…</span>
         <template v-else-if="currentUrl">
-          <strong>✓ {{ filename }}</strong>
+          <strong style="display:inline-flex;align-items:center;gap:4px"><IconCheck class="icon-inline" aria-hidden="true" /> {{ filename }}</strong>
           <span>Click or drag to replace</span>
         </template>
         <template v-else>

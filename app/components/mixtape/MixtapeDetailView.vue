@@ -5,6 +5,8 @@ import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { generateId } from '~/utils/timeUtils';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 
 const props = withDefaults(defineProps<{
   mixtape: Mixtape | null;
@@ -71,7 +73,7 @@ function handleCopy() {
       <p v-if="loading" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
-        <div class="lib-empty-icon">📼</div>
+        <IconCassette class="lib-empty-icon" aria-hidden="true" />
         <p>This mixtape isn't available.</p>
         <p class="lib-empty-sub">{{ notFoundSub }}</p>
       </div>
@@ -109,7 +111,7 @@ function handleCopy() {
           <div class="detail-jcards">
             <div v-for="card in jcards" :key="card.id">
               <h3 class="detail-jcard-title">
-                <span>🎴 {{ card.title || 'Untitled J-Card' }}</span>
+                <span style="display:inline-flex;align-items:center;gap:6px"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.title || 'Untitled J-Card' }}</span>
                 <NuxtLink :to="`/jcard/${card.id}`" class="pf-inline-link" style="font-family:var(--font-body);font-size:12px">Open ↗</NuxtLink>
               </h3>
               <JCardReadOnly :content="card.content" />

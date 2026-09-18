@@ -482,6 +482,56 @@ REVOKE ALL ON FUNCTION public.delete_own_account() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;
 ```
 
+## Step 3h: Support Prompt Preferences (Optional)
+
+Powers the "Buy me a coffee" block inside the success modals (Spotify export,
+share link, J-card PDF) and the muteable print checklist. Signed-out users keep
+these preferences in `localStorage`; signed-in users get them mirrored here so
+"Don't show this again" follows them across devices. Without this table the
+app silently falls back to `localStorage` only.
+
+These live in their own table rather than on `profiles` on purpose: `profiles`
+is readable by everyone (bylines, `/user/{username}`) and is locked down with
+column-level grants, while "clicked the donate link on <date>" is private.
+
+```sql
+-- One row per user, created lazily on the first write.
+CREATE TABLE user_preferences (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- 30-day cooldown between coffee asks
+  support_prompt_last_shown_at TIMESTAMPTZ,
+  -- "Don't show this again" on the coffee block
+  support_prompt_opt_out BOOLEAN NOT NULL DEFAULT false,
+  -- 180-day cooldown after clicking through — don't re-ask a donor
+  support_prompt_clicked_at TIMESTAMPTZ,
+  -- Separate mute for the print checklist in the PDF modal
+  print_checklist_opt_out BOOLEAN NOT NULL DEFAULT false,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Users can only read and write their own row. No SELECT for anyone else.
+CREATE POLICY "Users can view their own preferences"
+  ON user_preferences FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own preferences"
+  ON user_preferences FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own preferences"
+  ON user_preferences FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+Keep the column list in sync with `app/utils/supportDatabase.ts`. Deleting an
+account (Step 3g) cascades to this row.
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useMixtapeStore } from '~/stores/mixtape';
+import IconSparkle from '~icons/material-symbols/auto-awesome-rounded';
 
 const mixtape = useMixtapeStore();
 </script>
@@ -35,7 +36,7 @@ const mixtape = useMixtapeStore();
 
         <div class="lp-hero-ctas">
           <button class="lp-btn lp-btn-mustard lp-btn-lg icon-button" @click="mixtape.newMixtape()"><span class="icon">▶</span><span>Make a Tape</span></button>
-          <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper lp-btn-lg icon-button"><span class="icon">✦</span><span>Design a J-Card</span></NuxtLink>
+          <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper lp-btn-lg icon-button"><span class="icon"><IconSparkle class="icon-inline" aria-hidden="true" /></span><span>Design a J-Card</span></NuxtLink>
         </div>
 
         <div class="lp-hero-note">Free to use · Works in your browser · Sign in to sync to the cloud</div>

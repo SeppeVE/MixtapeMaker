@@ -133,6 +133,27 @@ export const clearPendingSaveId = (localId: string): void => {
   } catch { /* ignore */ }
 };
 
+// ── Spotify export mode preference ───────────────────────────────────────────
+const SPOTIFY_EXPORT_MODE_KEY = 'spotify-export-mode';
+
+export type SpotifyExportMode = 'combined' | 'split';
+
+export const getSpotifyExportMode = (): SpotifyExportMode => {
+  if (!isClient) return 'combined';
+  try {
+    return localStorage.getItem(SPOTIFY_EXPORT_MODE_KEY) === 'split' ? 'split' : 'combined';
+  } catch {
+    return 'combined';
+  }
+};
+
+export const setSpotifyExportMode = (mode: SpotifyExportMode): void => {
+  if (!isClient) return;
+  try {
+    localStorage.setItem(SPOTIFY_EXPORT_MODE_KEY, mode);
+  } catch { /* ignore */ }
+};
+
 // ── JCard local storage ──────────────────────────────────────────────────────
 const JCARDS_KEY = 'jcards';
 

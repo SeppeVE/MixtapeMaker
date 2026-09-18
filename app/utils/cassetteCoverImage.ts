@@ -1,4 +1,4 @@
-import { Mixtape } from '../types';
+import { Mixtape, Side } from '../types';
 
 // Mirrors app/components/tape/CassetteSVG.vue as a plain string template so it
 // can be rasterized outside of Vue (no live component to mount when exporting).
@@ -7,7 +7,8 @@ const CASSETTE_H = 195;
 const COVER_SIZE = 1000; // Square cover. Spotify accepts up to ~3000px; 1000 keeps the
 // base64 payload comfortably under Spotify's 256KB limit for custom playlist images.
 const BACKGROUND = '#2A1E28';
-const ACCENT_COLOR = '#8FC9B7'; // Side A accent, matching TapePreview's default.
+// Matches TapePreview.vue's per-side accent (accentColor computed there).
+const ACCENT_COLORS: Record<Side, string> = { A: '#8FC9B7', B: '#B4A0C7' };
 const SPOTIFY_IMAGE_LIMIT_BYTES = 256 * 1024;
 
 function escapeXml(value: string): string {
@@ -18,11 +19,12 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function buildCassetteSvgMarkup(title: string | undefined): string {
+function buildCassetteSvgMarkup(title: string | undefined, side: Side): string {
   const isUntitled = !title || title === 'Untitled Mixtape';
   const starPts = '0,-13 2.9,-4 12.4,-4 4.8,1.5 7.6,10.5 0,5 -7.6,10.5 -4.8,1.5 -12.4,-4 -2.9,-4';
   const beads = [35, 47, 59, 71, 83];
   const screws: [number, number][] = [[15, 15], [285, 15], [15, 179], [285, 179]];
+  const accentColor = ACCENT_COLORS[side];
 
   const label = isUntitled
     ? `<rect x="66" y="28" width="115" height="6" rx="2" fill="rgba(42,30,40,0.25)" />
@@ -39,7 +41,7 @@ function buildCassetteSvgMarkup(title: string | undefined): string {
   <rect x="27" y="16" width="246" height="114" rx="6" fill="#A8C4A2" stroke="#2A1E28" stroke-width="2.5" />
   <rect x="29" y="18" width="242" height="110" rx="4" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1" />
   <rect x="33" y="22" width="234" height="33" rx="2" fill="rgba(255,255,255,0.72)" />
-  <text x="41" y="47" font-family="monospace" font-size="20" font-weight="900" fill="#5B2838">A</text>
+  <text x="41" y="47" font-family="monospace" font-size="20" font-weight="900" fill="#5B2838">${side}</text>
   ${label}
   <line x1="33" y1="55" x2="267" y2="55" stroke="#5B2838" stroke-width="2" />
   <rect x="50" y="61" width="200" height="52" rx="3" fill="#2A1E28" stroke="#2A1E28" stroke-width="1.5" />
@@ -48,12 +50,12 @@ function buildCassetteSvgMarkup(title: string | undefined): string {
   <path d="M 84 97 Q 150 85 216 97" stroke="#3a2a38" stroke-width="3" fill="none" />
   <g transform="translate(84 87)">
     <circle r="19" fill="#EFE8D6" stroke="#2A1E28" stroke-width="2" />
-    <polygon points="${starPts}" fill="${ACCENT_COLOR}" />
+    <polygon points="${starPts}" fill="${accentColor}" />
     <circle r="4" fill="#5B2838" stroke="#2A1E28" stroke-width="1.5" />
   </g>
   <g transform="translate(216 87)">
     <circle r="19" fill="#EFE8D6" stroke="#2A1E28" stroke-width="2" />
-    <polygon points="${starPts}" fill="${ACCENT_COLOR}" />
+    <polygon points="${starPts}" fill="${accentColor}" />
     <circle r="4" fill="#5B2838" stroke="#2A1E28" stroke-width="1.5" />
   </g>
   <polygon points="73,142 227,142 244,191 56,191" fill="#2A2020" stroke="#2A1E28" stroke-width="1.5" />
@@ -69,13 +71,14 @@ function buildCassetteSvgMarkup(title: string | undefined): string {
 }
 
 /**
- * Renders the mixtape's own cassette artwork (Side A, its title burned into
- * the label) as a square JPEG, base64-encoded with no data-URL prefix — the
- * exact shape Spotify's "set playlist cover image" endpoint expects. Spotify
- * doesn't accept SVG directly, so this rasterizes it via canvas client-side.
+ * Renders the mixtape's own cassette artwork (its title burned into the
+ * label, side badge and accent matching the given side) as a square JPEG,
+ * base64-encoded with no data-URL prefix — the exact shape Spotify's "set
+ * playlist cover image" endpoint expects. Spotify doesn't accept SVG
+ * directly, so this rasterizes it via canvas client-side.
  */
-export async function generateCassetteCoverJpegBase64(mixtape: Mixtape): Promise<string> {
-  const svg = buildCassetteSvgMarkup(mixtape.title);
+export async function generateCassetteCoverJpegBase64(mixtape: Mixtape, side: Side = 'A'): Promise<string> {
+  const svg = buildCassetteSvgMarkup(mixtape.title, side);
   const svgUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 
   try {

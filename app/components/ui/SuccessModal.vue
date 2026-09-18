@@ -16,12 +16,14 @@ const support = useSupportStore();
 
 const modal = computed(() => ui.successModal);
 
-const copied = ref(false);
+// Keyed by URL rather than a single boolean so several links (one per side)
+// can each show their own "Copied" feedback independently.
+const copiedUrl = ref<string | null>(null);
 let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(modal, (m) => {
   if (copiedTimer) clearTimeout(copiedTimer);
-  copied.value = !!m?.copied;
+  copiedUrl.value = m?.copied && m.link ? m.link.url : null;
 });
 onBeforeUnmount(() => { if (copiedTimer) clearTimeout(copiedTimer); });
 
@@ -33,14 +35,12 @@ useEventListener(typeof document !== 'undefined' ? document : null, 'keydown', (
   if (e.key === 'Escape' && modal.value) close();
 });
 
-async function copyLink() {
-  const url = modal.value?.link?.url;
-  if (!url) return;
+async function copyLink(url: string) {
   try {
     await navigator.clipboard.writeText(url);
-    copied.value = true;
+    copiedUrl.value = url;
     if (copiedTimer) clearTimeout(copiedTimer);
-    copiedTimer = setTimeout(() => { copied.value = false; }, 2500);
+    copiedTimer = setTimeout(() => { copiedUrl.value = null; }, 2500);
   } catch {
     ui.showToast('Could not copy — select the link and copy it by hand', 'error');
   }
@@ -110,9 +110,34 @@ function handleChecklistOptOut() {
           >
             {{ modal.link.openLabel }} ↗
           </a>
-          <button type="button" class="btn" @click="copyLink">
-            <IconCheck v-if="copied" class="icon-inline" aria-hidden="true" />
-            {{ copied ? 'Copied' : 'Copy link' }}
+          <button type="button" class="btn" @click="copyLink(modal.link.url)">
+            <IconCheck v-if="copiedUrl === modal.link.url" class="icon-inline" aria-hidden="true" />
+            {{ copiedUrl === modal.link.url ? 'Copied' : 'Copy link' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-for="l in modal.links" :key="l.url" class="success-modal-link">
+        <input
+          class="success-modal-url"
+          type="text"
+          readonly
+          :value="l.url"
+          aria-label="Link"
+          @focus="selectAll"
+        />
+        <div class="success-modal-actions">
+          <a
+            class="btn btn-primary"
+            :href="l.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ l.openLabel }} ↗
+          </a>
+          <button type="button" class="btn" @click="copyLink(l.url)">
+            <IconCheck v-if="copiedUrl === l.url" class="icon-inline" aria-hidden="true" />
+            {{ copiedUrl === l.url ? 'Copied' : 'Copy link' }}
           </button>
         </div>
       </div>
@@ -127,7 +152,7 @@ function handleChecklistOptOut() {
         </button>
       </div>
 
-      <button v-if="!modal.link" type="button" class="btn btn-primary success-modal-done" @click="close">
+      <button v-if="!modal.link && !modal.links?.length" type="button" class="btn btn-primary success-modal-done" @click="close">
         Done
       </button>
 

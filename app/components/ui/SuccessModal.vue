@@ -5,6 +5,8 @@ import { useUiStore } from '~/stores/ui';
 import { useSupportStore } from '~/stores/support';
 import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
+import IconCheck from '~icons/material-symbols/check-rounded';
+import IconCoffee from '~icons/material-symbols/coffee-rounded';
 
 // Self-contained, mirrors FeedbackModal: driven by the ui store. Fires after an
 // action has succeeded and never blocks it. The coffee block at the bottom is
@@ -82,7 +84,7 @@ function handleChecklistOptOut() {
     >
       <button class="modal-close" aria-label="Close" @click="close">×</button>
 
-      <h2>✓ {{ modal.title }}</h2>
+      <h2 style="display:flex;align-items:center;gap:6px"><IconCheck class="icon-inline" aria-hidden="true" /> {{ modal.title }}</h2>
 
       <p v-if="modal.note" class="success-modal-note">{{ modal.note }}</p>
 
@@ -109,7 +111,8 @@ function handleChecklistOptOut() {
             {{ modal.link.openLabel }} ↗
           </a>
           <button type="button" class="btn" @click="copyLink">
-            {{ copied ? '✓ Copied' : 'Copy link' }}
+            <IconCheck v-if="copied" class="icon-inline" aria-hidden="true" />
+            {{ copied ? 'Copied' : 'Copy link' }}
           </button>
         </div>
       </div>
@@ -131,7 +134,7 @@ function handleChecklistOptOut() {
       <div v-if="modal.showSupport" class="success-modal-support">
         <p class="success-modal-support-text">
           Thanks for using Mixtape Maker — it's free and ad-free.
-          If you liked it, consider buying me a coffee ☕
+          If you liked it, consider buying me a coffee <IconCoffee class="icon-inline" style="display:inline-block;vertical-align:-0.2em" aria-hidden="true" />
         </p>
         <div class="success-modal-support-row">
           <a
@@ -141,7 +144,7 @@ function handleChecklistOptOut() {
             rel="noopener noreferrer"
             @click="handleSupportClick"
           >
-            ☕ Buy me a coffee
+            <IconCoffee class="icon-inline" aria-hidden="true" /> Buy me a coffee
           </a>
           <button type="button" class="success-modal-mute" @click="handleSupportOptOut">
             Don't show this again

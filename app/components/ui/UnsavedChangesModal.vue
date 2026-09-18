@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useUnsavedStore } from '~/stores/unsaved';
 import { useAuthStore } from '~/stores/auth';
 import IconCloud from '~icons/ic/baseline-wb-cloudy';
+import IconWarning from '~icons/material-symbols/warning-rounded';
 
 // Styled replacement for the browser's "Leave site?" prompt, used for in-app
 // navigation. Opened by the router guard (see plugins/unsaved.client.ts).
@@ -46,7 +47,7 @@ async function saveAndLeave() {
     >
       <div class="unsaved-tape" aria-hidden="true" />
       <div class="unsaved-head">
-        <span class="unsaved-icon" aria-hidden="true">⚠</span>
+        <IconWarning class="unsaved-icon" aria-hidden="true" />
         <h2 id="unsaved-title" class="unsaved-title">Unsaved changes</h2>
       </div>
 

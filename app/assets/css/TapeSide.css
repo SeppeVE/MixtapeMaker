@@ -40,7 +40,7 @@
   opacity: 0.85;
 }
 .time-info.over-limit { opacity: 1; }
-.time-warning { color: var(--color-secondary); }
+.time-warning { color: var(--color-secondary); display: inline-flex; align-items: center; gap: 3px; }
 
 /* Song list — scrollable */
 .song-list {

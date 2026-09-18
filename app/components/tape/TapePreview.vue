@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue';
 import type { Mixtape, CassetteLength } from '~/types';
 import { formatTime, calculateTotalDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import IconSave from '~icons/material-symbols/save-rounded';
 
 const props = defineProps<{
   mixtape: Mixtape;
@@ -176,7 +177,7 @@ function saveFor() {
       <div class="panel-titlebar panel-plum">Actions</div>
       <div class="panel-body panel-body-actions">
         <button class="btn btn-sage action-btn" :disabled="isSaving" @click="handleSaveClick">
-          <span class="action-btn-icon">💾</span>
+          <IconSave class="action-btn-icon" aria-hidden="true" />
           {{ isSaving ? 'Saving to cloud...' : 'Save to cloud' }}
         </button>
         <button

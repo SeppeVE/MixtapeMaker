@@ -11,6 +11,8 @@ import { formatDuration } from '~/utils/timeUtils';
 import IconCassette from '~icons/ph/cassette-tape';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconPencil from '~icons/material-symbols/edit-sharp';
+import IconLock from '~icons/material-symbols/lock-rounded';
+import IconSmiley from '~icons/material-symbols/sentiment-satisfied-rounded';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -90,7 +92,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
-        <div class="lib-empty-icon">☺</div>
+        <IconSmiley class="lib-empty-icon" aria-hidden="true" />
         <p>No user named @{{ username }}.</p>
         <p class="lib-empty-sub">They may have changed their username.</p>
       </div>
@@ -115,7 +117,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
 
         <!-- Private placeholder -->
         <div v-if="profile.isPrivate && !showContent" class="lib-empty">
-          <div class="lib-empty-icon">🔒</div>
+          <IconLock class="lib-empty-icon" aria-hidden="true" />
           <p>This user has set their profile to private.</p>
         </div>
 

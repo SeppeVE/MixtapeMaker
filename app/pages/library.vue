@@ -18,6 +18,9 @@ import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconCloud from '~icons/ic/baseline-wb-cloudy';
 import IconLink from '~icons/material-symbols/add-link-rounded';
 import IconTrash from '~icons/material-symbols/delete-outline';
+import IconSave from '~icons/material-symbols/save-rounded';
+import IconWarning from '~icons/material-symbols/warning-rounded';
+import IconCoffee from '~icons/material-symbols/coffee-rounded';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -199,7 +202,7 @@ function newCard() {
               </div>
             </div>
             <div class="lib-draft-card-right" @click.stop>
-              <span class="lib-badge lib-badge-local">💾 Local</span>
+              <span class="lib-badge lib-badge-local"><IconSave class="icon-inline" aria-hidden="true" /> Local</span>
               <button
                 class="lp-btn lp-btn-forest"
                 style="font-size:16px;padding:4px 14px 2px"
@@ -240,7 +243,7 @@ function newCard() {
           </div>
 
           <div v-else-if="tapesError" class="lib-error-state">
-            <span class="lib-error-icon">⚠</span>
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ tapesError }}</span>
             <button class="lp-btn lp-btn-mustard" style="font-size:14px;padding:4px 14px 2px" @click="loadTapes">↻ Retry</button>
           </div>
@@ -339,7 +342,7 @@ function newCard() {
             rel="noopener noreferrer"
             @click="trackEvent('support_block_clicked', { trigger: 'library' })"
           >
-            ☕ Buy me a coffee
+            <IconCoffee class="icon-inline" aria-hidden="true" /> Buy me a coffee
           </a>
         </aside>
       </div>

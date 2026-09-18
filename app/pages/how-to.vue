@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useSeoMeta, useHead } from '#app';
+import IconSparkle from '~icons/material-symbols/auto-awesome-rounded';
 
 useSeoMeta({
   title: 'How to record a Spotify mixtape onto a cassette — Mixtape Maker',
@@ -222,7 +223,7 @@ useHead({
             the tape rolls. Export the PDF, print at 100% ("no fit to page"), cut, fold on the score lines.
           </p>
           <NuxtLink to="/cards/designer" class="lp-btn lp-btn-mustard gd-cta-btn">
-            ✦ Open J-Card designer
+            <IconSparkle class="icon-inline" aria-hidden="true" /> Open J-Card designer
           </NuxtLink>
           <p class="gd-caption">Prints at exact cassette-case size.</p>
         </section> -->

@@ -13,6 +13,9 @@ import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconCloud from '~icons/ic/baseline-wb-cloudy';
 import IconPencil from '~icons/material-symbols/edit-sharp';
 import IconTrash from '~icons/material-symbols/delete-outline';
+import IconWarning from '~icons/material-symbols/warning-rounded';
+import IconSave from '~icons/material-symbols/save-rounded';
+import IconCheck from '~icons/material-symbols/check-rounded';
 
 // `mixtapes` is only used to label a linked card with its tape length; the
 // component still works standalone without it.
@@ -72,14 +75,14 @@ async function handlePrint(card: JCard) {
     </div>
 
     <div v-if="!auth.user && library.allCards.length > 0" class="jcl-sync-banner">
-      <span>💾 Your cards are saved locally. Sign in to back them up to the cloud.</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><IconSave class="icon-inline" aria-hidden="true" /> Your cards are saved locally. Sign in to back them up to the cloud.</span>
       <button class="btn" @click="ui.openAuth()">Sign In</button>
     </div>
 
     <p v-if="library.loading" class="jcard-library-empty">Loading…</p>
 
     <div v-if="!library.loading && library.error" class="jcl-error">
-      <span>⚠ {{ library.error }}</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><IconWarning class="icon-inline" aria-hidden="true" /> {{ library.error }}</span>
       <button class="btn" @click="library.loadCards()">↻ Retry</button>
     </div>
 
@@ -112,9 +115,9 @@ async function handlePrint(card: JCard) {
               <span class="jcl-chip jcl-chip-flaps"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.content.flaps }} flap{{ card.content.flaps !== 1 ? 's' : '' }}</span>
               <span v-if="tapeLength(card)" class="jcl-chip">C-{{ tapeLength(card) }}</span>
               <span :class="`jcl-badge jcl-badge-${library.cardStatus(card)}`">
-                <template v-if="library.cardStatus(card) === 'local'">💾 Local</template>
+                <template v-if="library.cardStatus(card) === 'local'"><IconSave class="icon-inline" aria-hidden="true" /> Local</template>
                 <template v-else-if="library.cardStatus(card) === 'cloud'"><IconCloud class="icon-inline" aria-hidden="true" /> Cloud</template>
-                <template v-else>✓ Synced</template>
+                <template v-else><IconCheck class="icon-inline" aria-hidden="true" /> Synced</template>
               </span>
               <span
                 v-if="library.cardStatus(card) !== 'local'"

@@ -5,6 +5,7 @@ import { useUiStore } from '~/stores/ui';
 import { exportMixtapeToSpotify, type ExportResult } from '~/utils/spotifyExport';
 import { isAuthenticated, clearTokens, startSpotifyAuth } from '~/utils/spotifyAuth';
 import { mixtapeFacts } from '~/utils/mixtapeStats';
+import IconUpload from '~icons/material-symbols/upload-rounded';
 
 const props = defineProps<{ mixtape: Mixtape }>();
 const ui = useUiStore();
@@ -23,7 +24,7 @@ const busy = computed(() => state.value === 'connecting' || state.value === 'exp
 const label = computed(() =>
   state.value === 'exporting' ? 'Exporting...'
   : state.value === 'connecting' ? 'Connecting...'
-  : connected.value ? '⬆ Export to Spotify'
+  : connected.value ? 'Export to Spotify'
   : 'Connect Spotify'
 );
 
@@ -85,6 +86,7 @@ async function handleClick() {
       <button class="btn action-btn" @click="state = 'idle'">Retry</button>
     </div>
     <button v-else class="btn action-btn" :disabled="busy" @click="handleClick">
+      <IconUpload v-if="connected && !busy" class="icon-inline" aria-hidden="true" />
       {{ label }}
     </button>
 

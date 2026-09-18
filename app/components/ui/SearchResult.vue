@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Song, Side } from '~/types';
 import { formatTime } from '~/utils/timeUtils';
+import IconCheck from '~icons/material-symbols/check-rounded';
 
 const props = defineProps<{
   song: Song;
@@ -21,8 +22,8 @@ const emit = defineEmits<{ add: [song: Song, side: Side] }>();
       <div class="song-title">{{ song.title }}</div>
       <div class="song-meta">
         <span>{{ song.artist }} · {{ formatTime(song.duration) }}</span>
-        <span v-if="onA" class="on-tape-badge on-tape-badge-a">✓ A</span>
-        <span v-if="onB" class="on-tape-badge on-tape-badge-b">✓ B</span>
+        <span v-if="onA" class="on-tape-badge on-tape-badge-a"><IconCheck class="icon-inline" aria-hidden="true" /> A</span>
+        <span v-if="onB" class="on-tape-badge on-tape-badge-b"><IconCheck class="icon-inline" aria-hidden="true" /> B</span>
       </div>
     </div>
     <div class="add-buttons">

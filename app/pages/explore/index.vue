@@ -6,6 +6,7 @@ import { searchPublicMixtapes } from '~/utils/database';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { formatDuration } from '~/utils/timeUtils';
 import IconCassette from '~icons/ph/cassette-tape';
+import IconWarning from '~icons/material-symbols/warning-rounded';
 
 const PAGE_SIZE = 12;
 
@@ -135,7 +136,7 @@ function onPageChange(p: number) {
           </div>
 
           <div v-else-if="error" class="lib-error-state">
-            <span class="lib-error-icon">⚠</span>
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ error }}</span>
             <button class="lp-btn lp-btn-mustard" @click="runSearch">↻ Retry</button>
           </div>

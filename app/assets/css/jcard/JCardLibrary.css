@@ -346,6 +346,7 @@
 .jcl-delete {
   margin-left: auto;
   flex-shrink: 0;
+  align-self: stretch;
   font-size: 12px;
   padding: 5px 10px 4px;
 }

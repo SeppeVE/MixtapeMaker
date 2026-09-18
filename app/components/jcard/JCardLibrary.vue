@@ -112,7 +112,7 @@ async function handlePrint(card: JCard) {
           <div class="jcl-card-info">
             <p class="jcl-card-title">{{ card.title || 'Untitled' }}</p>
             <div class="jcl-chips">
-              <span class="jcl-chip jcl-chip-flaps"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.content.flaps }} flap{{ card.content.flaps !== 1 ? 's' : '' }}</span>
+              <span class="jcl-chip jcl-chip-flaps"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.content.flaps }} panel{{ card.content.flaps !== 1 ? 's' : '' }}</span>
               <span v-if="tapeLength(card)" class="jcl-chip">C-{{ tapeLength(card) }}</span>
               <span :class="`jcl-badge jcl-badge-${library.cardStatus(card)}`">
                 <template v-if="library.cardStatus(card) === 'local'"><IconSave class="icon-inline" aria-hidden="true" /> Local</template>

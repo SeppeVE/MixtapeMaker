@@ -116,6 +116,9 @@
   border: 1.5px solid var(--color-text);
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .jcl-badge-local  { background: var(--color-mustard, #f5c842); color: var(--color-text); }

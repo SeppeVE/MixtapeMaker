@@ -5,6 +5,7 @@ import { useAsyncData, useSeoMeta, useRequestEvent, setResponseStatus } from '#a
 import { loadPublicJCard } from '~/utils/jcardDatabase';
 import { loadPublicMixtape } from '~/utils/database';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 
 const route = useRoute();
 const id = computed(() => route.params.id as string);
@@ -50,7 +51,7 @@ if (import.meta.server && notFound.value) {
       <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
-        <div class="lib-empty-icon">🎴</div>
+        <IconCard class="lib-empty-icon" aria-hidden="true" />
         <p>This J-card isn't available.</p>
         <p class="lib-empty-sub">It may be private or no longer exist.</p>
       </div>

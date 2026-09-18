@@ -2,6 +2,7 @@
 import { useUiStore } from '~/stores/ui';
 import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
+import IconLightbulb from '~icons/mdi/lightbulb-outline';
 
 const ui = useUiStore();
 </script>
@@ -28,7 +29,7 @@ const ui = useUiStore();
 
       <div class="footer-btn-group">
         <button type="button" class="lp-btn lp-btn-mustard footer-btn" @click="ui.openFeedback()">
-          💡 Feedback
+          <IconLightbulb class="icon-inline" aria-hidden="true" /> Feedback
         </button>
         <a href="https://www.buymeacoffee.com/seppe.ve">
           <img src="https://img.buymeacoffee.com/button-api/?text=Support me&emoji=☕&slug=seppe.ve&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" />

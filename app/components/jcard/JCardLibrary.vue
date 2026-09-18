@@ -9,6 +9,10 @@ import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
 import IconEye from '~icons/mdi/eye';
 import IconEyeOff from '~icons/mdi/eye-off';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconCloud from '~icons/ic/baseline-wb-cloudy';
+import IconPencil from '~icons/material-symbols/edit-sharp';
+import IconTrash from '~icons/material-symbols/delete-outline';
 
 // `mixtapes` is only used to label a linked card with its tape length; the
 // component still works standalone without it.
@@ -105,11 +109,11 @@ async function handlePrint(card: JCard) {
           <div class="jcl-card-info">
             <p class="jcl-card-title">{{ card.title || 'Untitled' }}</p>
             <div class="jcl-chips">
-              <span class="jcl-chip jcl-chip-flaps">🎴 {{ card.content.flaps }} flap{{ card.content.flaps !== 1 ? 's' : '' }}</span>
+              <span class="jcl-chip jcl-chip-flaps"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.content.flaps }} flap{{ card.content.flaps !== 1 ? 's' : '' }}</span>
               <span v-if="tapeLength(card)" class="jcl-chip">C-{{ tapeLength(card) }}</span>
               <span :class="`jcl-badge jcl-badge-${library.cardStatus(card)}`">
                 <template v-if="library.cardStatus(card) === 'local'">💾 Local</template>
-                <template v-else-if="library.cardStatus(card) === 'cloud'">☁ Cloud</template>
+                <template v-else-if="library.cardStatus(card) === 'cloud'"><IconCloud class="icon-inline" aria-hidden="true" /> Cloud</template>
                 <template v-else>✓ Synced</template>
               </span>
               <span
@@ -129,7 +133,7 @@ async function handlePrint(card: JCard) {
         <!-- Same paper footer strip as the tape cards, so both tabs behave alike. -->
         <div class="jcl-card-actions">
           <button class="lp-btn lp-btn-plum jcl-action" @click="emit('openCard', card)">
-            ✎ Edit card
+            <IconPencil class="icon-inline" aria-hidden="true" /> Edit card
           </button>
           <button
             class="lp-btn lp-btn-paper jcl-action"
@@ -158,7 +162,7 @@ async function handlePrint(card: JCard) {
             {{ card.isPublic ? 'Make private' : 'Make public' }}
           </button>
           <button class="btn jcl-delete" title="Delete card" @click="handleDelete(card)">
-            🗑 Delete
+            <IconTrash class="icon-inline" aria-hidden="true" /> Delete
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import type { Mixtape, Profile } from '~/types';
 import { searchPublicMixtapes } from '~/utils/database';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { formatDuration } from '~/utils/timeUtils';
+import IconCassette from '~icons/ph/cassette-tape';
 
 const PAGE_SIZE = 12;
 
@@ -140,7 +141,7 @@ function onPageChange(p: number) {
           </div>
 
           <div v-else-if="tapes.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">📼</div>
+            <IconCassette class="lib-empty-icon" aria-hidden="true" />
             <p>No public mixtapes found.</p>
           </div>
 

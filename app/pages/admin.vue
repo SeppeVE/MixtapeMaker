@@ -14,6 +14,7 @@ import {
 } from '~/utils/notificationDatabase';
 import { listFeedback, deleteFeedback } from '~/utils/feedbackDatabase';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
+import IconLightbulb from '~icons/mdi/lightbulb-outline';
 
 useSeoMeta({ title: 'Admin — Mixtape Maker', robots: 'noindex' });
 
@@ -251,7 +252,7 @@ const fmtDate = (iso: string) =>
             <button class="lp-btn lp-btn-mustard" @click="loadFeedback">↻ Retry</button>
           </div>
           <div v-else-if="feedback.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">💡</div>
+            <IconLightbulb class="lib-empty-icon" aria-hidden="true" />
             <p>No feedback yet.</p>
             <p class="lib-empty-sub">Entries sent through the Feedback button in the footer show up here.</p>
           </div>

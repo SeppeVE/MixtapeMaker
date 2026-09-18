@@ -2,6 +2,8 @@
 import type { Mixtape } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useMixtapeStore } from '~/stores/mixtape';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 
 defineProps<{ recentTapes: Mixtape[] }>();
 
@@ -22,7 +24,7 @@ function fmtDate(iso: string) {
         <div class="lp-cta-cards">
           <button class="lp-cta-card" @click="mixtape.newMixtape()">
             <div class="lp-cta-card-head" style="background:var(--color-forest)">
-              <div class="lp-cta-card-icon">📼</div>
+              <IconCassette class="lp-cta-card-icon" aria-hidden="true" />
               <div class="lp-cta-card-title">Mixtape Editor</div>
               <p class="lp-cta-card-desc">Build, balance, and perfect your track list with real-time tape length calculation.</p>
             </div>
@@ -34,7 +36,7 @@ function fmtDate(iso: string) {
 
           <NuxtLink to="/library?tab=jcards" class="lp-cta-card">
             <div class="lp-cta-card-head" style="background:var(--color-plum)">
-              <div class="lp-cta-card-icon">🃏</div>
+              <IconCard class="lp-cta-card-icon" aria-hidden="true" />
               <div class="lp-cta-card-title">J-Card Designer</div>
               <p class="lp-cta-card-desc">Upload cover art, style the spine and back panel, and export a print-ready PDF.</p>
             </div>

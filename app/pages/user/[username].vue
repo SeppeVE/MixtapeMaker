@@ -8,6 +8,9 @@ import { loadProfileByUsername } from '~/utils/profileDatabase';
 import { loadPublicMixtapesByUser } from '~/utils/database';
 import { listPublicJCardsByUser } from '~/utils/jcardDatabase';
 import { formatDuration } from '~/utils/timeUtils';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconPencil from '~icons/material-symbols/edit-sharp';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -105,7 +108,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             <p v-if="profile.bio && (!profile.isPrivate || isOwner)" class="pf-bio">{{ profile.bio }}</p>
             <div v-if="isOwner" class="pf-owner-row">
               <span v-if="profile.isPrivate" class="lib-badge lib-badge-private">◌ Private — only you see this</span>
-              <NuxtLink to="/profile" class="lp-btn lp-btn-paper" style="font-size:15px">✎ Edit profile</NuxtLink>
+              <NuxtLink to="/profile" class="lp-btn lp-btn-paper" style="font-size:15px"><IconPencil class="icon-inline" aria-hidden="true" /> Edit profile</NuxtLink>
             </div>
           </div>
         </section>
@@ -124,7 +127,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               <span class="lib-section-sub">{{ mixtapes.length }} tape{{ mixtapes.length === 1 ? '' : 's' }}</span>
             </div>
             <div v-if="mixtapes.length === 0" class="lib-empty">
-              <div class="lib-empty-icon">📼</div>
+              <IconCassette class="lib-empty-icon" aria-hidden="true" />
               <p>No public mixtapes yet.</p>
             </div>
             <div v-else class="lib-cards-grid">
@@ -161,7 +164,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               <span class="lib-section-sub">{{ jcards.length }} card{{ jcards.length === 1 ? '' : 's' }}</span>
             </div>
             <div v-if="jcards.length === 0" class="lib-empty">
-              <div class="lib-empty-icon">🎴</div>
+              <IconCard class="lib-empty-icon" aria-hidden="true" />
               <p>No public J-cards yet.</p>
             </div>
             <div v-else class="jcard-library-grid">

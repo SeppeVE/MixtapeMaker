@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUnsavedStore } from '~/stores/unsaved';
 import { useAuthStore } from '~/stores/auth';
+import IconCloud from '~icons/ic/baseline-wb-cloudy';
 
 // Styled replacement for the browser's "Leave site?" prompt, used for in-app
 // navigation. Opened by the router guard (see plugins/unsaved.client.ts).
@@ -62,7 +63,8 @@ async function saveAndLeave() {
         <div class="unsaved-actions">
           <button class="lp-btn lp-btn-mustard" :disabled="unsaved.saving" @click="unsaved.stay()">← Stay here</button>
           <button v-if="canSave" class="lp-btn lp-btn-forest" :disabled="unsaved.saving" @click="saveAndLeave">
-            {{ unsaved.saving ? 'Saving…' : '☁ Save & leave' }}
+            <IconCloud v-if="!unsaved.saving" class="icon-inline" aria-hidden="true" />
+            {{ unsaved.saving ? 'Saving…' : 'Save & leave' }}
           </button>
           <button class="unsaved-leave" :disabled="unsaved.saving" @click="leave">Leave without saving</button>
         </div>

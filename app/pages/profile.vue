@@ -15,6 +15,9 @@ import {
   deleteOwnAccount,
 } from '~/utils/profileDatabase';
 import { containsProfanity } from '~/utils/profanity';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconTrash from '~icons/material-symbols/delete-outline';
 
 useSeoMeta({ title: 'Your Profile — Mixtape Maker', robots: 'noindex' });
 
@@ -314,8 +317,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             Which mixtapes and J-cards appear on your profile is controlled per item with the Public / Private toggles in your library.
           </p>
           <div class="pf-links">
-            <NuxtLink to="/library" class="lp-btn lp-btn-paper">📼 Mixtapes</NuxtLink>
-            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper">🎴 J-Cards</NuxtLink>
+            <NuxtLink to="/library" class="lp-btn lp-btn-paper"><IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes</NuxtLink>
+            <NuxtLink to="/library?tab=jcards" class="lp-btn lp-btn-paper"><IconCard class="icon-inline" aria-hidden="true" /> J-Cards</NuxtLink>
           </div>
         </section>
 
@@ -337,7 +340,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
               </p>
             </div>
             <button class="btn pf-danger-btn" :disabled="deleting" @click="deleteAccount">
-              {{ deleting ? 'Deleting…' : '🗑 Delete my account' }}
+              <IconTrash v-if="!deleting" class="icon-inline" aria-hidden="true" />
+              {{ deleting ? 'Deleting…' : 'Delete my account' }}
             </button>
           </div>
         </section>

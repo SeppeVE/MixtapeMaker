@@ -13,6 +13,11 @@ import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
 import IconEye from '~icons/mdi/eye';
 import IconEyeOff from '~icons/mdi/eye-off';
+import IconCassette from '~icons/ph/cassette-tape';
+import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import IconCloud from '~icons/ic/baseline-wb-cloudy';
+import IconLink from '~icons/material-symbols/add-link-rounded';
+import IconTrash from '~icons/material-symbols/delete-outline';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -158,11 +163,11 @@ function newCard() {
         </div>
         <div class="lib-tabs">
           <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
-            📼 Mixtapes
+            <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
             <span v-if="cloudTapes.length > 0" class="lib-tab-count">{{ cloudTapes.length + (draftIsUnsaved ? 1 : 0) }}</span>
           </button>
           <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
-            🎴 J-Cards
+            <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
             <span v-if="jcardLibrary.allCards.length > 0" class="lib-tab-count">{{ jcardLibrary.allCards.length }}</span>
           </button>
         </div>
@@ -201,7 +206,8 @@ function newCard() {
                 :disabled="store.isSaving"
                 @click="auth.user ? handleSaveDraftToCloud() : ui.openAuth()"
               >
-                {{ store.isSaving ? 'Saving…' : '☁ Save to Cloud' }}
+                <IconCloud v-if="!store.isSaving" class="icon-inline" aria-hidden="true" />
+                {{ store.isSaving ? 'Saving…' : 'Save to Cloud' }}
               </button>
             </div>
           </div>
@@ -216,7 +222,7 @@ function newCard() {
           </div>
 
           <div v-if="!auth.user" class="lib-sign-gate">
-            <div class="lib-sign-gate-icon">☁</div>
+            <IconCloud class="lib-sign-gate-icon" aria-hidden="true" />
             <p class="lib-sign-gate-text">Sign in to save tapes across devices and access them anywhere.</p>
             <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
           </div>
@@ -240,7 +246,7 @@ function newCard() {
           </div>
 
           <div v-else-if="cloudTapes.length === 0" class="lib-empty">
-            <div class="lib-empty-icon">📼</div>
+            <IconCassette class="lib-empty-icon" aria-hidden="true" />
             <p>No cloud tapes yet.</p>
             <p class="lib-empty-sub">Build a mixtape and hit "Save to Cloud" from the editor.</p>
             <button class="lp-btn lp-btn-mustard" style="margin-top:8px" @click="store.newMixtape()">▶ Make a Tape</button>
@@ -262,7 +268,7 @@ function newCard() {
               <!-- Read-only status strip: badges say what the tape *is*, never what you can do to it. -->
               <div class="lib-tape-card-meta">
                 <div class="lib-tape-card-meta-row">
-                  <span class="lib-badge lib-badge-cloud">☁ Cloud</span>
+                  <span class="lib-badge lib-badge-cloud"><IconCloud class="icon-inline" aria-hidden="true" /> Cloud</span>
                   <span
                     class="lib-badge"
                     :class="tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'"
@@ -297,7 +303,7 @@ function newCard() {
               <div class="lib-tape-card-actions" @click.stop>
                 <div class="lib-tape-card-actions-main">
                   <button class="lp-btn lp-btn-plum lib-tape-action" title="Copy share link" @click="handleShare(tape)">
-                    🔗 Copy link
+                    <IconLink class="icon-inline" aria-hidden="true" /> Copy link
                   </button>
                   <button
                     class="lp-btn lp-btn-paper lib-tape-action"
@@ -310,7 +316,7 @@ function newCard() {
                   </button>
                 </div>
                 <button class="btn lib-tape-delete" title="Delete tape" @click="handleDeleteTape(tape)">
-                  🗑 Delete
+                  <IconTrash class="icon-inline" aria-hidden="true" /> Delete
                 </button>
               </div>
             </div>

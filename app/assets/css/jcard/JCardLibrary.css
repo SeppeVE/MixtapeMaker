@@ -292,6 +292,9 @@
   color: var(--color-text-light);
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .jcl-chip-flaps {

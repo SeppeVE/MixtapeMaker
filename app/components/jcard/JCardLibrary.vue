@@ -7,6 +7,8 @@ import { useUiStore } from '~/stores/ui';
 import { exportJCardToPDF } from '~/utils/jcardPdf';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
+import IconEye from '~icons/mdi/eye';
+import IconEyeOff from '~icons/mdi/eye-off';
 
 // `mixtapes` is only used to label a linked card with its tape length; the
 // component still works standalone without it.
@@ -116,7 +118,8 @@ async function handlePrint(card: JCard) {
                 :class="card.isPublic ? 'lib-badge-public' : 'lib-badge-private'"
                 :title="card.isPublic ? 'Public · shown on your profile and the linked mixtape' : 'Private · only you can see this card'"
               >
-                {{ card.isPublic ? '👁 Public' : '👁 Private' }}
+                <component :is="card.isPublic ? IconEye : IconEyeOff" class="visibility-toggle-icon" aria-hidden="true" />
+                {{ card.isPublic ? 'Public' : 'Private' }}
               </span>
             </div>
             <p class="jcl-card-edited">Edited {{ fmt(card.updatedAt) }}</p>

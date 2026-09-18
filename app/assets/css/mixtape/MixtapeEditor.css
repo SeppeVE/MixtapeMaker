@@ -1,15 +1,25 @@
 /* ── Full-screen editor layout ── */
 
+/* Scrollable overlay (see .lp-page): sized to the viewport via inset rather
+   than a percentage height, so it scrolls on its own under the fixed/hidden
+   html+body. */
 .editor {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
   background: var(--color-seafoam);
   transition: background 0.35s;
 }
 
 .editor-side-b { background: var(--color-lavender); }
+
+/* Nav + workspace fill at least one screen (classic sticky-footer flex);
+   the footer is regular content after it, reachable by scrolling .editor. */
+.editor-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 /* ── Menubar ── */
 .menubar {
@@ -156,11 +166,16 @@
 }
 
 @media screen and (max-width: 768px) {
-  /* Switch from fixed-viewport to natural-scroll model */
+  /* Switch from fixed-viewport to natural-scroll model: back to normal flow
+     (html/body already scroll on mobile — see App.css) and no forced
+     one-screen floor before the footer. */
   .editor {
-    height: auto;
-    min-height: 100dvh;
-    overflow-y: auto;
+    position: static;
+    overflow-y: visible;
+  }
+
+  .editor-screen {
+    min-height: 0;
   }
 
   .workspace {

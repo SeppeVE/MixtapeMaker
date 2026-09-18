@@ -96,75 +96,77 @@ function saveTitle() {
   <div :class="`editor editor-side-${sideA ? 'a' : 'b'}${flipping ? ' flipping' : ''}`">
     <Floaters :side-a="sideA" />
 
-    <NavBar library>
-      <button class="lp-nav-link" @click="router.back()">◀ Back</button>
-      <span class="lp-nav-sep">/</span>
-      <input
-        v-if="isEditingTitle"
-        ref="titleInput"
-        v-model="editTitle"
-        class="lp-nav-title-input"
-        @blur="saveTitle"
-        @keydown.enter="saveTitle"
-        @keydown.escape="isEditingTitle = false"
-      />
-      <button
-        v-else
-        :class="`lp-nav-title${isMixtapeUntitled(mixtape.title) ? ' lp-nav-title--untitled' : ''}`"
-        title="Click to rename"
-        @click="startEditTitle"
-      >
-        {{ mixtape.title }}
-      </button>
-    </NavBar>
-
-    <div class="workspace">
-      <div class="col-search">
-        <div class="col-hello">Search</div>
-        <SearchBar
-          :side-a="mixtape.sideA"
-          :side-b="mixtape.sideB"
-          :active-side="activeSide"
-          @add="handleAddSong"
+    <div class="editor-screen">
+      <NavBar library>
+        <button class="lp-nav-link" @click="router.back()">◀ Back</button>
+        <span class="lp-nav-sep">/</span>
+        <input
+          v-if="isEditingTitle"
+          ref="titleInput"
+          v-model="editTitle"
+          class="lp-nav-title-input"
+          @blur="saveTitle"
+          @keydown.enter="saveTitle"
+          @keydown.escape="isEditingTitle = false"
         />
-      </div>
+        <button
+          v-else
+          :class="`lp-nav-title${isMixtapeUntitled(mixtape.title) ? ' lp-nav-title--untitled' : ''}`"
+          title="Click to rename"
+          @click="startEditTitle"
+        >
+          {{ mixtape.title }}
+        </button>
+      </NavBar>
 
-      <div class="col-deck">
-        <div class="deck-toolbar">
-          <button
-            :class="`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`"
-            :title="`Flip to Side ${sideA ? 'B' : 'A'}`"
-            @click="doFlip"
-          >
-            ▸ Side {{ activeSide }}
-          </button>
-          <div class="deck-toolbar-spacer" />
-          <button class="btn deck-tool-btn" title="Shuffle this side" @click="handleShuffle">⤨ Shuffle</button>
-          <button class="btn deck-tool-btn" title="Flip tape" @click="doFlip">↻ Flip</button>
+      <div class="workspace">
+        <div class="col-search">
+          <div class="col-hello">Search</div>
+          <SearchBar
+            :side-a="mixtape.sideA"
+            :side-b="mixtape.sideB"
+            :active-side="activeSide"
+            @add="handleAddSong"
+          />
         </div>
-        <TapeSide
-          :side="activeSide"
-          :songs="activeSongs"
-          :max-duration="maxDuration"
-          @remove-song="handleRemoveSong"
-          @reorder-songs="handleReorderSongs"
-          @move-song="handleMoveSong"
-        />
-      </div>
 
-      <div class="col-preview">
-        <TapePreview
-          :mixtape="mixtape"
-          :side-a="sideA"
-          :is-saving="store.isSaving"
-          :is-cloud-saved="isCloudId(mixtape.id)"
-          @update="update"
-          @save="store.save()"
-          @new-mixtape="store.newMixtape()"
-          @toggle-public="store.togglePublic(mixtape, !mixtape.isPublic)"
-        />
+        <div class="col-deck">
+          <div class="deck-toolbar">
+            <button
+              :class="`deck-side-label deck-side-label-${sideA ? 'a' : 'b'}`"
+              :title="`Flip to Side ${sideA ? 'B' : 'A'}`"
+              @click="doFlip"
+            >
+              ▸ Side {{ activeSide }}
+            </button>
+            <div class="deck-toolbar-spacer" />
+            <button class="btn deck-tool-btn" title="Shuffle this side" @click="handleShuffle">⤨ Shuffle</button>
+            <button class="btn deck-tool-btn" title="Flip tape" @click="doFlip">↻ Flip</button>
+          </div>
+          <TapeSide
+            :side="activeSide"
+            :songs="activeSongs"
+            :max-duration="maxDuration"
+            @remove-song="handleRemoveSong"
+            @reorder-songs="handleReorderSongs"
+            @move-song="handleMoveSong"
+          />
+        </div>
+
+        <div class="col-preview">
+          <TapePreview
+            :mixtape="mixtape"
+            :side-a="sideA"
+            :is-saving="store.isSaving"
+            :is-cloud-saved="isCloudId(mixtape.id)"
+            @update="update"
+            @save="store.save()"
+            @new-mixtape="store.newMixtape()"
+            @toggle-public="store.togglePublic(mixtape, !mixtape.isPublic)"
+          />
+        </div>
       </div>
     </div>
-    <HomeFooter compact />
+    <HomeFooter />
   </div>
 </template>

@@ -4,6 +4,10 @@ import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
 import IconLightbulb from '~icons/mdi/lightbulb-outline';
 
+// compact: drop the bottom credits/badge rail. Used on tool pages (the mixtape
+// editor) where the full footer would squeeze the workspace to fit one viewport.
+withDefaults(defineProps<{ compact?: boolean }>(), { compact: false });
+
 const ui = useUiStore();
 </script>
 
@@ -38,7 +42,7 @@ const ui = useUiStore();
     </div>
 
     <!-- Bottom rail — credits on the left, featured badge on the right -->
-    <div class="lp-foot-rail">
+    <div v-if="!compact" class="lp-foot-rail">
       <div class="lp-foot-credits">
         <span>Mixtape Maker &copy; 2026</span>
         <span><NuxtLink to="/privacy" class="lp-foot-link">Privacy</NuxtLink></span>

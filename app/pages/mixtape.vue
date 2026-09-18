@@ -165,6 +165,6 @@ function saveTitle() {
         />
       </div>
     </div>
-    <HomeFooter />
+    <HomeFooter compact />
   </div>
 </template>

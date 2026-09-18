@@ -437,7 +437,7 @@
   gap: 10px;
 }
 
-.lp-cta-card-icon { font-size: 32px; }
+.lp-cta-card-icon { font-size: 32px; color: var(--color-paper); }
 
 .lp-cta-card-title {
   font-family: var(--font-display);

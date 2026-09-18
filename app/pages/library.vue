@@ -11,6 +11,8 @@ import { formatDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
+import IconEye from '~icons/mdi/eye';
+import IconEyeOff from '~icons/mdi/eye-off';
 
 type Tab = 'mixtapes' | 'jcards';
 
@@ -266,7 +268,8 @@ function newCard() {
                     :class="tape.isPublic ? 'lib-badge-public' : 'lib-badge-private'"
                     :title="tape.isPublic ? 'Public · listed on the explore page' : 'Private · not listed on the explore page'"
                   >
-                    {{ tape.isPublic ? '👁 Public' : '👁 Private' }}
+                    <component :is="tape.isPublic ? IconEye : IconEyeOff" class="visibility-toggle-icon" aria-hidden="true" />
+                    {{ tape.isPublic ? 'Public' : 'Private' }}
                   </span>
                   <span class="lib-tape-card-spec">C-{{ tape.cassetteLength }} · {{ fmtDate(tape.updatedAt) }}</span>
                 </div>

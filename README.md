@@ -109,7 +109,7 @@ The built files will be in the `dist` folder.
 - Share mixtapes with others via unique links
 - Public mixtape gallery
 - Collaborative mixtapes
-- Export mixtapes as Spotify playlists
+- Export mixtapes as Spotify playlists (as one playlist, or Side A and Side B separately)
 
 ## Tech Stack
 

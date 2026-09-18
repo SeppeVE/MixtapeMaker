@@ -418,3 +418,19 @@
   color: #d4524a;
   margin: 0;
 }
+
+.export-mode-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.export-mode-btn {
+  flex: 1;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.export-mode-btn--active {
+  opacity: 1;
+  background: var(--color-secondary);
+}

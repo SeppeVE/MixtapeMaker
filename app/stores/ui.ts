@@ -25,6 +25,8 @@ export interface SuccessModalOptions {
   trigger: SupportTrigger;
   /** Share / playlist link with open + copy buttons. */
   link?: SuccessModalLink;
+  /** Several links (e.g. one per exported side), each with its own open + copy button. */
+  links?: SuccessModalLink[];
   /** True when the caller already put the link on the clipboard. */
   copied?: boolean;
   /** One-line note under the title, e.g. "3 added · 1 skipped". */
@@ -69,7 +71,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   function successModalHasContent(m: SuccessModalState): boolean {
-    return !!m.link || m.showChecklist || !!m.facts?.length;
+    return !!m.link || !!m.links?.length || m.showChecklist || !!m.facts?.length;
   }
 
   /**

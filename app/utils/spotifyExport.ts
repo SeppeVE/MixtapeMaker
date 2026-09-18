@@ -1,4 +1,4 @@
-import { Mixtape, Song } from '../types';
+import { Mixtape, Side, Song } from '../types';
 import { getStoredTokens, hasImageUploadScope, isTokenExpired, refreshAccessToken, SpotifyTokens } from './spotifyAuth';
 import { generateCassetteCoverJpegBase64 } from './cassetteCoverImage';
 
@@ -12,6 +12,14 @@ export interface ExportResult {
   coverSet: boolean;
   /** Human-readable reason the cover wasn't set, when coverSet is false. */
   coverError?: string;
+}
+
+export interface SideExportResult {
+  side: Side;
+  status: 'ok' | 'failed' | 'empty';
+  result?: ExportResult;
+  /** Set when status is 'failed' (the error message) or 'empty' (why nothing was exported). */
+  error?: string;
 }
 
 const API = 'https://api.spotify.com/v1';
@@ -54,22 +62,30 @@ async function uploadPlaylistCover(playlistId: string, accessToken: string, base
   }
 }
 
-export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportResult> {
+async function getSpotifyExportContext(): Promise<{ tokens: SpotifyTokens; userId: string }> {
   let tokens: SpotifyTokens | null = getStoredTokens();
   if (!tokens) throw new Error('Not connected to Spotify');
   if (isTokenExpired()) tokens = await refreshAccessToken();
 
-  const allSongs = [...mixtape.sideA, ...mixtape.sideB];
-  const trackUris = allSongs.filter(s => s.spotifyUri).map(s => s.spotifyUri as string);
-  const skippedSongs = allSongs.filter(s => !s.spotifyUri);
-
   const me = await spotifyFetch(`${API}/me`, tokens.accessToken);
-  const userId: string = me.id;
+  return { tokens, userId: me.id };
+}
+
+async function createSidePlaylist(
+  tokens: SpotifyTokens,
+  userId: string,
+  mixtape: Mixtape,
+  name: string,
+  songs: Song[],
+  coverSide: Side | 'both',
+): Promise<ExportResult> {
+  const trackUris = songs.filter(s => s.spotifyUri).map(s => s.spotifyUri as string);
+  const skippedSongs = songs.filter(s => !s.spotifyUri);
 
   const playlist = await spotifyFetch(`${API}/users/${userId}/playlists`, tokens.accessToken, {
     method: 'POST',
     body: JSON.stringify({
-      name: mixtape.title,
+      name,
       description: 'Made with Mixtape Maker — https://mixtape-maker.com',
       public: false,
     }),
@@ -97,7 +113,7 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
     coverError = 'Reconnect Spotify to allow custom cover art (disconnect below, then reconnect).';
   } else {
     try {
-      const cover = await generateCassetteCoverJpegBase64(mixtape);
+      const cover = await generateCassetteCoverJpegBase64(mixtape, coverSide === 'both' ? 'A' : coverSide);
       await uploadPlaylistCover(playlistId, tokens.accessToken, cover);
       coverSet = true;
     } catch (err) {
@@ -106,4 +122,39 @@ export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportRe
   }
 
   return { playlistUrl, playlistId, addedCount, skippedCount: skippedSongs.length, skippedSongs, coverSet, coverError };
+}
+
+export async function exportMixtapeToSpotify(mixtape: Mixtape): Promise<ExportResult> {
+  const { tokens, userId } = await getSpotifyExportContext();
+  const allSongs = [...mixtape.sideA, ...mixtape.sideB];
+  return createSidePlaylist(tokens, userId, mixtape, mixtape.title, allSongs, 'both');
+}
+
+/**
+ * Exports Side A and Side B as two separate playlists. Runs sequentially and
+ * catches per side so a Side B failure doesn't discard an already-created
+ * Side A playlist — the caller gets a result per side either way.
+ */
+export async function exportMixtapeSidesToSpotify(mixtape: Mixtape): Promise<SideExportResult[]> {
+  const { tokens, userId } = await getSpotifyExportContext();
+  const baseTitle = mixtape.title || 'Untitled Mixtape';
+  const sides: { side: Side; songs: Song[] }[] = [
+    { side: 'A', songs: mixtape.sideA },
+    { side: 'B', songs: mixtape.sideB },
+  ];
+
+  const results: SideExportResult[] = [];
+  for (const { side, songs } of sides) {
+    if (!songs.some(s => s.spotifyUri)) {
+      results.push({ side, status: 'empty', error: `Side ${side} had no Spotify tracks` });
+      continue;
+    }
+    try {
+      const result = await createSidePlaylist(tokens, userId, mixtape, `${baseTitle} (Side ${side})`, songs, side);
+      results.push({ side, status: 'ok', result });
+    } catch (err) {
+      results.push({ side, status: 'failed', error: err instanceof Error ? err.message : 'Export failed' });
+    }
+  }
+  return results;
 }

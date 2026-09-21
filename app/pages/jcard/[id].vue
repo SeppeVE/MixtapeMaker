@@ -71,7 +71,8 @@ if (import.meta.server && notFound.value) {
           </section>
         </div>
       </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

@@ -54,7 +54,8 @@ useSeoMeta({
         <ExploreMixtapes v-if="activeTab === 'mixtapes'" />
         <ExploreJCards v-else />
       </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

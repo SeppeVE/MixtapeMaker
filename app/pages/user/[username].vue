@@ -185,7 +185,8 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         </template>
       </div>
       </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

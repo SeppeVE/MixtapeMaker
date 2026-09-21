@@ -361,7 +361,8 @@ function newCard() {
         </section>
       </div>
       </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

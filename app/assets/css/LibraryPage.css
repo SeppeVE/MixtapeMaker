@@ -17,10 +17,17 @@
    regular content after it, reachable by scrolling .lib-page. Without this
    floor a page with little content (few results, an empty state) lets the
    footer sit inline within the first screen instead of always being a
-   deliberate scroll away, like it is on every other page. */
+   deliberate scroll away, like it is on every other page.
+   flex-shrink: 0 matters here: .lib-page is itself a flex column, and an
+   *explicit* min-height on a flex item (unlike the default min-height:auto)
+   turns off the browser's automatic "never shrink below content size" floor.
+   Without shrink:0, a tall page (content genuinely taller than 100vh) gets
+   squeezed back down to exactly 100vh by its flex-shrink:1 default, clipping
+   .lib-content and landing HomeFooterRail mid-page instead of at the end. */
 .lib-screen {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   min-height: 100vh;
 }
 

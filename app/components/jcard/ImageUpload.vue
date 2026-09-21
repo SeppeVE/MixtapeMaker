@@ -11,7 +11,7 @@ const props = defineProps<{
   cardId?: string;
 }>();
 
-const emit = defineEmits<{ change: [url: string | null] }>();
+const emit = defineEmits<{ change: [result: { url: string | null; thumbUrl?: string }] }>();
 
 const auth = useAuthStore();
 const uploading = ref(false);
@@ -31,8 +31,8 @@ async function handleFile(file: File) {
   error.value = null;
   uploading.value = true;
   try {
-    const url = await uploadJCardImage(file, auth.user?.id ?? 'local', props.imageType, props.cardId);
-    emit('change', url);
+    const { url, thumbUrl } = await uploadJCardImage(file, auth.user?.id ?? 'local', props.imageType, props.cardId);
+    emit('change', { url, thumbUrl });
   } catch (e) {
     error.value = 'Upload failed — try again';
     console.error(e);
@@ -108,7 +108,7 @@ const filename = computed(() =>
       v-if="currentUrl"
       class="btn btn-secondary img-upload-remove"
       :disabled="uploading"
-      @click.stop="emit('change', null)"
+      @click.stop="emit('change', { url: null })"
     >
       Remove image
     </button>

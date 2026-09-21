@@ -5,6 +5,7 @@ import { JCARD_PRESETS } from '~/utils/jcardPresets';
 import { type Section, SECTION_COLORS, SETTINGS_COLOR_PRESETS as COLOR_PRESETS } from './settingsSections';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { fontNameFromFile, readFileAsBase64, mimeTypeFromFile, registerCustomFonts } from '~/utils/fontManager';
+import { deleteJCardImage } from '~/utils/supabaseImages';
 import {
   exportJCardToPDF, resolvePdfLayout, shouldExportInside, jcardHasInsideContent,
   PAPER_SIZES_MM, DEFAULT_PAPER, DEFAULT_DUPLEX_FLIP,
@@ -137,6 +138,19 @@ function handleApplyPreset(presetId: string) {
 }
 
 const flapLabel = (i: number) => (i === 0 ? 'Cover' : `Flap ${i + 1}`);
+
+// Outside cover/background images carry a thumbnail (see supabaseImages.ts)
+// that the Explore grid preview reads instead of the full-size original. The
+// old thumbnail is orphaned once its image is replaced or removed, so it's
+// deleted here explicitly — ImageUpload only reports the new upload.
+function handleCoverImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
+  if (content.value.coverImageThumbUrl) deleteJCardImage(content.value.coverImageThumbUrl);
+  patch({ coverImageUrl: url ?? undefined, coverImageThumbUrl: thumbUrl });
+}
+function handleBackgroundImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
+  if (content.value.backgroundImageThumbUrl) deleteJCardImage(content.value.backgroundImageThumbUrl);
+  patch({ backgroundImageUrl: url ?? undefined, backgroundImageThumbUrl: thumbUrl });
+}
 
 // Per-flap image array helpers.
 function setFlapImage(url: string | null) {
@@ -316,7 +330,7 @@ function blockAttrs(id: Section) {
         :current-url="content.backgroundImageUrl"
         image-type="background"
         :card-id="card.id"
-        @change="patch({ backgroundImageUrl: $event ?? undefined })"
+        @change="handleBackgroundImageChange"
       />
       <label class="settings-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.continuousBackground" @change="patch({ continuousBackground: ($event.target as HTMLInputElement).checked })" />
@@ -329,7 +343,7 @@ function blockAttrs(id: Section) {
         :current-url="content.insideBackgroundImageUrl"
         image-type="background"
         :card-id="card.id"
-        @change="patch({ insideBackgroundImageUrl: $event ?? undefined })"
+        @change="patch({ insideBackgroundImageUrl: $event.url ?? undefined })"
       />
       <label class="settings-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.insideContinuousBackground" @change="patch({ insideContinuousBackground: ($event.target as HTMLInputElement).checked })" />
@@ -359,7 +373,7 @@ function blockAttrs(id: Section) {
           :current-url="content.coverImageUrl"
           image-type="cover"
           :card-id="card.id"
-          @change="patch({ coverImageUrl: $event ?? undefined })"
+          @change="handleCoverImageChange"
         />
         <div v-if="content.coverImageUrl" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
           <label class="settings-checkbox-label">
@@ -379,7 +393,7 @@ function blockAttrs(id: Section) {
           :current-url="content.flapImageUrls?.[activeFlap]"
           image-type="cover"
           :card-id="card.id"
-          @change="setFlapImage($event)"
+          @change="setFlapImage($event.url)"
         />
         <div v-if="content.flapImageUrls?.[activeFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
           <label class="settings-checkbox-label">
@@ -421,7 +435,7 @@ function blockAttrs(id: Section) {
         :current-url="content.insideFlapImageUrls?.[activeInsideFlap]"
         image-type="cover"
         :card-id="card.id"
-        @change="setInsideFlapImage($event)"
+        @change="setInsideFlapImage($event.url)"
       />
       <div v-if="content.insideFlapImageUrls?.[activeInsideFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px;margin-bottom:8px">
         <label class="settings-checkbox-label">

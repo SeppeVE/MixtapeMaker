@@ -668,6 +668,64 @@ WHERE j.is_public = true AND j.is_copy = false;
 GRANT SELECT ON public.public_jcard_previews TO anon, authenticated;
 ```
 
+### 4. Upload-time thumbnails
+
+The editor now uploads a small WebP/JPEG thumbnail alongside a card's cover
+and background images (`app/utils/supabaseImages.ts`), stored on the card as
+`coverImageThumbUrl` / `backgroundImageThumbUrl`. The view already passes
+unrecognized `content` keys through untouched, so existing rows need no
+backfill — old cards simply have no thumb fields and the Explore grid falls
+back to the full-size originals. This just extends the same `data:` URL
+guard the other image fields already get, in case a thumbnail ever ends up
+inlined instead of uploaded.
+
+```sql
+CREATE OR REPLACE FUNCTION public.jcard_trim_preview_content(content jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  result jsonb := content;
+  trimmed jsonb;
+  img_key text;
+BEGIN
+  result := result - 'customFonts' - 'insideContent' - 'insideFlapContents'
+                    - 'insideSpineContent' - 'insideBackContent' - 'insideFlapImageUrls'
+                    - 'insideBackPanelImageUrl' - 'insideBackgroundImageUrl';
+
+  IF jsonb_typeof(result->'flapContents') = 'array' THEN
+    SELECT jsonb_agg(CASE WHEN ord = 1 THEN val ELSE '""'::jsonb END ORDER BY ord)
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapContents') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapContents}', COALESCE(trimmed, result->'flapContents'));
+  END IF;
+
+  FOREACH img_key IN ARRAY ARRAY[
+    'backgroundImageUrl', 'coverImageUrl', 'backPanelImageUrl',
+    'backgroundImageThumbUrl', 'coverImageThumbUrl'
+  ]
+  LOOP
+    IF left(COALESCE(result->>img_key, ''), 5) = 'data:' THEN
+      result := jsonb_set(result, ARRAY[img_key], 'null'::jsonb);
+    END IF;
+  END LOOP;
+
+  IF jsonb_typeof(result->'flapImageUrls') = 'array' THEN
+    SELECT jsonb_agg(
+             CASE WHEN left(COALESCE(val #>> '{}', ''), 5) = 'data:' THEN 'null'::jsonb ELSE val END
+             ORDER BY ord
+           )
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapImageUrls') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapImageUrls}', COALESCE(trimmed, result->'flapImageUrls'));
+  END IF;
+
+  RETURN result;
+END;
+$$;
+```
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

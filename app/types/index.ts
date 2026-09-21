@@ -66,6 +66,8 @@ export interface JCardContent {
   shortBack: boolean;
   backgroundColor: string;
   backgroundImageUrl?: string;
+  /** Small upload-time thumbnail of backgroundImageUrl, used by the Explore grid preview. Falls back to the original when absent (e.g. older cards). */
+  backgroundImageThumbUrl?: string;
   /** When true a single background image/color spans the whole card instead of repeating per-panel */
   continuousBackground?: boolean;
   /** Separate background image for the inside panels (flaps, spine, back). Falls back to backgroundColor when absent. */
@@ -73,6 +75,8 @@ export interface JCardContent {
   /** When true a single background image spans all inside panels (independent of continuousBackground for outside) */
   insideContinuousBackground?: boolean;
   coverImageUrl?: string;
+  /** Small upload-time thumbnail of coverImageUrl, used by the Explore grid preview. Falls back to the original when absent (e.g. older cards). */
+  coverImageThumbUrl?: string;
   coverImageBehindContent: boolean;
   isFullCoverImage: boolean;
   /** Per-flap images for outside content flaps (indices 1-5; index 0 / cover uses coverImageUrl). */

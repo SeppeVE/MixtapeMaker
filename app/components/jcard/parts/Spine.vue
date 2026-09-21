@@ -7,15 +7,20 @@ const props = defineProps<{
   sanitizedTop: string;
   sanitizedCenter: string;
   sanitizedBottom: string;
+  /** Render the panel background as a real <img> (lazy-loadable) instead of a
+   *  CSS background-image. Only the Explore grid preview sets this. */
+  asImg?: boolean;
 }>();
 
 const rot = computed(() => (props.content.isReversed ? 'rotate(-90deg)' : 'rotate(90deg)'));
+
+const showBgImage = computed(() => !props.content.continuousBackground && !!props.content.backgroundImageUrl);
 
 const bg = computed<CSSProperties>(() => ({
   backgroundColor: props.content.continuousBackground
     ? 'transparent'
     : props.content.backgroundImageUrl ? 'transparent' : props.content.backgroundColor,
-  backgroundImage: !props.content.continuousBackground && props.content.backgroundImageUrl
+  backgroundImage: !props.asImg && showBgImage.value
     ? `url(${props.content.backgroundImageUrl})`
     : undefined,
   backgroundSize: 'cover',
@@ -26,6 +31,8 @@ const bg = computed<CSSProperties>(() => ({
   overflow: 'hidden',
 }));
 
+const bgImgStyle: CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' };
+
 const base: CSSProperties = { position: 'absolute', whiteSpace: 'nowrap', fontSize: '2.5mm', lineHeight: 1.3, left: '50%' };
 const topStyle = computed<CSSProperties>(() => ({ ...base, top: '1.5mm', transformOrigin: props.content.isReversed ? 'right center' : 'left center', transform: props.content.isReversed ? `translateX(-100%) ${rot.value}` : `translateX(0) ${rot.value}` }));
 const midStyle = computed<CSSProperties>(() => ({ ...base, top: '50%', transformOrigin: 'center center', transform: `translateX(-50%) translateY(-50%) ${rot.value}` }));
@@ -34,6 +41,7 @@ const btmStyle = computed<CSSProperties>(() => ({ ...base, bottom: '1.5mm', tran
 
 <template>
   <div :style="bg">
+    <img v-if="asImg && showBgImage" :src="content.backgroundImageUrl" loading="lazy" decoding="async" :style="bgImgStyle" alt="" >
     <div :style="topStyle" v-html="sanitizedTop" />
     <div :style="midStyle" v-html="sanitizedCenter" />
     <div :style="btmStyle" v-html="sanitizedBottom" />

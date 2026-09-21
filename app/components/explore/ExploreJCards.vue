@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAsyncData } from '#app';
+import { useResizeObserver } from '@vueuse/core';
 import type { JCardPreviewRow, Profile } from '~/types';
 import { searchPublicJCards } from '~/utils/jcardDatabase';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
+import { SPINE_MM, FLAPS_MM } from '~/components/jcard/dimensions';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconWarning from '~icons/material-symbols/warning-rounded';
 
@@ -12,6 +14,22 @@ const PAGE_SIZE = 12;
 
 const route = useRoute();
 const router = useRouter();
+
+// --jc-scale is computed ONCE per grid (not per card): one ResizeObserver on
+// the grid element reads an actual cell's rendered width and derives the
+// scale JCardExplorePreview's cards transform by. A card's own box width
+// comes purely from CSS grid/aspect-ratio, so this has no circular
+// dependency on the scale it produces.
+const PX_PER_MM = 96 / 25.4;
+const CARD_MM = SPINE_MM + FLAPS_MM[0];
+const gridRef = ref<HTMLElement | null>(null);
+useResizeObserver(gridRef, () => {
+  const el = gridRef.value;
+  const cell = el?.querySelector<HTMLElement>('.jce-box');
+  if (!el || !cell) return;
+  const scale = cell.getBoundingClientRect().width / (CARD_MM * PX_PER_MM);
+  if (scale > 0) el.style.setProperty('--jc-scale', String(scale));
+});
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -116,7 +134,7 @@ function onPageChange(p: number) {
         </div>
       </div>
 
-      <div v-if="loading" class="jcl-grid">
+      <div v-if="loading" class="jce-grid">
         <div v-for="n in 6" :key="n" class="lib-skeleton-jcard">
           <div class="lib-skeleton-header" />
           <div class="lib-skeleton-body">
@@ -140,33 +158,26 @@ function onPageChange(p: number) {
       </div>
 
       <template v-else>
-        <div class="jcl-grid">
+        <div ref="gridRef" class="jce-grid">
           <NuxtLink
             v-for="card in cards"
             :key="card.id"
             :to="`/jcard/${card.id}`"
-            class="jcl-card"
+            class="jce-grid-card"
           >
-            <div class="jcl-card-body">
-              <ClientOnly>
-                <JCardMiniPreview :content="card.content" />
-                <template #fallback>
-                  <div class="jcl-mini jcl-mini--placeholder" />
-                </template>
-              </ClientOnly>
+            <JCardExplorePreview :content="card.content" />
 
-              <div class="jcl-card-info">
-                <p class="jcl-card-title">{{ card.title || 'Untitled J-Card' }}</p>
-                <AuthorByline v-if="authorOf(card)" :profile="authorOf(card)!" />
-                <div class="jcl-chips">
-                  <span class="jcl-chip jcl-chip-flaps">
-                    <IconCard class="icon-inline" aria-hidden="true" /> {{ card.flapCount }} panel{{ card.flapCount !== 1 ? 's' : '' }}
-                  </span>
-                  <span v-if="card.hasInside" class="jcl-chip">Inside</span>
-                  <span v-if="card.mixtapeId" class="jcl-chip" title="Designed for a mixtape">♫</span>
-                </div>
-                <p class="jcl-card-edited">{{ fmtDate(card.updatedAt) }}</p>
+            <div class="jce-grid-info">
+              <p class="jce-grid-title">{{ card.title || 'Untitled J-Card' }}</p>
+              <AuthorByline v-if="authorOf(card)" :profile="authorOf(card)!" />
+              <div class="jce-grid-chips">
+                <span class="jcl-chip jcl-chip-flaps">
+                  <IconCard class="icon-inline" aria-hidden="true" /> {{ card.flapCount }} panel{{ card.flapCount !== 1 ? 's' : '' }}
+                </span>
+                <span v-if="card.hasInside" class="jcl-chip">Inside</span>
+                <span v-if="card.mixtapeId" class="jcl-chip" title="Designed for a mixtape">♫</span>
               </div>
+              <p class="jce-grid-date">{{ fmtDate(card.updatedAt) }}</p>
             </div>
           </NuxtLink>
         </div>

@@ -1,16 +1,29 @@
 import { supabase } from './supabase';
-import { JCard, JCardContent } from '../types';
+import { JCard, JCardContent, JCardPreviewRow } from '../types';
 
 interface DbJCard {
   id: string; user_id: string; mixtape_id: string | null;
   title: string; content: JCardContent; created_at: string; updated_at: string;
-  is_public: boolean | null;
+  is_public: boolean | null; is_copy: boolean | null; copied_from_id: string | null;
+}
+
+interface DbJCardPreviewRow {
+  id: string; title: string; user_id: string; mixtape_id: string | null; updated_at: string;
+  flap_count: number; has_inside: boolean; content: JCardContent;
 }
 
 function dbToJCard(r: DbJCard): JCard {
   return {
     id: r.id, title: r.title, userId: r.user_id, mixtapeId: r.mixtape_id, content: r.content,
     createdAt: r.created_at, updatedAt: r.updated_at, isPublic: r.is_public ?? false,
+    isCopy: r.is_copy ?? false, copiedFromId: r.copied_from_id,
+  };
+}
+
+function dbToJCardPreviewRow(r: DbJCardPreviewRow): JCardPreviewRow {
+  return {
+    id: r.id, title: r.title, userId: r.user_id, mixtapeId: r.mixtape_id, updatedAt: r.updated_at,
+    flapCount: r.flap_count, hasInside: r.has_inside, content: r.content,
   };
 }
 
@@ -28,7 +41,8 @@ export async function loadJCard(id: string): Promise<JCard | null> {
 
 /** A single card, only if it's public (or the caller owns it — RLS decides). Null when hidden/missing. */
 export async function loadPublicJCard(id: string): Promise<JCard | null> {
-  const { data, error } = await supabase.from('jcards').select('*').eq('id', id).eq('is_public', true).single();
+  const { data, error } = await supabase
+    .from('jcards').select('*').eq('id', id).eq('is_public', true).eq('is_copy', false).single();
   if (error) { if (error.code === 'PGRST116') return null; throw error; }
   return dbToJCard(data as DbJCard);
 }
@@ -36,7 +50,7 @@ export async function loadPublicJCard(id: string): Promise<JCard | null> {
 /** Public cards a user has chosen to show on their profile. */
 export async function listPublicJCardsByUser(userId: string): Promise<JCard[]> {
   const { data, error } = await supabase
-    .from('jcards').select('*').eq('user_id', userId).eq('is_public', true)
+    .from('jcards').select('*').eq('user_id', userId).eq('is_public', true).eq('is_copy', false)
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return (data as DbJCard[]).map(dbToJCard);
@@ -45,27 +59,48 @@ export async function listPublicJCardsByUser(userId: string): Promise<JCard[]> {
 /** Public cards linked to a mixtape, shown on that mixtape's detail page. */
 export async function listPublicJCardsForMixtape(mixtapeId: string): Promise<JCard[]> {
   const { data, error } = await supabase
-    .from('jcards').select('*').eq('mixtape_id', mixtapeId).eq('is_public', true)
+    .from('jcards').select('*').eq('mixtape_id', mixtapeId).eq('is_public', true).eq('is_copy', false)
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return (data as DbJCard[]).map(dbToJCard);
 }
 
-export async function createJCard(userId: string, input: { title: string; content: JCardContent; mixtapeId?: string | null; isPublic?: boolean }): Promise<JCard> {
+/** Trimmed rows (no inside content, no custom fonts, no data: URLs) from the public_jcard_previews view. */
+export async function searchPublicJCards(
+  query: string,
+  limit = 12,
+  offset = 0,
+): Promise<{ cards: JCardPreviewRow[]; total: number }> {
+  let req = supabase.from('public_jcard_previews').select('*', { count: 'exact' });
+  if (query.trim()) {
+    req = req.ilike('title', `%${query.trim()}%`);
+  }
+  const { data, error, count } = await req
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return { cards: (data as DbJCardPreviewRow[]).map(dbToJCardPreviewRow), total: count ?? 0 };
+}
+
+export async function createJCard(userId: string, input: {
+  title: string; content: JCardContent; mixtapeId?: string | null; isPublic?: boolean;
+  isCopy?: boolean; copiedFromId?: string | null;
+}): Promise<JCard> {
   const { data, error } = await supabase.from('jcards').insert({
     user_id: userId, mixtape_id: input.mixtapeId ?? null, title: input.title, content: input.content,
-    is_public: input.isPublic ?? false,
+    is_public: input.isPublic ?? false, is_copy: input.isCopy ?? false, copied_from_id: input.copiedFromId ?? null,
   }).select().single();
   if (error) throw error;
   return dbToJCard(data as DbJCard);
 }
 
-export async function updateJCard(id: string, patch: Partial<{ title: string; content: JCardContent; mixtapeId: string | null; isPublic: boolean }>): Promise<JCard> {
+export async function updateJCard(id: string, patch: Partial<{ title: string; content: JCardContent; mixtapeId: string | null; isPublic: boolean; isCopy: boolean }>): Promise<JCard> {
   const dbPatch: Record<string, unknown> = {};
   if (patch.title !== undefined) dbPatch.title = patch.title;
   if (patch.content !== undefined) dbPatch.content = patch.content;
   if (patch.mixtapeId !== undefined) dbPatch.mixtape_id = patch.mixtapeId;
   if (patch.isPublic !== undefined) dbPatch.is_public = patch.isPublic;
+  if (patch.isCopy !== undefined) dbPatch.is_copy = patch.isCopy;
   const { data, error } = await supabase.from('jcards').update(dbPatch).eq('id', id).select().single();
   if (error) throw error;
   return dbToJCard(data as DbJCard);
@@ -96,6 +131,8 @@ export async function upsertJCard(card: JCard, userId: string): Promise<JCard> {
     title: card.title,
     content: card.content,
     is_public: card.isPublic ?? false,
+    is_copy: card.isCopy ?? false,
+    copied_from_id: card.copiedFromId ?? null,
     created_at: card.createdAt,
     updated_at: new Date().toISOString(),
   };

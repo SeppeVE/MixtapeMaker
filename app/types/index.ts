@@ -132,6 +132,22 @@ export interface JCard {
   updatedAt: string;
   /** Visible on the owner's public profile and on the linked mixtape's detail page. */
   isPublic?: boolean;
+  /** True for a fresh copy of another user's public card until the user makes a real edit. */
+  isCopy?: boolean;
+  /** Id of the public card this one was copied from, if any. */
+  copiedFromId?: string | null;
+}
+
+/** A trimmed row from the `public_jcard_previews` view — Explore grid data only, never the inside face. */
+export interface JCardPreviewRow {
+  id: string;
+  title: string;
+  userId: string;
+  mixtapeId: string | null;
+  updatedAt: string;
+  flapCount: number;
+  hasInside: boolean;
+  content: JCardContent;
 }
 
 /** A user's public-facing profile row (mirrors the `profiles` table). */

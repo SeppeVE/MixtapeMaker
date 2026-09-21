@@ -726,6 +726,55 @@ END;
 $$;
 ```
 
+## Step 3j: Copying a Public J-Card (Image Bucket Policies)
+
+"Copy to my library" on a public J-card duplicates the card row **and** its
+images, so the copy keeps working after the original author replaces or
+deletes theirs. No schema changes — `is_copy` and `copied_from_id` came in
+step 3i. What this needs is the right policies on the `jcard-images` bucket.
+
+The app first asks Supabase to copy the object server-side, and falls back to
+downloading and re-uploading it through the browser when that's refused, so a
+bucket with public reads and owner-scoped writes works either way. If your
+bucket predates this app's storage setup and has no policies recorded
+anywhere, these are the ones it wants — the same shape as the avatars bucket
+in step 3f.4:
+
+```sql
+-- Public bucket; the editor uploads under {user_id}/{card_id}/{cover|background}-….{ext}
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('jcard-images', 'jcard-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Readable by anyone: public cards render their images to logged-out visitors,
+-- and copying one reads the source author's object.
+CREATE POLICY "J-card images are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'jcard-images');
+
+-- Writes are confined to the user's own folder. A copy writes into
+-- {my_user_id}/{new_card_id}/, so this covers copying someone else's image in.
+CREATE POLICY "Users can upload their own jcard images"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can update their own jcard images"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can delete their own jcard images"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+If the bucket already exists with working policies, run nothing — uploads
+working in the editor today means SELECT and INSERT are already in place, and
+the copy uses exactly those two. `CREATE POLICY` fails on a duplicate name, so
+check **Storage → Policies** before pasting.
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

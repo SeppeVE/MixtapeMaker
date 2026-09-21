@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { JCard, JCardContent, JCardPreviewRow } from '../types';
+import { duplicateJCardImages } from './supabaseImages';
 
 interface DbJCard {
   id: string; user_id: string; mixtape_id: string | null;
@@ -83,15 +84,49 @@ export async function searchPublicJCards(
 }
 
 export async function createJCard(userId: string, input: {
-  title: string; content: JCardContent; mixtapeId?: string | null; isPublic?: boolean;
+  id?: string; title: string; content: JCardContent; mixtapeId?: string | null; isPublic?: boolean;
   isCopy?: boolean; copiedFromId?: string | null;
 }): Promise<JCard> {
-  const { data, error } = await supabase.from('jcards').insert({
+  const row: Record<string, unknown> = {
     user_id: userId, mixtape_id: input.mixtapeId ?? null, title: input.title, content: input.content,
     is_public: input.isPublic ?? false, is_copy: input.isCopy ?? false, copied_from_id: input.copiedFromId ?? null,
-  }).select().single();
+  };
+  // Callers that need the id before the row exists pass their own — a copy
+  // files its images under `${userId}/${cardId}/` before inserting. Everyone
+  // else lets Supabase generate one.
+  if (input.id) row.id = input.id;
+  const { data, error } = await supabase.from('jcards').insert(row).select().single();
   if (error) throw error;
   return dbToJCard(data as DbJCard);
+}
+
+export class JCardCopyError extends Error {
+  constructor(public reason: 'source-unavailable') {
+    super(reason);
+    this.name = 'JCardCopyError';
+  }
+}
+
+/**
+ * Duplicate someone else's public card into `userId`'s library: private,
+ * unlinked from the source's mixtape, flagged as an untouched copy, and
+ * pointed at its own images rather than the original author's.
+ */
+export async function copyPublicJCard(sourceId: string, userId: string): Promise<JCard> {
+  const source = await loadPublicJCard(sourceId);
+  if (!source) throw new JCardCopyError('source-unavailable');
+  // Mint the id first so the images can be filed under the card that owns them.
+  const id = crypto.randomUUID();
+  const content = await duplicateJCardImages(source.content, userId, id);
+  return createJCard(userId, {
+    id,
+    title: `${source.title || 'Untitled J-Card'} (copy)`,
+    content,
+    mixtapeId: null,
+    isPublic: false,
+    isCopy: true,
+    copiedFromId: sourceId,
+  });
 }
 
 export async function updateJCard(id: string, patch: Partial<{ title: string; content: JCardContent; mixtapeId: string | null; isPublic: boolean; isCopy: boolean }>): Promise<JCard> {

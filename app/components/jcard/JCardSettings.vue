@@ -225,9 +225,18 @@ function blockAttrs(id: Section) {
       <label class="settings-label">Title</label>
       <input class="settings-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
       <label class="settings-checkbox-label" style="margin-top:6px">
-        <input type="checkbox" :checked="card.isPublic === true" @change="emit('publicChange', ($event.target as HTMLInputElement).checked)" />
+        <input
+          type="checkbox"
+          :checked="card.isPublic === true"
+          :disabled="card.isCopy === true"
+          :title="card.isCopy ? 'This is an unedited copy of another J-card, and will not show up in the explore page' : undefined"
+          @change="emit('publicChange', ($event.target as HTMLInputElement).checked)"
+        />
         Public — show on my profile and the linked mixtape's page
       </label>
+      <p v-if="card.isCopy" class="small-info">
+        This is an unedited copy of another J-card, and will not show up in the explore page
+      </p>
       <p class="small-info">Needs to be saved to the cloud (sign in) before anyone else can see it.</p>
     </SettingsBlock>
 

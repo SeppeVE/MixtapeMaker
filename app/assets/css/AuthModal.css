@@ -149,6 +149,18 @@
   box-shadow: none;
 }
 
+/* Why the modal opened, when something (a copy) is waiting on a session. */
+.auth-context {
+  margin: 0 0 var(--spacing-md);
+  padding: 8px 10px;
+  border: 2px solid var(--color-text);
+  background: var(--color-paper-dk);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
 .auth-privacy {
   margin-top: var(--spacing-sm);
   text-align: center;

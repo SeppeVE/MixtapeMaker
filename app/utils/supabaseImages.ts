@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { JCardContent } from '../types';
 
 const BUCKET = 'jcard-images';
 const THUMB_MAX_DIMENSION = 600;
@@ -29,6 +30,94 @@ export async function deleteJCardImage(publicUrl: string): Promise<void> {
     if (parts.length < 2) return;
     await supabase.storage.from(BUCKET).remove([parts[1]]);
   } catch { /* ignore */ }
+}
+
+/** Content keys holding one image URL. Keep in sync with JCardContent. */
+const SINGLE_IMAGE_KEYS = [
+  'backgroundImageUrl', 'backgroundImageThumbUrl',
+  'coverImageUrl', 'coverImageThumbUrl',
+  'insideBackgroundImageUrl', 'backPanelImageUrl', 'insideBackPanelImageUrl',
+] as const;
+
+/** Content keys holding an array of per-panel image URLs. */
+const ARRAY_IMAGE_KEYS = ['flapImageUrls', 'insideFlapImageUrls'] as const;
+
+function publicUrl(path: string): string {
+  return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+/** The path inside BUCKET behind one of our public URLs, or null for a data: or foreign URL. */
+function bucketPath(url: string): string | null {
+  if (!url || url.startsWith('data:')) return null;
+  try {
+    const [, path] = new URL(url).pathname.split(`/${BUCKET}/`);
+    return path ? decodeURIComponent(path) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Put a copy of `sourcePath` in the given card's folder. Tries a server-side
+ * copy first and falls back to pulling the bytes through the browser, since
+ * the bucket's policies may allow reading someone else's object but not
+ * copying it directly. Null when neither route works.
+ */
+async function copyBucketObject(sourcePath: string, userId: string, cardId: string): Promise<string | null> {
+  const destPath = `${userId}/${cardId}/${sourcePath.split('/').pop()}`;
+  const { error } = await supabase.storage.from(BUCKET).copy(sourcePath, destPath);
+  if (!error) return publicUrl(destPath);
+
+  try {
+    const { data, error: downloadError } = await supabase.storage.from(BUCKET).download(sourcePath);
+    if (downloadError || !data) return null;
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET).upload(destPath, data, { upsert: true, contentType: data.type });
+    return uploadError ? null : publicUrl(destPath);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-point every bucket-hosted image in `content` at a fresh copy under
+ * `${userId}/${cardId}/`, so the card keeps working after the original author
+ * replaces or deletes theirs.
+ *
+ * Best-effort per image: a failed duplication keeps the original URL rather
+ * than failing the copy — a card that borrows one image is a far smaller loss
+ * than no card at all. data: URLs and images hosted elsewhere are left as they are.
+ */
+export async function duplicateJCardImages(
+  content: JCardContent,
+  userId: string,
+  cardId: string,
+): Promise<JCardContent> {
+  const seen = new Map<string, string>();
+
+  async function duplicate(url: string | undefined): Promise<string | undefined> {
+    if (!url) return url;
+    const path = bucketPath(url);
+    if (!path) return url;
+    const cached = seen.get(url);
+    if (cached) return cached;
+    const copied = (await copyBucketObject(path, userId, cardId)) ?? url;
+    seen.set(url, copied);
+    return copied;
+  }
+
+  const next = { ...content } as JCardContent & Record<string, unknown>;
+  for (const key of SINGLE_IMAGE_KEYS) {
+    const value = next[key];
+    if (typeof value === 'string') next[key] = await duplicate(value);
+  }
+  for (const key of ARRAY_IMAGE_KEYS) {
+    const value = next[key];
+    if (Array.isArray(value)) {
+      next[key] = await Promise.all((value as (string | undefined)[]).map((url) => duplicate(url)));
+    }
+  }
+  return next;
 }
 
 function fileToDataUrl(file: File): Promise<string> {

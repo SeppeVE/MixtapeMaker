@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import type { Mixtape, Profile, JCard } from '~/types';
-import { useAuthStore } from '~/stores/auth';
-import { useUiStore } from '~/stores/ui';
-import { useMixtapeStore } from '~/stores/mixtape';
-import { generateId } from '~/utils/timeUtils';
+import { useCopyToLibrary } from '~/composables/useCopyToLibrary';
 import IconCassette from '~icons/ph/cassette-tape';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 
@@ -25,9 +22,6 @@ const props = withDefaults(defineProps<{
   jcards: () => [],
 });
 
-const auth = useAuthStore();
-const ui = useUiStore();
-const store = useMixtapeStore();
 const router = useRouter();
 
 function goBack() {
@@ -38,25 +32,14 @@ function goBack() {
   }
 }
 
+// Signed out this parks the copy and opens the auth modal; the auth plugin
+// replays it once a session lands, wherever the login flow drops the user.
+// The whole tape rides along in the parked action — this view also serves
+// share links, whose tapes aren't public and couldn't be re-read by id.
+const { requestCopyMixtape } = useCopyToLibrary();
+
 function handleCopy() {
-  if (!props.mixtape) return;
-  if (!auth.user) {
-    ui.openAuth();
-    return;
-  }
-  const now = new Date().toISOString();
-  const copy: Mixtape = {
-    ...props.mixtape,
-    id: generateId(),
-    userId: undefined,
-    isPublic: false,
-    shareToken: null,
-    isCopy: true,
-    createdAt: now,
-    updatedAt: now,
-  };
-  store.loadMixtape(copy);
-  ui.showToast('Copied to your mixtape — personalize and save it', 'success');
+  if (props.mixtape) requestCopyMixtape(props.mixtape);
 }
 </script>
 

@@ -26,6 +26,13 @@ const unsaved = useUnsavedStore();
 const COALESCE_MS = 600;
 const MAX_HISTORY = 20;
 
+// Content fingerprint used to tell whether a copy is still an exact duplicate
+// of the card it came from (so edit-then-undo doesn't "unlock" it). A card has
+// no track list to summarise the way a mixtape does, so this is the design itself.
+function contentSignature(c: JCard): string {
+  return JSON.stringify({ title: c.title, content: c.content });
+}
+
 function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
   const content = mixtape
     ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape, { overwriteCover: true })
@@ -70,6 +77,9 @@ onBeforeUnmount(() => unsaved.unregister('jcard'));
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
 let persisted = !!props.initialCard;
+// Signature of the untouched copy this card started as, or null when it isn't
+// tracking a copy at all.
+const copySignature: string | null = seed.isCopy ? contentSignature(seed) : null;
 let histStack: JCard[] = [seed];
 let histIdx = 0;
 let lastPushMs = 0;
@@ -91,16 +101,25 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
   let cloudOk = false;
   try {
     if (auth.user) {
+      // isCopy rides along on every write: without it a copy edited into
+      // something original would stay flagged in the cloud for good.
+      const patch = {
+        title: target.title,
+        content: target.content,
+        mixtapeId: target.mixtapeId ?? null,
+        isPublic: target.isPublic ?? false,
+        isCopy: target.isCopy ?? false,
+      };
       let saved: JCard;
       if (persisted) {
-        saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
+        saved = await updateJCard(target.id, patch);
       } else {
         const exists = await loadJCard(target.id);
         if (exists) {
           persisted = true;
-          saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
+          saved = await updateJCard(target.id, patch);
         } else {
-          saved = await createJCard(auth.user.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
+          saved = await createJCard(auth.user.id, { ...patch, copiedFromId: target.copiedFromId ?? null });
           persisted = true;
         }
       }
@@ -179,6 +198,10 @@ useEventListener(typeof document !== 'undefined' ? document : null, 'keydown', (
 
 function update(partial: Partial<JCard>) {
   const updated = { ...card.value, ...partial, updatedAt: new Date().toISOString() };
+  // A card that started as a copy stops being one the moment its design
+  // actually differs from the original — and becomes one again if the user
+  // undoes their way back to it.
+  if (copySignature !== null) updated.isCopy = contentSignature(updated) === copySignature;
   card.value = updated;
   cloudDirty.value = true;
   pushHistory(updated);
@@ -186,6 +209,12 @@ function update(partial: Partial<JCard>) {
 }
 
 function setPublic(isPublic: boolean) {
+  // Explore filters unedited copies out anyway — refuse here so the toggle
+  // can't look like it worked.
+  if (isPublic && card.value.isCopy) {
+    ui.showToast('Make it your own first — unedited copies stay private', 'error');
+    return;
+  }
   if (isPublic && containsProfanity(card.value.title)) {
     ui.showToast(PROFANITY_MESSAGE('card title'), 'error');
     return;

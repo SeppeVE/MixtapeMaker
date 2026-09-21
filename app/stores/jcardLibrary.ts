@@ -104,6 +104,12 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
   async function togglePublic(card: JCard) {
     if (cardStatus(card) === 'local') return;
     const next = !card.isPublic;
+    // Explore filters unedited copies out, so publishing one would silently
+    // do nothing. Same rule the mixtape library applies to copied tapes.
+    if (next && card.isCopy) {
+      ui.showToast('Make it your own first — unedited copies stay private', 'error');
+      return;
+    }
     if (next && containsProfanity(card.title)) {
       ui.showToast(PROFANITY_MESSAGE('card title'), 'error');
       return;

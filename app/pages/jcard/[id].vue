@@ -7,6 +7,7 @@ import { loadPublicJCard } from '~/utils/jcardDatabase';
 import { loadPublicMixtape } from '~/utils/database';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { registerCustomFonts } from '~/utils/fontManager';
+import { useCopyToLibrary } from '~/composables/useCopyToLibrary';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useMixtapeStore } from '~/stores/mixtape';
@@ -102,14 +103,12 @@ function handleEdit() {
   if (card.value) mixtapeStore.openDesigner(card.value);
 }
 
-// TODO(Phase 6): auth-gated copy via useCopyToLibrary — this just opens the
-// auth modal for now when signed out, matching the eventual gate.
+// Signed out this parks the copy and opens the auth modal; the auth plugin
+// replays it once a session lands, wherever the login flow drops the user.
+const { copying, requestCopyJCard } = useCopyToLibrary();
+
 function handleCopyClick() {
-  if (!auth.user) {
-    ui.openAuth();
-    return;
-  }
-  ui.showToast('Copying to your library is coming soon', 'info');
+  if (card.value) void requestCopyJCard(card.value.id);
 }
 </script>
 
@@ -163,8 +162,8 @@ function handleCopyClick() {
               <button v-if="isOwner" class="lp-btn lp-btn-plum" @click="handleEdit">
                 <IconPencil class="icon-inline" aria-hidden="true" /> Edit
               </button>
-              <button v-else class="lp-btn lp-btn-forest" @click="handleCopyClick">
-                ⎘ Copy to my library
+              <button v-else class="lp-btn lp-btn-forest" :disabled="copying" @click="handleCopyClick">
+                {{ copying ? 'Copying…' : '⎘ Copy to my library' }}
               </button>
             </div>
 

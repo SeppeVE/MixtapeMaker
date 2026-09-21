@@ -12,6 +12,18 @@
   flex-direction: column;
 }
 
+/* Nav + header + content fill at least one screen (same sticky-footer flex
+   the mixtape/J-card editors use — see .editor-screen); the footer is
+   regular content after it, reachable by scrolling .lib-page. Without this
+   floor a page with little content (few results, an empty state) lets the
+   footer sit inline within the first screen instead of always being a
+   deliberate scroll away, like it is on every other page. */
+.lib-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 /* ── Header ── */
 .lib-header {
   background: var(--color-text);

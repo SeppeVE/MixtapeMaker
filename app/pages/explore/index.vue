@@ -26,32 +26,34 @@ useSeoMeta({
 
 <template>
   <div class="lib-page">
-    <NavBar library>
-      <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
-      <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Explore</span>
-    </NavBar>
+    <div class="lib-screen">
+      <NavBar library>
+        <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
+        <span class="lp-nav-sep">/</span>
+        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Explore</span>
+      </NavBar>
 
-    <div class="lib-header">
-      <div class="lib-header-inner">
-        <div>
-          <div class="lib-page-eyebrow">{{ activeTab === 'jcards' ? '◆ COMMUNITY J-CARDS' : '◆ COMMUNITY MIXTAPES' }}</div>
-          <h1 class="lib-page-title">Explore</h1>
-        </div>
-        <div class="lib-tabs">
-          <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
-            <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
-          </button>
-          <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
-            <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
-          </button>
+      <div class="lib-header">
+        <div class="lib-header-inner">
+          <div>
+            <div class="lib-page-eyebrow">{{ activeTab === 'jcards' ? '◆ COMMUNITY J-CARDS' : '◆ COMMUNITY MIXTAPES' }}</div>
+            <h1 class="lib-page-title">Explore</h1>
+          </div>
+          <div class="lib-tabs">
+            <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
+              <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
+            </button>
+            <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
+              <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="lib-content">
-      <ExploreMixtapes v-if="activeTab === 'mixtapes'" />
-      <ExploreJCards v-else />
+      <div class="lib-content">
+        <ExploreMixtapes v-if="activeTab === 'mixtapes'" />
+        <ExploreJCards v-else />
+      </div>
     </div>
     <HomeFooter />
   </div>

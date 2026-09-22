@@ -1,0 +1,15 @@
+/* ═══════════════════════════════════════════════════════
+   Spotify OAuth callback (/spotify-callback)
+   A bare interstitial — it renders before any page chrome.
+   ═══════════════════════════════════════════════════════ */
+
+.spotify-callback {
+  padding: 3rem;
+  text-align: center;
+  font-family: inherit;
+}
+
+.spotify-callback-error {
+  margin-bottom: 1rem;
+  color: #d4524a;
+}

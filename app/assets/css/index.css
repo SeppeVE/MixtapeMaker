@@ -18,6 +18,7 @@
 @import './SuccessModal.css';
 @import './SearchBar.css';
 @import './Floaters.css';
+@import './SpotifyCallback.css';
 
 @import './HomePage.css';
 @import './home/HomePage.css';
@@ -27,6 +28,7 @@
 @import './TapePreview.css';
 @import './TapeSide.css';
 @import './mixtape/MixtapeEditor.css';
+@import './mixtape/MixtapeDetail.css';
 
 @import './Library.css';
 @import './LibraryPage.css';

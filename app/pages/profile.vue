@@ -206,7 +206,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
       </div>
 
-      <p v-else-if="auth.loading || profileStore.loading" style="padding:40px;text-align:center">Loading…</p>
+      <p v-else-if="auth.loading || profileStore.loading" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="profileStore.error || !profile" class="lib-error-state">
         <IconWarning class="lib-error-icon" aria-hidden="true" />

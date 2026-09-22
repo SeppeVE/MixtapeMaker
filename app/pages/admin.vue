@@ -166,13 +166,13 @@ const fmtDate = (iso: string) =>
     </div>
 
     <div class="lib-content">
-      <p v-if="!ready" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="!ready" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="!allowed" class="lib-empty">
         <IconLock class="lib-empty-icon" aria-hidden="true" />
         <p>Admins only.</p>
         <p class="lib-empty-sub">{{ auth.user ? 'Your account does not have admin access.' : 'Sign in with an admin account.' }}</p>
-        <button v-if="!auth.user" class="lp-btn lp-btn-plum" style="margin-top:8px" @click="ui.openAuth()">Sign In →</button>
+        <button v-if="!auth.user" class="lp-btn lp-btn-plum lib-empty-action" @click="ui.openAuth()">Sign In →</button>
       </div>
 
       <div v-else class="lib-section-stack">

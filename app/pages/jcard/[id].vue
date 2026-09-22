@@ -122,7 +122,7 @@ function handleCopyClick() {
       </NavBar>
 
       <div class="lib-content">
-        <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
+        <p v-if="pending" class="lib-page-loading">Loading…</p>
 
         <div v-else-if="notFound" class="lib-empty">
           <IconCard class="lib-empty-icon" aria-hidden="true" />

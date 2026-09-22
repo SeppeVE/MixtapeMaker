@@ -331,6 +331,19 @@
   text-align: center;
 }
 
+/* Unstyled "Loading…" placeholder used by pages that borrow the library
+   shell (.lib-content) while their top-level fetch resolves. Deliberately
+   not .lib-loading — that one is padded 40px 0 and carries display type. */
+.lib-page-loading {
+  padding: 40px;
+  text-align: center;
+}
+
+/* Call-to-action button inside a .lib-empty state. */
+.lib-empty-action {
+  margin-top: 8px;
+}
+
 .lib-empty {
   display: flex;
   flex-direction: column;
@@ -384,6 +397,7 @@
   border: 2px dashed var(--color-text);
   box-shadow: var(--shadow);
   flex-wrap: wrap;
+  cursor: pointer;
 }
 
 .lib-draft-card-left {

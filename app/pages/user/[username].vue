@@ -90,7 +90,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       </NavBar>
 
       <div class="lib-content">
-      <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="pending" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
         <IconSmiley class="lib-empty-icon" aria-hidden="true" />

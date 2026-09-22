@@ -190,7 +190,6 @@ function newCard() {
             class="lib-draft-card"
             role="button"
             :tabindex="0"
-            style="cursor:pointer"
             @click="store.loadMixtape(currentDraft)"
             @keydown.enter="store.loadMixtape(currentDraft)"
           >
@@ -252,7 +251,7 @@ function newCard() {
             <IconCassette class="lib-empty-icon" aria-hidden="true" />
             <p>No cloud tapes yet.</p>
             <p class="lib-empty-sub">Build a mixtape and hit "Save to Cloud" from the editor.</p>
-            <button class="lp-btn lp-btn-mustard" style="margin-top:8px" @click="store.newMixtape()">▶ Make a Tape</button>
+            <button class="lp-btn lp-btn-mustard lib-empty-action" @click="store.newMixtape()">▶ Make a Tape</button>
           </div>
 
           <div v-else class="lib-cards-grid lib-cards-grid--tapes">

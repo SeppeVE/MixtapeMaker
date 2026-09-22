@@ -53,7 +53,7 @@ function handleCopy() {
     </NavBar>
 
     <div class="lib-content">
-      <p v-if="loading" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="loading" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
         <IconCassette class="lib-empty-icon" aria-hidden="true" />

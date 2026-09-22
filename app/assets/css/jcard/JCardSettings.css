@@ -211,6 +211,47 @@
   outline-offset: 1px;
 }
 
+/* Custom-colour swatch: a conic gradient behind a "+", with the real
+   <input type="color"> hidden next to it and opened by clicking the swatch. */
+.jc-swatch-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 0;
+  background: conic-gradient(#5b2838, #d4a935, #a8c4a2, #8fc9b7, #3d5a47, #b4a0c7, #5b2838);
+}
+
+.jc-swatch-plus {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 var(--color-text),
+    1px -1px 0 var(--color-text),
+    -1px 1px 0 var(--color-text),
+    1px 1px 0 var(--color-text);
+  pointer-events: none;
+}
+
+.jc-swatch-custom-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.jc-color-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .jc-side-label {
   font-family: var(--font-body);
   font-size: 12px;

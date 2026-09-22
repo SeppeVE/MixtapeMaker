@@ -18,7 +18,6 @@ const emit = defineEmits<{
 
 const auth = useAuthStore();
 const mixtapes = ref<Mixtape[]>([]);
-const overwriteCover = ref(false);
 const showDuration = ref(false);
 
 async function load() {
@@ -50,14 +49,10 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
 
     <div v-if="linked" class="jc-link-actions">
       <label class="jc-checkbox-label">
-        <input v-model="overwriteCover" type="checkbox" />
-        Also overwrite cover panel
-      </label>
-      <label class="jc-checkbox-label">
         <input v-model="showDuration" type="checkbox" />
         Include track duration
       </label>
-      <button class="btn jc-link-btn" @click="emit('contentChange', applyMixtapeToJCard(content, linked, { overwriteCover, showDuration }))">
+      <button class="btn jc-link-btn" @click="emit('contentChange', applyMixtapeToJCard(content, linked, { showDuration }))">
         ↺ Pull tracks from mixtape
       </button>
       <button class="btn jc-link-btn" @click="emit('linkChange', null)">Unlink</button>

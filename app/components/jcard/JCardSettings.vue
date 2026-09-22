@@ -53,6 +53,11 @@ const exporting = ref(false);
 const fontUploading = ref(false);
 const fontWarning = ref<string | null>(null);
 const fontInputRef = ref<HTMLInputElement | null>(null);
+const backgroundColorInput = ref<HTMLInputElement | null>(null);
+
+const isCustomBackground = computed(() =>
+  !COLOR_PRESETS.some((c) => c.toLowerCase() === content.value.backgroundColor.toLowerCase()),
+);
 
 const customFonts = computed<CustomFont[]>(() => content.value.customFonts ?? []);
 const customFontNames = computed(() => customFonts.value.map((f) => f.name));
@@ -137,51 +142,13 @@ function handleApplyPreset(presetId: string) {
   emit('contentChange', { ...content.value, ...preset.content } as JCardContent);
 }
 
-const flapLabel = (i: number) => (i === 0 ? 'Cover' : `Flap ${i + 1}`);
-
-// Outside cover/background images carry a thumbnail (see supabaseImages.ts)
-// that the Explore grid preview reads instead of the full-size original. The
-// old thumbnail is orphaned once its image is replaced or removed, so it's
-// deleted here explicitly — ImageUpload only reports the new upload.
-function handleCoverImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
-  if (content.value.coverImageThumbUrl) deleteJCardImage(content.value.coverImageThumbUrl);
-  patch({ coverImageUrl: url ?? undefined, coverImageThumbUrl: thumbUrl });
-}
+// Background images carry a thumbnail (see supabaseImages.ts) that the Explore
+// grid preview reads instead of the full-size original. The old thumbnail is
+// orphaned once its image is replaced or removed, so it's deleted here
+// explicitly — ImageUpload only reports the new upload.
 function handleBackgroundImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
   if (content.value.backgroundImageThumbUrl) deleteJCardImage(content.value.backgroundImageThumbUrl);
   patch({ backgroundImageUrl: url ?? undefined, backgroundImageThumbUrl: thumbUrl });
-}
-
-// Per-flap image array helpers.
-function setFlapImage(url: string | null) {
-  const next = [...(content.value.flapImageUrls ?? Array(6).fill(undefined))];
-  next[activeFlap.value] = url ?? undefined;
-  patch({ flapImageUrls: next });
-}
-function setFlapImageFull(checked: boolean) {
-  const next = [...(content.value.flapImageFulls ?? Array(6).fill(false))];
-  next[activeFlap.value] = checked;
-  patch({ flapImageFulls: next });
-}
-function setFlapImageBehind(checked: boolean) {
-  const next = [...(content.value.flapImageBehindContents ?? Array(6).fill(false))];
-  next[activeFlap.value] = checked;
-  patch({ flapImageBehindContents: next });
-}
-function setInsideFlapImage(url: string | null) {
-  const next = [...(content.value.insideFlapImageUrls ?? Array(6).fill(undefined))];
-  next[activeInsideFlap.value] = url ?? undefined;
-  patch({ insideFlapImageUrls: next });
-}
-function setInsideFlapImageFull(checked: boolean) {
-  const next = [...(content.value.insideFlapImageFulls ?? Array(6).fill(false))];
-  next[activeInsideFlap.value] = checked;
-  patch({ insideFlapImageFulls: next });
-}
-function setInsideFlapImageBehind(checked: boolean) {
-  const next = [...(content.value.insideFlapImageBehindContents ?? Array(6).fill(false))];
-  next[activeInsideFlap.value] = checked;
-  patch({ insideFlapImageBehindContents: next });
 }
 
 // Export / print options.
@@ -232,7 +199,7 @@ function blockAttrs(id: Section) {
           :title="card.isCopy ? 'This is an unedited copy of another J-card, and will not show up in the explore page' : undefined"
           @change="emit('publicChange', ($event.target as HTMLInputElement).checked)"
         />
-        Public — show on my profile and the linked mixtape's page
+        Make this card public. Let others see it and inspire them.
       </label>
       <p v-if="card.isCopy" class="small-info">
         This is an unedited copy of another J-card, and will not show up in the explore page
@@ -241,7 +208,7 @@ function blockAttrs(id: Section) {
     </SettingsBlock>
 
     <!-- 1b. Presets -->
-    <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Presets" @toggle="toggle">
+    <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Basic presets" @toggle="toggle">
       <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
       <div class="jc-preset-list">
         <button
@@ -256,7 +223,7 @@ function blockAttrs(id: Section) {
     </SettingsBlock>
 
     <!-- 2. Layout -->
-    <SettingsBlock v-bind="blockAttrs('layout')" label="▣ Layout" @toggle="toggle">
+    <SettingsBlock v-bind="blockAttrs('layout')" label="▣ Panel layout" @toggle="toggle">
       <label class="jc-checkbox-label">
         <input type="checkbox" :checked="content.isReversed" @change="patch({ isReversed: ($event.target as HTMLInputElement).checked })" />
         Reverse card (flip left/right)
@@ -282,7 +249,7 @@ function blockAttrs(id: Section) {
     </SettingsBlock>
 
     <!-- 3. Fonts -->
-    <SettingsBlock v-bind="blockAttrs('fonts')" label="Aa Fonts" @toggle="toggle">
+    <SettingsBlock v-bind="blockAttrs('fonts')" label="Aa Custom fonts" @toggle="toggle">
       <p class="small-info">
         9 default fonts are always available in the text editors.
         Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
@@ -302,6 +269,7 @@ function blockAttrs(id: Section) {
 
       <p v-if="fontWarning" class="jc-font-warning">{{ fontWarning }}</p>
 
+      <!-- Upload custom fonts -->
       <input ref="fontInputRef" type="file" accept=".woff2,.woff,.otf,.ttf" class="jc-file-input" @change="handleFontUpload" />
       <button
         class="btn jc-btn-full"
@@ -312,8 +280,8 @@ function blockAttrs(id: Section) {
       </button>
     </SettingsBlock>
 
-    <!-- 4. Background -->
-    <SettingsBlock v-bind="blockAttrs('background')" label="▧ Background" @toggle="toggle">
+    <!-- 4. Background -> Set color or image for all panels (can be streched across all panels or per panel) -->
+    <SettingsBlock v-bind="blockAttrs('background')" label="▧ Background color and image" @toggle="toggle">
       <label class="jc-label">Color</label>
       <div class="jc-swatch-row jc-swatch-row--tight">
         <div
@@ -324,10 +292,23 @@ function blockAttrs(id: Section) {
           :title="c"
           @click="patch({ backgroundColor: c })"
         />
+        <button
+          type="button"
+          :class="`jc-swatch jc-swatch-custom${isCustomBackground ? ' selected' : ''}`"
+          :style="isCustomBackground ? { background: content.backgroundColor } : undefined"
+          title="Custom color"
+          aria-label="Custom color"
+          @click="backgroundColorInput?.click()"
+        >
+          <span class="jc-swatch-plus">+</span>
+        </button>
+        <span class="jc-swatch-custom-label">Custom</span>
         <input
+          ref="backgroundColorInput"
           type="color"
+          class="jc-color-hidden"
           :value="content.backgroundColor"
-          class="jc-color-input"
+          aria-label="Custom background color"
           @input="patch({ backgroundColor: ($event.target as HTMLInputElement).value })"
         />
       </div>
@@ -360,102 +341,39 @@ function blockAttrs(id: Section) {
 
     <!-- 5. Panel content -->
     <SettingsBlock v-bind="blockAttrs('flaps')" label="◫ Panel content" @toggle="toggle">
+      <!-- Outside panel ------------------------------------------------------------ -->
       <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
-      <div class="jc-flap-tabs">
-        <button
-          v-for="i in content.flaps"
-          :key="i - 1"
-          type="button"
-          :class="`btn jc-flap-tab${activeFlap === i - 1 ? ' active' : ''}`"
-          @click="activeFlap = i - 1"
-        >
-          {{ flapLabel(i - 1) }}
-        </button>
-      </div>
-
-      <template v-if="activeFlap === 0">
-        <ImageUpload
-          label="Cover image"
-          :current-url="content.coverImageUrl"
-          image-type="cover"
-          :card-id="card.id"
-          @change="handleCoverImageChange"
-        />
-        <div v-if="content.coverImageUrl" class="jc-image-actions">
-          <label class="jc-checkbox-label">
-            <input type="checkbox" :checked="content.isFullCoverImage" @change="patch({ isFullCoverImage: ($event.target as HTMLInputElement).checked })" />
-            Fill panel with image
-          </label>
-          <label class="jc-checkbox-label">
-            <input type="checkbox" :checked="content.coverImageBehindContent" @change="patch({ coverImageBehindContent: ($event.target as HTMLInputElement).checked })" />
-            Show text over image
-          </label>
-        </div>
-      </template>
-
-      <template v-else>
-        <ImageUpload
-          :label="`Panel ${activeFlap + 1} image`"
-          :current-url="content.flapImageUrls?.[activeFlap]"
-          image-type="cover"
-          :card-id="card.id"
-          @change="setFlapImage($event.url)"
-        />
-        <div v-if="content.flapImageUrls?.[activeFlap]" class="jc-image-actions">
-          <label class="jc-checkbox-label">
-            <input type="checkbox" :checked="content.flapImageFulls?.[activeFlap] ?? false" @change="setFlapImageFull(($event.target as HTMLInputElement).checked)" />
-            Fill panel with image
-          </label>
-          <label class="jc-checkbox-label">
-            <input type="checkbox" :checked="content.flapImageBehindContents?.[activeFlap] ?? false" @change="setFlapImageBehind(($event.target as HTMLInputElement).checked)" />
-            Show text over image
-          </label>
-        </div>
-      </template>
+      <PanelImageSettings
+        v-model:active-panel="activeFlap"
+        side="outside"
+        :content="content"
+        :card-id="card.id"
+        @patch="patch"
+      />
 
       <label class="jc-label jc-mt-lg">Text (shift + enter for new line)</label>
       <ContentEditor
         :key="activeFlap"
         :value="content.flapContents[activeFlap] ?? ''"
-        :placeholder="activeFlap === 0 ? 'Title, artist, year...' : `Flap ${activeFlap + 1} content...`"
+        :placeholder="activeFlap === 0 ? 'Title, artist, year...' : `Panel ${activeFlap + 1} content...`"
         :min-height="activeFlap === 0 ? '80px' : '60px'"
         :custom-font-names="customFontNames"
         @change="patchFlap(activeFlap, $event)"
       />
 
+      <!-- Inside panel ------------------------------------------------------------ -->
       <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
-      <div class="jc-flap-tabs jc-mt">
-        <button
-          v-for="i in content.flaps"
-          :key="i - 1"
-          type="button"
-          :class="`btn jc-flap-tab${activeInsideFlap === i - 1 ? ' active' : ''}`"
-          @click="activeInsideFlap = i - 1"
-        >
-          {{ flapLabel(i - 1) }}
-        </button>
-      </div>
-      <ImageUpload
-        :label="activeInsideFlap === 0 ? 'Inside cover image' : `Inside panel ${activeInsideFlap + 1} image`"
-        :current-url="content.insideFlapImageUrls?.[activeInsideFlap]"
-        image-type="cover"
+      <PanelImageSettings
+        v-model:active-panel="activeInsideFlap"
+        side="inside"
+        :content="content"
         :card-id="card.id"
-        @change="setInsideFlapImage($event.url)"
+        @patch="patch"
       />
-      <div v-if="content.insideFlapImageUrls?.[activeInsideFlap]" class="jc-image-actions jc-image-actions--inside">
-        <label class="jc-checkbox-label">
-          <input type="checkbox" :checked="content.insideFlapImageFulls?.[activeInsideFlap] ?? false" @change="setInsideFlapImageFull(($event.target as HTMLInputElement).checked)" />
-          Fill panel with image
-        </label>
-        <label class="jc-checkbox-label">
-          <input type="checkbox" :checked="content.insideFlapImageBehindContents?.[activeInsideFlap] ?? false" @change="setInsideFlapImageBehind(($event.target as HTMLInputElement).checked)" />
-          Show text over image
-        </label>
-      </div>
       <ContentEditor
         :key="`inside-flap-${activeInsideFlap}`"
         :value="(content.insideFlapContents ?? [])[activeInsideFlap] ?? ''"
-        :placeholder="activeInsideFlap === 0 ? 'Inside cover...' : `Inside flap ${activeInsideFlap + 1}...`"
+        :placeholder="activeInsideFlap === 0 ? 'Inside cover...' : `Inside panel ${activeInsideFlap + 1}...`"
         min-height="80px"
         :custom-font-names="customFontNames"
         @change="patchInsideFlap(activeInsideFlap, $event)"
@@ -465,6 +383,7 @@ function blockAttrs(id: Section) {
     <!-- 6. Spine -->
     <SettingsBlock v-bind="blockAttrs('spine')" label="▏Spine" @toggle="toggle">
       <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
+
       <label class="jc-label">Top</label>
       <ContentEditor :value="content.spineTopContent" placeholder="Mixtape title" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineTopContent: $event })" />
       <label class="jc-label jc-mt">Center</label>
@@ -473,6 +392,7 @@ function blockAttrs(id: Section) {
       <ContentEditor :value="content.spineBottomContent" placeholder="90 min" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineBottomContent: $event })" />
 
       <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
+      
       <label class="jc-label jc-mt">Center</label>
       <ContentEditor :value="content.insideSpineContent ?? ''" placeholder="Spine inside..." min-height="40px" :custom-font-names="customFontNames" @change="patch({ insideSpineContent: $event })" />
     </SettingsBlock>

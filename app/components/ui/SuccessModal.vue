@@ -84,7 +84,7 @@ function handleChecklistOptOut() {
     >
       <button class="modal-close" aria-label="Close" @click="close">×</button>
 
-      <h2 style="display:flex;align-items:center;gap:6px"><IconCheck class="icon-inline" aria-hidden="true" /> {{ modal.title }}</h2>
+      <h2 class="success-modal-heading"><IconCheck class="icon-inline" aria-hidden="true" /> {{ modal.title }}</h2>
 
       <p v-if="modal.note" class="success-modal-note">{{ modal.note }}</p>
 
@@ -159,7 +159,7 @@ function handleChecklistOptOut() {
       <div v-if="modal.showSupport" class="success-modal-support">
         <p class="success-modal-support-text">
           Thanks for using Mixtape Maker — it's free and ad-free.
-          If you liked it, consider buying me a coffee <IconCoffee class="icon-inline" style="display:inline-block;vertical-align:-0.2em" aria-hidden="true" />
+          If you liked it, consider buying me a coffee <IconCoffee class="icon-inline" aria-hidden="true" />
         </p>
         <div class="success-modal-support-row">
           <a

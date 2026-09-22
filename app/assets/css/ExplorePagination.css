@@ -65,3 +65,8 @@
   font-size: 14px;
   user-select: none;
 }
+
+/* Pager separated from the grid above it. */
+.explore-pager--spaced {
+  margin-top: 24px;
+}

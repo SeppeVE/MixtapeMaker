@@ -268,3 +268,11 @@
     max-height: 320px;
   }
 }
+
+/* Window title variant carrying a leading icon (the Spotify search panel).
+   The Explore panels reuse .search-window-title without an icon. */
+.search-window-title--icon {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}

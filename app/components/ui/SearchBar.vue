@@ -49,7 +49,7 @@ function onTape(song: Song) {
 <template>
   <div class="search-bar">
     <div class="search-window">
-      <div class="search-window-title" style="display:flex;align-items:center;gap:5px"><IconMusicNote class="icon-inline" aria-hidden="true" /> Spotify</div>
+      <div class="search-window-title search-window-title--icon"><IconMusicNote class="icon-inline" aria-hidden="true" /> Spotify</div>
 
       <div class="search-form-area">
         <form class="search-form" @submit.prevent="runSearch(query)">

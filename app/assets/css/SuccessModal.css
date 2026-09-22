@@ -144,3 +144,18 @@
   box-shadow: var(--shadow-sm);
 }
 .success-modal-coffee:hover { box-shadow: 4px 4px 0 var(--color-text); }
+
+/* Heading with a leading icon. */
+.success-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The coffee icon sits mid-sentence, so it overrides .icon-inline's
+   display:block. Nested under the paragraph to out-specify .icon-inline
+   (0-1-0) explicitly rather than leaning on stylesheet import order. */
+.success-modal-support-text .icon-inline {
+  display: inline-block;
+  vertical-align: -0.2em;
+}

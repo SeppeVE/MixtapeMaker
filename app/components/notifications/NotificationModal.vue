@@ -81,7 +81,7 @@ const fmtDate = (iso: string) =>
     <div class="modal-content notif-modal" role="dialog" aria-modal="true" aria-labelledby="notif-title" @click.stop>
       <button class="modal-close" aria-label="Close" @click="close">×</button>
 
-      <h2 id="notif-title" style="display:flex;align-items:center;gap:6px"><IconStar class="icon-inline" aria-hidden="true" /> What's new</h2>
+      <h2 id="notif-title" class="notif-modal-heading"><IconStar class="icon-inline" aria-hidden="true" /> What's new</h2>
 
       <div class="notif-date">{{ fmtDate(notification.createdAt) }}</div>
       <h3 class="notif-title">{{ notification.title }}</h3>

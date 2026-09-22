@@ -185,8 +185,7 @@ function onPageChange(p: number) {
           :page="page"
           :total="total"
           :page-size="PAGE_SIZE"
-          class="explore-pager--left"
-          style="margin-top:24px"
+          class="explore-pager--left explore-pager--spaced"
           @update:page="onPageChange"
         />
       </template>

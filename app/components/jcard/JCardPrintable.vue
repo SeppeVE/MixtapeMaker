@@ -49,17 +49,17 @@ const classes = computed(() =>
 <template>
   <div :class="classes">
     <div v-if="content.continuousBackground" :style="continuousBgStyle" />
-    <div :class="`jcard-part jcard-back${content.shortBack ? ' short' : ''}`" style="position:relative;z-index:1">
+    <div :class="`jcard-part jcard-back jcard-part-positioned${content.shortBack ? ' short' : ''}`">
       <BackPanel :content="content" :sanitized-left="s.backLeft" :sanitized-right="s.backRight" />
     </div>
-    <div class="jcard-part jcard-spine" style="position:relative;z-index:1">
+    <div class="jcard-part jcard-spine jcard-part-positioned">
       <Spine :content="content" :sanitized-top="s.spineTop" :sanitized-center="s.spineMid" :sanitized-bottom="s.spineBot" />
     </div>
     <div
       v-for="i in content.flaps"
       :key="i - 1"
-      class="jcard-part"
-      :style="{ width: FLAP_WIDTHS[i - 1], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }"
+      class="jcard-part jcard-flap"
+      :style="{ width: FLAP_WIDTHS[i - 1] }"
     >
       <CoverFlap v-if="i - 1 === 0" :content="content" :sanitized-cover="s.flaps[0]" />
       <ContentFlap v-else :content="content" :sanitized-content="s.flaps[i - 1]" :flap-index="i - 1" />

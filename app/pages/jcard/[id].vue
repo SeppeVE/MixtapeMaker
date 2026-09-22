@@ -136,11 +136,11 @@ function handleCopyClick() {
               <span>{{ card.title || 'Untitled J-Card' }}</span>
               <AuthorByline v-if="author" :profile="author" />
             </div>
-            <p v-if="linkedMixtape" class="pf-hint" style="margin-bottom:16px">
+            <p v-if="linkedMixtape" class="pf-hint jcard-detail-hint">
               Designed for the mixtape
               <NuxtLink :to="`/explore/${linkedMixtape.id}`" class="pf-inline-link">{{ linkedMixtape.title }}</NuxtLink>
             </p>
-            <p v-if="sourceCard" class="pf-hint" style="margin-bottom:16px">
+            <p v-if="sourceCard" class="pf-hint jcard-detail-hint">
               Based on
               <NuxtLink :to="`/jcard/${sourceCard.id}`" class="pf-inline-link">{{ sourceCard.title || 'Untitled J-Card' }}</NuxtLink> <AuthorByline v-if="sourceAuthor" :profile="sourceAuthor" />
             </p>

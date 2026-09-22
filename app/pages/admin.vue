@@ -277,8 +277,8 @@ const fmtDate = (iso: string) =>
                 </div>
                 <p class="adm-item-body">{{ f.message }}</p>
                 <div class="adm-feedback-meta">
-                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link" style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> {{ f.email }}</a>
-                  <span v-else style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> no email left</span>
+                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link adm-feedback-contact"><IconMail class="icon-inline" aria-hidden="true" /> {{ f.email }}</a>
+                  <span v-else class="adm-feedback-contact"><IconMail class="icon-inline" aria-hidden="true" /> no email left</span>
                   <span v-if="f.page">· sent from <code>{{ f.page }}</code></span>
                 </div>
               </div>

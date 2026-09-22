@@ -111,7 +111,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             <p v-if="profile.bio && (!profile.isPrivate || isOwner)" class="pf-bio">{{ profile.bio }}</p>
             <div v-if="isOwner" class="pf-owner-row">
               <span v-if="profile.isPrivate" class="lib-badge lib-badge-private">◌ Private — only you see this</span>
-              <NuxtLink to="/profile" class="lp-btn lp-btn-paper" style="font-size:15px"><IconPencil class="icon-inline" aria-hidden="true" /> Edit profile</NuxtLink>
+              <NuxtLink to="/profile" class="lp-btn lp-btn-paper pf-edit-btn"><IconPencil class="icon-inline" aria-hidden="true" /> Edit profile</NuxtLink>
             </div>
           </div>
         </section>

@@ -60,6 +60,11 @@
   line-height: 1.5;
   margin: 6px 0 0;
 }
+/* .pf-hint sets margin: 6px 0 0; this overrides only the bottom edge and
+   sits after it, preserving the 6px top exactly as the inline style did. */
+.pf-content-hint {
+  margin-bottom: 12px;
+}
 .pf-hint--warn {
   color: var(--color-warning);
   opacity: 1;
@@ -173,6 +178,12 @@
   padding: 4px 14px 2px;
 }
 
+/* Flush against the row's own spacing. Nested to out-specify .pf-hint,
+   matching the .pf-bio-actions .pf-hint pattern above. */
+.pf-privacy-row .pf-hint {
+  margin: 0;
+}
+
 .pf-links {
   display: flex;
   gap: 10px;
@@ -229,6 +240,11 @@
   margin-top: 12px;
 }
 
+/* "Edit profile" button shown to the owner on their public page. */
+.pf-edit-btn {
+  font-size: 15px;
+}
+
 /* ── Author byline ── */
 .pf-byline {
   display: inline-flex;
@@ -267,6 +283,11 @@
 }
 
 /* ── J-card detail page action bar (Export PDF / Edit / Copy) ── */
+/* Provenance hints ("Designed for the mixtape…", "Based on…"). */
+.jcard-detail-hint {
+  margin-bottom: 16px;
+}
+
 .jcard-detail-actions {
   display: flex;
   align-items: center;
@@ -412,6 +433,12 @@
 .adm-feedback-meta code {
   font-family: var(--font-mono, monospace);
   font-size: 11px;
+}
+/* Contact line: mailto link, or the "no email left" placeholder. */
+.adm-feedback-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 @media (max-width: 600px) {

@@ -317,7 +317,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <!-- Content shortcuts -->
         <section class="lib-section">
           <div class="lib-section-head"><span>Your content</span></div>
-          <p class="pf-hint" style="margin-bottom:12px">
+          <p class="pf-hint pf-content-hint">
             Which mixtapes and J-cards appear on your profile is controlled per item with the Public / Private toggles in your library.
           </p>
           <div class="pf-links">
@@ -330,7 +330,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <section class="lib-section">
           <div class="lib-section-head"><span>Account</span></div>
           <div class="pf-privacy-row">
-            <p class="pf-hint" style="margin:0">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
+            <p class="pf-hint">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
             <button class="lp-btn lp-btn-plum" :disabled="signingOut" @click="signOut">
               <IconLogout v-if="!signingOut" class="icon-inline" aria-hidden="true" />
               {{ signingOut ? 'Signing out…' : 'Sign Out' }}

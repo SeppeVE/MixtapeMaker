@@ -95,7 +95,7 @@ useEventListener(typeof window !== 'undefined' ? window : null, 'resize', schedu
     <NavBar library>
       <button class="lp-nav-link" @click="router.back()">Back</button>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Designer</span>
+      <span class="lp-nav-current">Designer</span>
     </NavBar>
     <div class="designer-mobile-warning">
       This designer is built for desktop — layout and editing work best on a wider screen.

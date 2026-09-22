@@ -64,6 +64,14 @@
   opacity: 0.4;
 }
 
+/* Current page in the breadcrumb trail — the non-interactive sibling of
+   .lp-nav-link / .lp-nav-title, shared by every page that renders a NavBar. */
+.lp-nav-current {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
 .lp-nav-title {
   font-family: var(--font-body);
   font-size: 13px;
@@ -213,6 +221,22 @@
 .lp-btn-paper   { background: var(--color-paper);   color: var(--color-text); }
 .lp-btn-forest  { background: var(--color-forest);  color: var(--color-paper); }
 .lp-btn-seafoam { background: var(--color-seafoam); color: var(--color-text); }
+
+/* Size modifiers. Scale: xs 14 → sm 16 → base 19 → md 22 → lg 26. */
+.lp-btn-xs {
+  font-size: 14px;
+  padding: 4px 14px 2px;
+}
+
+.lp-btn-sm {
+  font-size: 16px;
+  padding: 4px 14px 2px;
+}
+
+.lp-btn-md {
+  font-size: 22px;
+  padding: 7px 22px 4px;
+}
 
 .lp-btn-lg {
   font-size: 26px;

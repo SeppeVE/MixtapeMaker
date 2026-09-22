@@ -156,7 +156,7 @@ function newCard() {
       <NavBar library>
         <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Library</span>
+        <span class="lp-nav-current">Library</span>
       </NavBar>
 
       <div class="lib-header">
@@ -205,8 +205,7 @@ function newCard() {
             <div class="lib-draft-card-right" @click.stop>
               <span class="lib-badge lib-badge-local"><IconSave class="icon-inline" aria-hidden="true" /> Local</span>
               <button
-                class="lp-btn lp-btn-forest"
-                style="font-size:16px;padding:4px 14px 2px"
+                class="lp-btn lp-btn-forest lp-btn-sm"
                 :disabled="store.isSaving"
                 @click="auth.user ? handleSaveDraftToCloud() : ui.openAuth()"
               >
@@ -220,7 +219,7 @@ function newCard() {
         <section class="lib-section">
           <div class="lib-section-head">
             <span>Mixtapes</span>
-            <button class="lp-btn lp-btn-mustard" style="font-size:16px;padding:4px 14px 2px" @click="store.newMixtape()">
+            <button class="lp-btn lp-btn-mustard lp-btn-sm" @click="store.newMixtape()">
               + New Tape
             </button>
           </div>
@@ -246,7 +245,7 @@ function newCard() {
           <div v-else-if="tapesError" class="lib-error-state">
             <IconWarning class="lib-error-icon" aria-hidden="true" />
             <span class="lib-error-msg">{{ tapesError }}</span>
-            <button class="lp-btn lp-btn-mustard" style="font-size:14px;padding:4px 14px 2px" @click="loadTapes">↻ Retry</button>
+            <button class="lp-btn lp-btn-mustard lp-btn-xs" @click="loadTapes">↻ Retry</button>
           </div>
 
           <div v-else-if="cloudTapes.length === 0" class="lib-empty">
@@ -353,7 +352,7 @@ function newCard() {
         <section class="lib-section">
           <div class="lib-section-head">
             <span>J-Cards</span>
-            <button class="lp-btn lp-btn-mustard" style="font-size:16px;padding:4px 14px 2px" @click="newCard">
+            <button class="lp-btn lp-btn-mustard lp-btn-sm" @click="newCard">
               + New Card
             </button>
           </div>

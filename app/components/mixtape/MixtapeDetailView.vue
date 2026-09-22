@@ -49,7 +49,7 @@ function handleCopy() {
       <button v-if="showBack" class="lp-nav-link" @click="goBack">◀ Back</button>
       <NuxtLink v-else to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">{{ breadcrumbLabel }}</span>
+      <span class="lp-nav-current">{{ breadcrumbLabel }}</span>
     </NavBar>
 
     <div class="lib-content">

@@ -118,7 +118,7 @@ function handleCopyClick() {
       <NavBar library>
         <button class="lp-nav-link" @click="goBack">◀ Explore</button>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">J-Card</span>
+        <span class="lp-nav-current">J-Card</span>
       </NavBar>
 
       <div class="lib-content">

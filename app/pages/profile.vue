@@ -186,7 +186,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       <NavBar library>
         <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
+        <span class="lp-nav-current">Profile</span>
       </NavBar>
 
       <div class="lib-header">

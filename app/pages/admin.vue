@@ -153,7 +153,7 @@ const fmtDate = (iso: string) =>
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Admin</span>
+      <span class="lp-nav-current">Admin</span>
     </NavBar>
 
     <div class="lib-header">

@@ -176,7 +176,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
                 <div class="jcard-card-info">
                   <p class="jcard-card-name">{{ card.title || 'Untitled' }}</p>
                   <p class="jcard-card-meta">
-                    {{ card.content.flaps }} flap{{ card.content.flaps !== 1 ? 's' : '' }} · {{ fmtDate(card.updatedAt) }}
+                    {{ card.content.flaps }} panel{{ card.content.flaps !== 1 ? 's' : '' }} · {{ fmtDate(card.updatedAt) }}
                   </p>
                 </div>
               </NuxtLink>

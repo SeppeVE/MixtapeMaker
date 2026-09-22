@@ -263,6 +263,29 @@
   opacity: 0.85;
 }
 
+/* Per-section colour modifiers. Each feature section sets its own palette
+   against its background; the base classes above stay colour-agnostic. */
+.lp-section--mixtape {
+  background: var(--color-paper);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.lp-section--jcard {
+  background: var(--color-sage);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.lp-section-label--muted   { color: var(--color-text-light); }
+.lp-section-label--forest  { color: var(--color-forest); }
+.lp-section-label--mustard { color: var(--color-mustard); letter-spacing: 3px; }
+
+.lp-section-title--plum    { color: var(--color-plum); }
+.lp-section-title--ink     { color: var(--color-text); }
+.lp-section-title--on-dark { color: var(--color-paper); margin-top: 8px; }
+
+.lp-section-body--muted    { color: var(--color-text-light); }
+.lp-feature-list--muted    { color: var(--color-text-light); }
+
 .lp-feature-list {
   list-style: none;
   display: flex;
@@ -326,6 +349,17 @@
   background: var(--color-text);
   border-top: 3px solid var(--color-text);
   border-bottom: 3px solid var(--color-text);
+}
+
+/* Centred intro / outro that bracket the .lp-steps-grid. */
+.lp-how-head {
+  text-align: center;
+  margin-bottom: 52px;
+}
+
+.lp-how-foot {
+  text-align: center;
+  margin-top: 40px;
 }
 
 .lp-steps-grid {
@@ -436,6 +470,9 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.lp-cta-card-head--forest { background: var(--color-forest); }
+.lp-cta-card-head--plum   { background: var(--color-plum); }
 
 .lp-cta-card-icon { font-size: 32px; color: var(--color-paper); }
 

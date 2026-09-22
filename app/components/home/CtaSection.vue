@@ -23,7 +23,7 @@ function fmtDate(iso: string) {
 
         <div class="lp-cta-cards">
           <button class="lp-cta-card" @click="mixtape.newMixtape()">
-            <div class="lp-cta-card-head" style="background:var(--color-forest)">
+            <div class="lp-cta-card-head lp-cta-card-head--forest">
               <IconCassette class="lp-cta-card-icon" aria-hidden="true" />
               <div class="lp-cta-card-title">Mixtape Editor</div>
               <p class="lp-cta-card-desc">Build, balance, and perfect your track list with real-time tape length calculation.</p>
@@ -35,7 +35,7 @@ function fmtDate(iso: string) {
           </button>
 
           <NuxtLink to="/library?tab=jcards" class="lp-cta-card">
-            <div class="lp-cta-card-head" style="background:var(--color-plum)">
+            <div class="lp-cta-card-head lp-cta-card-head--plum">
               <IconCard class="lp-cta-card-icon" aria-hidden="true" />
               <div class="lp-cta-card-title">J-Card Designer</div>
               <p class="lp-cta-card-desc">Upload cover art, style the spine and back panel, and export a print-ready PDF.</p>

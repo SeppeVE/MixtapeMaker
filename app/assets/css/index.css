@@ -20,11 +20,9 @@
 @import './Floaters.css';
 @import './SpotifyCallback.css';
 
-@import './HomePage.css';
 @import './home/HomePage.css';
 @import './mockComponents.css';
 
-@import './CassetteTape.css';
 @import './TapePreview.css';
 @import './TapeSide.css';
 @import './mixtape/MixtapeEditor.css';

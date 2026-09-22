@@ -85,6 +85,7 @@ body {
 }
 .btn:hover   { background: var(--color-secondary); }
 .btn:active  { transform: translate(2px,2px); box-shadow: none; }
+.btn.active  { background: var(--color-secondary); transform: translate(2px,2px); box-shadow: none; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .visibility-toggle-icon {

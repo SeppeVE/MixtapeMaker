@@ -177,6 +177,7 @@ function setLineHeight(v: string) {
 <template>
   <div v-if="editor" class="ce-root">
     <div class="ce-toolbar">
+      <!-- Basic markup controls -->
       <button type="button" :class="`ce-btn ce-bold${editor.isActive('bold') ? ' active' : ''}`" title="Bold" @mousedown.prevent="editor.chain().focus().toggleBold().run()">B</button>
       <button type="button" :class="`ce-btn ce-italic${editor.isActive('italic') ? ' active' : ''}`" title="Italic" @mousedown.prevent="editor.chain().focus().toggleItalic().run()">I</button>
       <button type="button" :class="`ce-btn ce-ul${editor.isActive('underline') ? ' active' : ''}`" title="Underline" @mousedown.prevent="editor.chain().focus().toggleUnderline().run()">U</button>
@@ -189,6 +190,7 @@ function setLineHeight(v: string) {
       <button type="button" :class="`ce-btn${editor.isActive({ textAlign: 'right' }) ? ' active' : ''}`" title="Align right" @mousedown.prevent="editor.chain().focus().setTextAlign('right').run()">➡</button>
       <span class="ce-sep" />
 
+      <!-- Font family controls with custom uploaded fonts -->
       <select class="ce-font-select" :value="currentFamily()" title="Font family" @mousedown.stop @change="setFamily(($event.target as HTMLSelectElement).value)">
         <option value="">Default</option>
         <optgroup label="Curated">
@@ -216,6 +218,7 @@ function setLineHeight(v: string) {
 
       <span class="ce-sep" />
 
+      <!-- Text color controls -->
       <div class="ce-color-row">
         <button
           v-for="c in COLOR_PRESETS"

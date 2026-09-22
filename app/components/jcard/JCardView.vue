@@ -97,8 +97,15 @@ watch(
 // Resolves true when the cloud now holds `target` (false when signed out or the sync failed).
 async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
   isSaving.value = true;
-  saveJCardToLocal(target); // always persist locally first
+  const localOk = saveJCardToLocal(target); // always persist locally first
   let cloudOk = false;
+  // A card that reached neither the browser nor the cloud is gone the moment
+  // this tab closes, so never report that one as saved.
+  const report = () => {
+    if (!feedback) return;
+    if (cloudOk || localOk) ui.showToast('J-card saved', 'success');
+    else ui.showToast('Could not save — this card is too big for offline storage. Sign in to save it to the cloud.', 'error');
+  };
   try {
     if (auth.user) {
       // isCopy rides along on every write: without it a copy edited into
@@ -128,10 +135,10 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
       if (target === lastScheduled) cloudDirty.value = false;
       cloudOk = true;
     }
-    if (feedback) ui.showToast('J-card saved', 'success');
+    report();
   } catch (e) {
-    console.error('Supabase sync failed (card is still saved locally):', e);
-    if (feedback) ui.showToast('J-card saved', 'success');
+    console.error('Supabase sync failed:', e);
+    report();
   } finally {
     isSaving.value = false;
   }

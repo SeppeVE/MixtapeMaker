@@ -161,11 +161,18 @@ export const loadJCardsFromLocal = (): JCard[] => {
   try { return JSON.parse(localStorage.getItem(JCARDS_KEY) ?? '[]'); } catch { return []; }
 };
 
-export const saveJCardToLocal = (card: JCard): void => {
+/** False when the write was refused — almost always the quota, blown by a card carrying inlined images. */
+export const saveJCardToLocal = (card: JCard): boolean => {
   const cards = loadJCardsFromLocal();
   const idx = cards.findIndex(c => c.id === card.id);
   if (idx >= 0) cards[idx] = card; else cards.unshift(card);
-  try { localStorage.setItem(JCARDS_KEY, JSON.stringify(cards)); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(JCARDS_KEY, JSON.stringify(cards));
+    return true;
+  } catch (error) {
+    console.error('Failed to save card to local storage:', error);
+    return false;
+  }
 };
 
 export const deleteJCardFromLocal = (id: string): void => {

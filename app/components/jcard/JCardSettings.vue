@@ -219,12 +219,12 @@ function blockAttrs(id: Section) {
 </script>
 
 <template>
-  <div class="jcard-settings">
+  <div class="jc-settings">
     <!-- 1. Card info -->
     <SettingsBlock v-bind="blockAttrs('info')" label="✎ Card info" @toggle="toggle">
-      <label class="settings-label">Title</label>
-      <input class="settings-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
-      <label class="settings-checkbox-label" style="margin-top:6px">
+      <label class="jc-label">Title</label>
+      <input class="jc-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
+      <label class="jc-checkbox-label" style="margin-top:6px">
         <input
           type="checkbox"
           :checked="card.isPublic === true"
@@ -258,21 +258,21 @@ function blockAttrs(id: Section) {
 
     <!-- 2. Layout -->
     <SettingsBlock v-bind="blockAttrs('layout')" label="▣ Layout" @toggle="toggle">
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="content.isReversed" @change="patch({ isReversed: ($event.target as HTMLInputElement).checked })" />
         Reverse card (flip left/right)
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="content.shortBack" @change="patch({ shortBack: ($event.target as HTMLInputElement).checked })" />
         Short back panel (10 mm)
       </label>
-      <label class="settings-label" style="margin-top:6px">Panels: {{ content.flaps }}</label>
+      <label class="jc-label" style="margin-top:6px">Panels: {{ content.flaps }}</label>
       <input
         type="range" :min="1" :max="6" :value="content.flaps"
-        class="settings-range"
+        class="jc-range"
         @input="patch({ flaps: parseInt(($event.target as HTMLInputElement).value, 10) as 1|2|3|4|5|6 })"
       />
-      <div class="settings-range-ticks">
+      <div class="jc-range-ticks">
         <span v-for="n in 6" :key="n">{{ n }}</span>
       </div>
       <p v-if="!pdfLayout.fitsRequested" class="small-info">
@@ -316,12 +316,12 @@ function blockAttrs(id: Section) {
 
     <!-- 4. Background -->
     <SettingsBlock v-bind="blockAttrs('background')" label="▧ Background" @toggle="toggle">
-      <label class="settings-label">Color</label>
-      <div class="settings-swatch-row" style="margin-bottom:6px">
+      <label class="jc-label">Color</label>
+      <div class="jc-swatch-row" style="margin-bottom:6px">
         <div
           v-for="c in COLOR_PRESETS"
           :key="c"
-          :class="`settings-swatch${content.backgroundColor === c ? ' selected' : ''}`"
+          :class="`jc-swatch${content.backgroundColor === c ? ' selected' : ''}`"
           :style="{ background: c }"
           :title="c"
           @click="patch({ backgroundColor: c })"
@@ -333,7 +333,7 @@ function blockAttrs(id: Section) {
           @input="patch({ backgroundColor: ($event.target as HTMLInputElement).value })"
         />
       </div>
-      <div class="side-indicator-divider"><span class="side-indicator-label">Outside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Outside</span></div>
       <ImageUpload
         label="Background image outside"
         :current-url="content.backgroundImageUrl"
@@ -341,12 +341,12 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="handleBackgroundImageChange"
       />
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.continuousBackground" @change="patch({ continuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
       <ImageUpload
         label="Background image inside"
         :current-url="content.insideBackgroundImageUrl"
@@ -354,7 +354,7 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="patch({ insideBackgroundImageUrl: $event.url ?? undefined })"
       />
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.insideContinuousBackground" @change="patch({ insideContinuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
@@ -362,7 +362,7 @@ function blockAttrs(id: Section) {
 
     <!-- 5. Panel content -->
     <SettingsBlock v-bind="blockAttrs('flaps')" label="◫ Panel content" @toggle="toggle">
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
       <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
         <button
           v-for="i in content.flaps"
@@ -385,11 +385,11 @@ function blockAttrs(id: Section) {
           @change="handleCoverImageChange"
         />
         <div v-if="content.coverImageUrl" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
-          <label class="settings-checkbox-label">
+          <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.isFullCoverImage" @change="patch({ isFullCoverImage: ($event.target as HTMLInputElement).checked })" />
             Fill panel with image
           </label>
-          <label class="settings-checkbox-label">
+          <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.coverImageBehindContent" @change="patch({ coverImageBehindContent: ($event.target as HTMLInputElement).checked })" />
             Show text over image
           </label>
@@ -405,18 +405,18 @@ function blockAttrs(id: Section) {
           @change="setFlapImage($event.url)"
         />
         <div v-if="content.flapImageUrls?.[activeFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
-          <label class="settings-checkbox-label">
+          <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.flapImageFulls?.[activeFlap] ?? false" @change="setFlapImageFull(($event.target as HTMLInputElement).checked)" />
             Fill panel with image
           </label>
-          <label class="settings-checkbox-label">
+          <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.flapImageBehindContents?.[activeFlap] ?? false" @change="setFlapImageBehind(($event.target as HTMLInputElement).checked)" />
             Show text over image
           </label>
         </div>
       </template>
 
-      <label class="settings-label" style="margin-top:10px">Text (shift + enter for new line)</label>
+      <label class="jc-label" style="margin-top:10px">Text (shift + enter for new line)</label>
       <ContentEditor
         :key="activeFlap"
         :value="content.flapContents[activeFlap] ?? ''"
@@ -426,7 +426,7 @@ function blockAttrs(id: Section) {
         @change="patchFlap(activeFlap, $event)"
       />
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
       <div style="display:flex;gap:4px;margin-top:8px;margin-bottom:8px;flex-wrap:wrap">
         <button
           v-for="i in content.flaps"
@@ -447,11 +447,11 @@ function blockAttrs(id: Section) {
         @change="setInsideFlapImage($event.url)"
       />
       <div v-if="content.insideFlapImageUrls?.[activeInsideFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px;margin-bottom:8px">
-        <label class="settings-checkbox-label">
+        <label class="jc-checkbox-label">
           <input type="checkbox" :checked="content.insideFlapImageFulls?.[activeInsideFlap] ?? false" @change="setInsideFlapImageFull(($event.target as HTMLInputElement).checked)" />
           Fill panel with image
         </label>
-        <label class="settings-checkbox-label">
+        <label class="jc-checkbox-label">
           <input type="checkbox" :checked="content.insideFlapImageBehindContents?.[activeInsideFlap] ?? false" @change="setInsideFlapImageBehind(($event.target as HTMLInputElement).checked)" />
           Show text over image
         </label>
@@ -468,29 +468,29 @@ function blockAttrs(id: Section) {
 
     <!-- 6. Spine -->
     <SettingsBlock v-bind="blockAttrs('spine')" label="▏Spine" @toggle="toggle">
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
-      <label class="settings-label">Top</label>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
+      <label class="jc-label">Top</label>
       <ContentEditor :value="content.spineTopContent" placeholder="Mixtape title" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineTopContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Center</label>
+      <label class="jc-label" style="margin-top:8px">Center</label>
       <ContentEditor :value="content.spineCenterContent" placeholder="Side A / Side B" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineCenterContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Bottom</label>
+      <label class="jc-label" style="margin-top:8px">Bottom</label>
       <ContentEditor :value="content.spineBottomContent" placeholder="90 min" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineBottomContent: $event })" />
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
-      <label class="settings-label" style="margin-top:8px">Center</label>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
+      <label class="jc-label" style="margin-top:8px">Center</label>
       <ContentEditor :value="content.insideSpineContent ?? ''" placeholder="Spine inside..." min-height="40px" :custom-font-names="customFontNames" @change="patch({ insideSpineContent: $event })" />
     </SettingsBlock>
 
     <!-- 7. Back panel -->
     <SettingsBlock v-bind="blockAttrs('back')" label="◧ Back panel" @toggle="toggle">
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
-      <label class="settings-label">Left column (Side A)</label>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
+      <label class="jc-label">Left column (Side A)</label>
       <ContentEditor :value="content.backLeftContent" placeholder="Side A tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backLeftContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Right column (Side B)</label>
+      <label class="jc-label" style="margin-top:8px">Right column (Side B)</label>
       <ContentEditor :value="content.backRightContent" placeholder="Side B tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backRightContent: $event })" />
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
-      <label class="settings-label" style="margin-top:8px">Content</label>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
+      <label class="jc-label" style="margin-top:8px">Content</label>
       <ContentEditor :value="content.insideBackContent ?? ''" placeholder="Back panel inside..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ insideBackContent: $event })" />
     </SettingsBlock>
 
@@ -507,9 +507,9 @@ function blockAttrs(id: Section) {
 
     <!-- 9. Export -->
     <SettingsBlock v-bind="blockAttrs('export')" label="⇪ Export" @toggle="toggle">
-      <label class="settings-label">Paper</label>
+      <label class="jc-label">Paper</label>
       <select
-        class="settings-select"
+        class="jc-select"
         :value="paperSize"
         @change="patch({ paperSize: ($event.target as HTMLSelectElement).value as JCardPaperSize })"
       >
@@ -521,15 +521,15 @@ function blockAttrs(id: Section) {
         The card is wider than this paper — the PDF will use a custom page instead.
       </p>
 
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label" style="margin-top:8px">
         <input type="checkbox" :checked="!!content.showCutGuides" @change="patch({ showCutGuides: ($event.target as HTMLInputElement).checked })" />
         Show fold / cut guides
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="!!content.bleed" @change="patch({ bleed: ($event.target as HTMLInputElement).checked })" />
         Add 3 mm bleed (mirrors the edges outward so an off cut shows no white)
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="exportInside" @change="patch({ exportInside: ($event.target as HTMLInputElement).checked })" />
         Include inside as page 2 (two-sided print)
       </label>
@@ -538,9 +538,9 @@ function blockAttrs(id: Section) {
       </p>
 
       <template v-if="exportInside">
-        <label class="settings-label" style="margin-top:6px">Printer flips the sheet on the</label>
+        <label class="jc-label" style="margin-top:6px">Printer flips the sheet on the</label>
         <select
-          class="settings-select"
+          class="jc-select"
           :value="duplexFlip"
           @change="patch({ duplexFlip: ($event.target as HTMLSelectElement).value as JCardDuplexFlip })"
         >

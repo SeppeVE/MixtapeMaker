@@ -1,12 +1,12 @@
 /* Settings panels — "punched plastic" SchWindow aesthetic */
-.jcard-settings {
+.jc-settings {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 /* Each collapsible section is a bordered window */
-.settings-block {
+.jc-block {
   border: 2px solid var(--color-text);
   box-shadow: var(--shadow);
   background: var(--color-white);
@@ -14,7 +14,7 @@
 }
 
 /* Title bar */
-.settings-heading {
+.jc-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -33,21 +33,21 @@
   user-select: none;
 }
 
-.settings-heading:hover {
+.jc-heading:hover {
   background: var(--color-mustard);
   color: var(--color-text);
 }
 
 /* Alternate accent for variety */
-.settings-heading.accent-forest {
+.jc-heading.accent-forest {
   background: var(--color-accent);
 }
-.settings-heading.accent-mustard {
+.jc-heading.accent-mustard {
   background: var(--color-mustard);
   color: var(--color-text);
 }
 
-.settings-body {
+.jc-body {
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -56,7 +56,7 @@
 }
 
 /* Form labels */
-.settings-label {
+.jc-label {
   font-family: var(--font-body);
   font-size: 0.75rem;
   color: var(--color-text);
@@ -66,7 +66,7 @@
 }
 
 /* Text inputs */
-.settings-input {
+.jc-input {
   width: 100%;
   padding: 7px 10px;
   border: 2px solid var(--color-text);
@@ -80,12 +80,12 @@
   border-radius: 0;
 }
 
-.settings-input:focus {
+.jc-input:focus {
   background: rgba(212, 169, 53, 0.18);
 }
 
 /* Select */
-.settings-select {
+.jc-select {
   width: 100%;
   padding: 7px 10px;
   border: 2px solid var(--color-text);
@@ -99,12 +99,12 @@
   outline: none;
 }
 
-.settings-select:focus {
+.jc-select:focus {
   background: rgba(212, 169, 53, 0.18);
 }
 
 /* Checkbox rows */
-.settings-checkbox-label {
+.jc-checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -115,28 +115,28 @@
   padding: 3px 0;
 }
 
-.settings-checkbox-label input[type='checkbox'] {
+.jc-checkbox-label input[type='checkbox'] {
   width: 14px;
   height: 14px;
   accent-color: var(--color-primary);
   cursor: pointer;
 }
 
-.settings-section {
+.jc-section {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 /* Color swatch presets row */
-.settings-swatch-row {
+.jc-swatch-row {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.settings-swatch {
+.jc-swatch {
   width: 22px;
   height: 22px;
   border: 2px solid var(--color-text);
@@ -146,7 +146,7 @@
 }
 
 /* Range slider */
-.settings-range {
+.jc-range {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -160,7 +160,7 @@
   padding: 0;
 }
 
-.settings-range::-webkit-slider-thumb {
+.jc-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
@@ -172,11 +172,11 @@
   box-shadow: 2px 2px 0 var(--color-text);
 }
 
-.settings-range::-webkit-slider-thumb:hover {
+.jc-range::-webkit-slider-thumb:hover {
   background: var(--color-mustard);
 }
 
-.settings-range::-moz-range-thumb {
+.jc-range::-moz-range-thumb {
   width: 16px;
   height: 20px;
   background: var(--color-primary);
@@ -186,16 +186,16 @@
   box-shadow: 2px 2px 0 var(--color-text);
 }
 
-.settings-range::-moz-range-thumb:hover {
+.jc-range::-moz-range-thumb:hover {
   background: var(--color-mustard);
 }
 
-.settings-range::-moz-range-track {
+.jc-range::-moz-range-track {
   background: var(--color-white);
   border: none;
 }
 
-.settings-range-ticks {
+.jc-range-ticks {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-display);
@@ -206,12 +206,12 @@
   margin-top: 2px;
 }
 
-.settings-swatch.selected {
+.jc-swatch.selected {
   outline: 2px solid var(--color-mustard);
   outline-offset: 1px;
 }
 
-.side-indicator-label {
+.jc-side-label {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: bold;
@@ -220,7 +220,7 @@
   padding: 0 2px;
 }
 
-.side-indicator-divider {
+.jc-side-divider {
   border-top: 1.5px dashed rgba(0,0,0,0.15);
   margin-top: 14px;
   padding-top: 10px;
@@ -229,7 +229,7 @@
   gap: 6;
 }
 
-.side-indicator-divider-borderless {
+.jc-side-divider-borderless {
   margin-bottom: 4px;
   display: flex;
   align-items: center;

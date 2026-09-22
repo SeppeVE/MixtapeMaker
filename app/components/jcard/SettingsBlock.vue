@@ -14,12 +14,12 @@ const emit = defineEmits<{ toggle: [id: Section] }>();
 </script>
 
 <template>
-  <div v-if="visible" class="settings-block">
-    <button class="settings-heading" :style="{ background: bg, color: fg }" @click="emit('toggle', id)">
+  <div v-if="visible" class="jc-block">
+    <button class="jc-heading" :style="{ background: bg, color: fg }" @click="emit('toggle', id)">
       <span>{{ label }}</span>
       <span style="font-size:14px;opacity:0.8">{{ open ? '▲' : '▼' }}</span>
     </button>
-    <div v-if="open" class="settings-body">
+    <div v-if="open" class="jc-body">
       <slot />
     </div>
   </div>

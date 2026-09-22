@@ -67,7 +67,7 @@ const filename = computed(() =>
 
 <template>
   <div class="img-upload-root">
-    <span class="settings-label">{{ label }}</span>
+    <span class="jc-label">{{ label }}</span>
 
     <div
       :class="`img-upload-drop${dragOver ? ' drag-over' : ''}${currentUrl ? ' has-image' : ''}${uploading ? ' uploading' : ''}`"

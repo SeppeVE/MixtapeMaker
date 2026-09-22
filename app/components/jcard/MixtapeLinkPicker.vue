@@ -38,9 +38,9 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
 </script>
 
 <template>
-  <div class="settings-section">
+  <div class="jc-section">
     <select
-      class="settings-select"
+      class="jc-select"
       :value="mixtapeId ?? ''"
       @change="emit('linkChange', ($event.target as HTMLSelectElement).value || null)"
     >
@@ -49,11 +49,11 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
     </select>
 
     <div v-if="linked" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input v-model="overwriteCover" type="checkbox" />
         Also overwrite cover panel
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input v-model="showDuration" type="checkbox" />
         Include track duration
       </label>

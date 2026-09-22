@@ -84,7 +84,7 @@ const filename = computed(() =>
       <div class="img-upload-drop-text">
         <span v-if="uploading" class="img-upload-spinner">Uploading…</span>
         <template v-else-if="currentUrl">
-          <strong style="display:inline-flex;align-items:center;gap:4px"><IconCheck class="icon-inline" aria-hidden="true" /> {{ filename }}</strong>
+          <strong><IconCheck class="icon-inline" aria-hidden="true" /> {{ filename }}</strong>
           <span>Click or drag to replace</span>
         </template>
         <template v-else>
@@ -98,7 +98,7 @@ const filename = computed(() =>
         ref="inputRef"
         type="file"
         accept="image/*"
-        style="display:none"
+        class="img-upload-input"
         :disabled="uploading"
         @change="handleInput"
       />

@@ -83,6 +83,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .img-upload-hint {
@@ -119,4 +122,9 @@
   background: rgba(91, 40, 56, 0.08);
   border: 1.5px solid var(--color-warning);
   padding: 4px 8px;
+}
+
+/* Hidden <input type="file"> driven by the drop zone. */
+.img-upload-input {
+  display: none;
 }

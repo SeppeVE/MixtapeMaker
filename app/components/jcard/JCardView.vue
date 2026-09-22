@@ -284,7 +284,7 @@ function saveNow() {
       </div>
 
       <aside class="jcard-view-right">
-        <span class="jcard-col-label" style="display:inline-flex;align-items:center;gap:5px"><IconSettings class="icon-inline" aria-hidden="true" /> Settings</span>
+        <span class="jcard-col-label"><IconSettings class="icon-inline" aria-hidden="true" /> Settings</span>
         <JCardSettings
           :card="card"
           :current-mixtape="currentMixtape"

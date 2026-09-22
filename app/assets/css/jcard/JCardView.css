@@ -172,6 +172,7 @@
   letter-spacing: 0.5px;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   background: var(--color-mustard);
   color: var(--color-text);
   border: 2px solid var(--color-text);

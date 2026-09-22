@@ -1,7 +1,7 @@
 import { createApp, h, type Component } from 'vue';
 import {
   PDFDocument, StandardFonts, rgb,
-  pushGraphicsState, popGraphicsState, concatTransformationMatrix, rectangle, clip, endPath,
+  pushGraphicsState, popGraphicsState, concatTransformationMatrix,
   type PDFFont, type PDFImage, type PDFPage,
 } from 'pdf-lib';
 import { toPng } from 'html-to-image';
@@ -130,24 +130,28 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
   const settings = printSettingsLine(layout, flip, withInside);
 
   // ── Page 1: outside ─────────────────────────────────────────────────────
-  const outsideImage = await pdf.embedPng(await snapshotCard(JCardPrintable, content, widthMm, heightMm));
+  const outsideSnap = await snapshotCard(JCardPrintable, content, widthMm, heightMm, layout.bleedMm);
+  const outsideImage = await pdf.embedPng(outsideSnap.bytes);
   const page1 = pdf.addPage([pageW, pageH]);
-  drawCard(page1, outsideImage, rect, bleed);
+  drawCard(page1, outsideImage, rect, outsideSnap.bleedXmm * MM_TO_PT, outsideSnap.bleedYmm * MM_TO_PT);
   drawCropMarks(page1, rect, bleed);
   drawPageNotes(page1, font, rect, bleed, { heading: `OUTSIDE  -  page 1 of ${pageCount}`, settings });
 
   // ── Page 2: inside, laid out to sit exactly behind page 1 after the duplex flip ──
   if (withInside) {
-    const insideImage = await pdf.embedPng(await snapshotCard(JCardInsidePrintable, content, widthMm, heightMm));
+    const insideSnap = await snapshotCard(JCardInsidePrintable, content, widthMm, heightMm, layout.bleedMm);
+    const insideImage = await pdf.embedPng(insideSnap.bytes);
+    const insideBleedX = insideSnap.bleedXmm * MM_TO_PT;
+    const insideBleedY = insideSnap.bleedYmm * MM_TO_PT;
     const page2 = pdf.addPage([pageW, pageH]);
     if (flip === 'long') {
       // Flipping on the long edge of a landscape sheet mirrors top/bottom, not left/right.
       // The inside snapshot is drawn left/right-mirrored (book style), so rotate it 180°:
       // the panel order then matches page 1 and every panel lands behind its outside twin.
-      drawRotated180(page2, rect, () => drawCard(page2, insideImage, rect, bleed));
+      drawRotated180(page2, rect, () => drawCard(page2, insideImage, rect, insideBleedX, insideBleedY));
     } else {
       // Short-edge flip mirrors left/right, which is exactly how the inside snapshot is laid out.
-      drawCard(page2, insideImage, rect, bleed);
+      drawCard(page2, insideImage, rect, insideBleedX, insideBleedY);
     }
     drawCropMarks(page2, rect, bleed);
     drawPageNotes(page2, font, rect, bleed, {
@@ -168,13 +172,86 @@ export async function exportJCardToPDF(content: JCardContent, filename = 'jcard'
 
 // ─── rendering helpers ──────────────────────────────────────────────────────
 
-/** Mount a printable component off-screen at real size, snapshot it, tear it down. */
+/**
+ * Grow a trim-size card bitmap outward by `bleedMm` on every side by repeating its
+ * outermost row and column of pixels.
+ *
+ * Edge extension *continues* the artwork past the trim line. The earlier approach
+ * reflected the card across each edge, which duplicated whatever sat near the edge
+ * (panel rules, text ascenders, a border) and reversed the direction of anything
+ * directional — stripes and gradients met their own mirror image at the trim line.
+ * A cut landing inside the bleed then exposed content that never belonged there.
+ *
+ * The trimmed area itself is untouched: the original bitmap is drawn last, at the
+ * full offset, so every pixel inside the trim line is exactly what it was.
+ */
+async function growByEdgeExtension(
+  pngDataUrl: string,
+  bleedMm: number,
+  widthMm: number,
+  heightMm: number,
+): Promise<{ dataUrl: string; bleedXmm: number; bleedYmm: number }> {
+  const none = { dataUrl: pngDataUrl, bleedXmm: 0, bleedYmm: 0 };
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('Could not reopen the card snapshot to add bleed'));
+    el.src = pngDataUrl;
+  });
+
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  if (!w || !h) return none;
+  // Whole pixels only — a fractional strip would resample the card. The exact mm each
+  // axis ended up with is reported back so the caller can place the image such that the
+  // trim line still lands precisely on the card rect.
+  const bx = Math.max(1, Math.round((bleedMm * w) / widthMm));
+  const by = Math.max(1, Math.round((bleedMm * h) / heightMm));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w + 2 * bx;
+  canvas.height = h + 2 * by;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return none; // no 2d context: fall back to a bleedless card rather than failing the export
+
+  // Four corners (from the corner pixel), four edge strips (from the outermost row or
+  // column), then the untouched card on top.
+  ctx.drawImage(img, 0, 0, 1, 1, 0, 0, bx, by);
+  ctx.drawImage(img, w - 1, 0, 1, 1, bx + w, 0, bx, by);
+  ctx.drawImage(img, 0, h - 1, 1, 1, 0, by + h, bx, by);
+  ctx.drawImage(img, w - 1, h - 1, 1, 1, bx + w, by + h, bx, by);
+  ctx.drawImage(img, 0, 0, w, 1, bx, 0, w, by);
+  ctx.drawImage(img, 0, h - 1, w, 1, bx, by + h, w, by);
+  ctx.drawImage(img, 0, 0, 1, h, 0, by, bx, h);
+  ctx.drawImage(img, w - 1, 0, 1, h, bx + w, by, bx, h);
+  ctx.drawImage(img, bx, by);
+
+  return {
+    dataUrl: canvas.toDataURL('image/png'),
+    bleedXmm: (bx * widthMm) / w,
+    bleedYmm: (by * heightMm) / h,
+  };
+}
+
+/** A card bitmap plus the bleed actually baked into it, per axis, in mm. */
+interface CardSnapshot {
+  bytes: Uint8Array;
+  bleedXmm: number;
+  bleedYmm: number;
+}
+
+/**
+ * Mount a printable component off-screen at real size, snapshot it, tear it down.
+ * When `bleedMm` is non-zero the returned bitmap already carries the bleed, so the
+ * caller draws one image covering trim + bleed.
+ */
 async function snapshotCard(
   component: Component,
   content: JCardContent,
   widthMm: number,
   heightMm: number,
-): Promise<Uint8Array> {
+  bleedMm: number,
+): Promise<CardSnapshot> {
   const host = document.createElement('div');
   host.style.cssText = [
     'position: fixed',
@@ -213,7 +290,9 @@ async function snapshotCard(
       style: { transform: 'none', margin: '0' },
       backgroundColor: content.backgroundColor || '#ffffff',
     });
-    return dataUrlToUint8Array(pngDataUrl);
+    if (bleedMm <= 0) return { bytes: dataUrlToUint8Array(pngDataUrl), bleedXmm: 0, bleedYmm: 0 };
+    const grown = await growByEdgeExtension(pngDataUrl, bleedMm, widthMm, heightMm);
+    return { bytes: dataUrlToUint8Array(grown.dataUrl), bleedXmm: grown.bleedXmm, bleedYmm: grown.bleedYmm };
   } finally {
     try { app?.unmount(); } catch { /* ignore */ }
     if (host.parentNode) host.parentNode.removeChild(host);
@@ -224,41 +303,22 @@ async function snapshotCard(
 interface CardRect { left: number; right: number; bottom: number; top: number }
 
 /**
- * Draw the card at trim size, plus a mirrored bleed around it when requested.
- * Each bleed strip shows the card reflected across that edge, so the print stays
- * continuous over the trim line if the cut lands a little off. Reflection keeps the
- * trimmed area exactly as it is on screen; nothing inside the card moves or scales.
+ * Draw the card so its trim line lands exactly on `rect`.
+ *
+ * When bleed is on, `image` already carries it on every side (baked in by
+ * growByEdgeExtension at snapshot time). The bleed is a whole number of bitmap
+ * pixels, which is rarely exactly 3 mm, so the image is placed using the bleed that
+ * was actually baked in rather than the nominal figure. That keeps the scale at
+ * exactly one image pixel per trim pixel: every pixel inside the trim line lands
+ * where it would with bleed off.
  */
-function drawCard(page: PDFPage, image: PDFImage, rect: CardRect, bleed: number) {
-  const w = rect.right - rect.left;
-  const h = rect.top - rect.bottom;
-
-  if (bleed > 0) {
-    for (const dx of [-1, 0, 1]) {
-      for (const dy of [-1, 0, 1]) {
-        if (dx === 0 && dy === 0) continue;
-        // Only the strip next to this edge/corner shows through.
-        const clipX = dx < 0 ? rect.left - bleed : dx > 0 ? rect.right : rect.left;
-        const clipY = dy < 0 ? rect.bottom - bleed : dy > 0 ? rect.top : rect.bottom;
-        page.pushOperators(
-          pushGraphicsState(),
-          rectangle(clipX, clipY, dx === 0 ? w : bleed, dy === 0 ? h : bleed),
-          clip(),
-          endPath(),
-        );
-        // A negative size flips the image; anchoring it at the far side reflects it across the edge.
-        page.drawImage(image, {
-          x: dx > 0 ? rect.right + w : rect.left,
-          y: dy > 0 ? rect.top + h : rect.bottom,
-          width: dx === 0 ? w : -w,
-          height: dy === 0 ? h : -h,
-        });
-        page.pushOperators(popGraphicsState());
-      }
-    }
-  }
-
-  page.drawImage(image, { x: rect.left, y: rect.bottom, width: w, height: h });
+function drawCard(page: PDFPage, image: PDFImage, rect: CardRect, bleedX: number, bleedY: number) {
+  page.drawImage(image, {
+    x: rect.left - bleedX,
+    y: rect.bottom - bleedY,
+    width: rect.right - rect.left + 2 * bleedX,
+    height: rect.top - rect.bottom + 2 * bleedY,
+  });
 }
 
 /** Run `draw` with the page's coordinate system turned 180° around the card's centre. */

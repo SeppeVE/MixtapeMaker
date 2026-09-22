@@ -5,11 +5,13 @@ import type { JCard, JCardContent, Mixtape } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useRoute } from 'vue-router';
+import { useMixtapeStore } from '~/stores/mixtape';
 import { useUnsavedStore } from '~/stores/unsaved';
+import { isCloudId } from '~/utils/database';
 import { generateId } from '~/utils/timeUtils';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
-import { saveJCardToLocal } from '~/utils/localStorage';
+import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
 import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import IconSettings from '~icons/material-symbols/settings-rounded';
@@ -21,6 +23,7 @@ const props = defineProps<{
 
 const auth = useAuthStore();
 const ui = useUiStore();
+const mixtapeStore = useMixtapeStore();
 const unsaved = useUnsavedStore();
 
 const COALESCE_MS = 600;
@@ -56,6 +59,15 @@ const isSaving = ref(false);
 // a successful cloud write, so signed-out editing stays "unsaved".
 const cloudDirty = ref(false);
 
+// The card being designed has to live in the store, not only in this
+// component. The store is what persists `jcard-active`, and what seeds this
+// component when it mounts — so without this write-back a reload (or browser
+// back) re-seeds from whatever was open when the designer was *entered*,
+// throwing away every edit since. On "New Card" that's nothing at all, so the
+// designer came back blank while the library, which reads the `jcards` key
+// that autosave does write, still listed the work.
+watch(card, (c) => { mixtapeStore.activeCard = c; });
+
 onMounted(() => {
   unsaved.register('jcard', {
     path: useRoute().path,
@@ -76,7 +88,13 @@ onBeforeUnmount(() => unsaved.unregister('jcard'));
 
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
-let persisted = !!props.initialCard;
+// "The cloud already has a row for this id." Only a UUID id can be one: local
+// drafts carry a timestamp id from generateId(), and `jcards.id` is a uuid
+// column, so querying it with one errors rather than simply missing. Seeding
+// this from `!!initialCard` alone was wrong the moment a local draft was
+// reopened — and now that a reload re-seeds from the stored card, it would be
+// wrong every time.
+let persisted = !!props.initialCard && isCloudId(props.initialCard.id);
 // Signature of the untouched copy this card started as, or null when it isn't
 // tracking a copy at all.
 const copySignature: string | null = seed.isCopy ? contentSignature(seed) : null;
@@ -120,17 +138,23 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
       let saved: JCard;
       if (persisted) {
         saved = await updateJCard(target.id, patch);
-      } else {
+      } else if (isCloudId(target.id)) {
+        // A UUID we haven't confirmed yet — a cloud card reopened in a fresh
+        // session. It may or may not still be there.
         const exists = await loadJCard(target.id);
-        if (exists) {
-          persisted = true;
-          saved = await updateJCard(target.id, patch);
-        } else {
-          saved = await createJCard(auth.user.id, { ...patch, copiedFromId: target.copiedFromId ?? null });
-          persisted = true;
-        }
+        saved = exists
+          ? await updateJCard(target.id, patch)
+          : await createJCard(auth.user.id, { ...patch, id: target.id, copiedFromId: target.copiedFromId ?? null });
+      } else {
+        // A local draft reaching the cloud for the first time: let Postgres
+        // mint the UUID and adopt it below, dropping the local-id entry so the
+        // library doesn't list the card twice.
+        saved = await createJCard(auth.user.id, { ...patch, copiedFromId: target.copiedFromId ?? null });
+        deleteJCardFromLocal(target.id);
       }
+      persisted = true;
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
+      if (saved.id !== target.id) saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
       // Only mark clean if no further edit was queued while the request was in flight.
       if (target === lastScheduled) cloudDirty.value = false;
       cloudOk = true;

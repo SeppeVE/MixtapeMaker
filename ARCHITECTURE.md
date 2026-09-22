@@ -380,6 +380,20 @@ either the designer or the library.
 localStorage, and schedules `doSave()` 1.2s later; if signed in it creates or
 updates the cloud row and adopts the returned id.
 
+Two invariants hold this together, and breaking either loses work silently:
+
+- **The working card is mirrored into `mixtape.activeCard` on every change.**
+  The store is what persists `jcard-active`, and what seeds `JCardView` when
+  it mounts, so a card that only ever lives in the component's own ref is
+  gone on reload or browser-back — while the library, which reads the
+  separate `jcards` key that autosave *does* write, still shows it.
+- **Only a UUID id means "the cloud has this row".** `jcards.id` is a `uuid`
+  column and local drafts carry a timestamp id from `generateId()`, so
+  querying with one is an error, not a miss. `doSave` branches on
+  `isCloudId()`: update a known row, check-then-write an unconfirmed UUID, or
+  let Postgres mint an id for a local draft and adopt it (dropping the
+  local-id entry so the library doesn't list the card twice).
+
 **PDF export.** `exportJCardToPDF()` mounts the printable components in a
 hidden `createApp`, waits for fonts/images, `toPng()`s each face, and places
 them on A4/Letter/fit pages via `pdf-lib`, mirroring page 2 for duplex.

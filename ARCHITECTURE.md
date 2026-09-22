@@ -45,8 +45,9 @@ plus manual testing.
 │   ├── pages/               File-based routes (see §3)
 │   ├── components/          Auto-imported by *filename only* (no folder prefix)
 │   │   ├── auth/            AuthModal, TurnstileWidget
+│   │   ├── explore/         One component per Explore tab (mixtapes, J-cards)
 │   │   ├── feedback/        FeedbackModal
-│   │   ├── home/            Landing-page sections + HomeFooter
+│   │   ├── home/            Landing-page sections + HomeFooter (Main / Rail)
 │   │   ├── jcard/           Designer, previews, printables, settings, library grid
 │   │   │   └── parts/       One component per physical panel of the J-card
 │   │   ├── mixtape/         MixtapeDetailView (shared by explore + share pages)
@@ -56,8 +57,9 @@ plus manual testing.
 │   │   ├── ui/              NavBar, SearchBar, Toast, SuccessModal, UnsavedChangesModal, AuthorByline, Floaters
 │   │   └── ExplorePagination.vue
 │   ├── stores/              Pinia stores (see §5)
+│   ├── composables/         useCopyToLibrary — the auth-gated "copy to my library" flow
 │   ├── utils/               Plain TS modules: DB access, Spotify, PDF, helpers (see §6)
-│   ├── plugins/auth.client.ts   Boots the auth + profile stores on the client
+│   ├── plugins/auth.client.ts   Boots the auth + profile stores, replays a parked copy (§9)
 │   ├── types/index.ts       All shared TS interfaces (Song, Mixtape, JCard, Profile…)
 │   └── assets/
 │       ├── css/             One file per feature, aggregated by index.css (see §8)
@@ -89,11 +91,11 @@ Rendering mode is set per route in `nuxt.config.ts` → `routeRules`.
 | `/mixtape` | `pages/mixtape.vue` | client | The editor: Spotify search, Side A/B lists with drag-reorder, cassette preview, save/public/share. |
 | `/library` | `pages/library.vue` | client | Two tabs (`?tab=jcards`): cloud mixtapes (public toggle, share link, delete) and the J-card grid. |
 | `/cards/designer` | `pages/cards/designer.vue` | client | J-card designer; wraps `<JCardView>` with the store's `activeCard`. Measures whether the previews fit above the footer and, if not, pushes the footer below the fold. |
-| `/explore` | `pages/explore/index.vue` | SSR | Public mixtapes with title search + pagination; author bylines. |
+| `/explore` | `pages/explore/index.vue` | SSR | Two tabs (`?tab=jcards`), one component each: public mixtapes and public J-cards, with title search + pagination and author bylines. Tab, query and page all live in the URL so Back from a detail page restores the view. |
 | `/explore/:id` | `pages/explore/[id].vue` | SSR | One public mixtape + author + public J-cards linked to it. 404 if private. |
 | `/share/:token` | `pages/share/[token].vue` | SSR | A mixtape by share token, public or not. Same view component as explore. |
 | `/user/:username` | `pages/user/[username].vue` | SSR | Public profile: avatar, bio, public mixtapes and J-cards, or the "private" notice. |
-| `/jcard/:id` | `pages/jcard/[id].vue` | SSR | A single public J-card, read-only, with a link to its mixtape. |
+| `/jcard/:id` | `pages/jcard/[id].vue` | SSR | A single public J-card, read-only, with a link to its mixtape and to the card it was copied from. Actions: PDF export (paper size picked per export), plus Edit for the owner or "Copy to my library" for everyone else. |
 | `/profile` | `pages/profile.vue` | client | Own dashboard: picture, username, bio, privacy, sign out, delete account. |
 | `/admin` | `pages/admin.vue` | client | Post/delete site notifications. Gated by `profile.isAdmin`. |
 | `/how-to` | `pages/how-to.vue` | SSR | Static guide on recording to cassette. |
@@ -115,8 +117,9 @@ so crawlers see a real 404. All SSR data access goes through the Supabase
 | --- | --- |
 | `Song` | One track: id, title, artist, album, duration (s), album cover URL, optional `spotifyUri`. |
 | `Mixtape` | id, `userId?`, title, `dedicatedTo?`, `cassetteLength` (60/90/120), `sideA`/`sideB: Song[]`, timestamps, `isPublic`, `shareToken?`, `isCopy?`. |
-| `JCard` | id, title, `userId`, `mixtapeId?`, `content: JCardContent`, timestamps, `isPublic?`. |
-| `JCardContent` | Everything the designer edits: flap count, colours, per-panel HTML, images, inside face, PDF options, custom fonts. Has deprecated fields that `migrateJCardContent()` upgrades on load. |
+| `JCard` | id, title, `userId`, `mixtapeId?`, `content: JCardContent`, timestamps, `isPublic?`, `isCopy?`, `copiedFromId?`. |
+| `JCardContent` | Everything the designer edits: flap count, colours, per-panel HTML, images, inside face, PDF options, custom fonts. Cover and background images also carry a `*ThumbUrl` uploaded alongside the original, used by the Explore grid. Has deprecated fields that `migrateJCardContent()` upgrades on load. |
+| `JCardPreviewRow` | A trimmed row from the `public_jcard_previews` view: grid metadata (`flapCount`, `hasInside`) plus a `content` with the inside face, custom fonts and `data:` URLs stripped. Explore listings only — never the full card. |
 | `Profile` | id (= auth user id), username, avatarUrl, bio, isPrivate, isAdmin, seenNotificationId, createdAt. |
 | `AppNotification` | id, title, body, linkUrl?, linkLabel?, createdAt. |
 | `CustomFont` | Uploaded font as base64 + MIME type, stored inside `JCardContent`. |
@@ -133,7 +136,13 @@ Full SQL with RLS policies is in `SUPABASE_SETUP.md`. Summary:
 | Table | Owner column | Who can read | Notes |
 | --- | --- | --- | --- |
 | `mixtapes` | `user_id` | owner; anyone if `is_public`; anyone with `share_token` | `is_copy` marks an unedited copy from Explore (can't be made public). |
-| `jcards` | `user_id` | owner; anyone if `is_public` | `mixtape_id` links a card to a tape. |
+| `jcards` | `user_id` | owner; anyone if `is_public` | `mixtape_id` links a card to a tape. `is_copy` marks an unedited copy of another public card (can't be made public); `copied_from_id` keeps the credit link. |
+
+Views:
+
+| View | Purpose |
+| --- | --- |
+| `public_jcard_previews` | `security_invoker` view over `jcards`, filtered to `is_public AND NOT is_copy`. Returns grid metadata plus a `content` trimmed by `jcard_trim_preview_content()`: inside face, custom fonts and inlined `data:` images removed, flap text past the cover dropped. Keeps an Explore page of 12 cards small without a second table. |
 | `profiles` | `id` (= `auth.users.id`) | everyone | Created by a trigger on sign-up. Column-level grants stop clients from writing `is_admin`. |
 | `notifications` | `created_by` | signed-in users | Insert/delete only when `is_admin()` is true. |
 | `feedback` | `user_id` (nullable) | admins (`is_admin()`) | Anyone can insert, rate-limited per user by a SECURITY DEFINER function; admins read/delete from `/admin`. |
@@ -143,7 +152,7 @@ Storage buckets:
 
 | Bucket | Path convention | Used by |
 | --- | --- | --- |
-| `jcard-images` | `{userId}/{cardId}/{type}-{ts}.{ext}` | J-card cover/background uploads (`utils/supabaseImages.ts`) |
+| `jcard-images` | `{userId}/{cardId}/{type}-{ts}.{ext}`, `…-thumb.webp` beside it, `…/inlined-{ts}-{rand}.{ext}` for images lifted out of a copied card | J-card cover/background uploads (`utils/supabaseImages.ts`) |
 | `avatars` | `{userId}/avatar-{ts}.jpg` | Profile pictures, resized to 256px client-side (`utils/profileDatabase.ts`) |
 
 SQL functions the client calls or relies on:
@@ -163,6 +172,7 @@ SQL functions the client calls or relies on:
 | `mixtape-current` | The mixtape being edited (auto-saved on every change). |
 | `jcard-active` | The card open in the designer. |
 | `jcards` | Locally saved J-cards (also the offline copy of cloud cards). |
+| `pending-action` | A copy requested while signed out, replayed after sign-in (`utils/pendingAction.ts`). Expires after 30 minutes, capped at 256KB. |
 | `mixtape-pending-save-ids` | local id → cloud id cache for first saves (capped at 200). |
 | `mixtape-dirty` | `'1'` while the draft has edits the cloud hasn't seen (drives the leave warning). |
 | Spotify tokens | Access/refresh token for playlist export; never sent to our server. |
@@ -184,12 +194,13 @@ prop-drilling.
 | `profile.ts` | The signed-in user's `Profile`, `loading`, `isAdmin`, `displayName` | `init()` watches auth and loads (or creates) the profile row; `update(patch)`; `markNotificationSeen(id)`. |
 | `mixtape.ts` | The current `mixtape` draft, `activeCard` for the designer, `isSaving` | `updateMixtape(patch)` (tracks whether a copy is still unedited), `save()`, `togglePublic(tape, bool)` (profanity-gated), `enableShare/disableShare`, `openDesigner(card)`. Persists to localStorage via watchers. |
 | `jcardLibrary.ts` | Merged list of local + cloud cards, which ids are in the cloud | `loadCards()`, `cardStatus(card)` → local/cloud/synced, `uploadCard`, `deleteCard`, `togglePublic` (profanity-gated). |
-| `ui.ts` | Toast, auth-modal open, feedback-modal open, the success modal's content | `showToast`, `openAuth`, `openFeedback`, `openSuccessModal(opts)` (decides whether the coffee block rides along, or falls back to a toast), `hideSupportBlock`, `hideChecklist`. |
+| `ui.ts` | Toast, auth-modal open + `authContext` (why it opened), feedback-modal open, the success modal's content | `showToast`, `openAuth(context?)`, `openFeedback`, `openSuccessModal(opts)` (decides whether the coffee block rides along, or falls back to a toast), `hideSupportBlock`, `hideChecklist`. |
 | `support.ts` | Support-prompt suppression state (`SupportPromptState`) | `shouldShowSupportBlock()`, `markSupportBlockShown`, `markSupportBlockClicked`, `optOutOfSupportBlock`, `optOutOfPrintChecklist`. Always writes localStorage; when signed in also syncs with `user_preferences` (merge never drops a suppression). |
 | `unsaved.ts` | Registry of editor pages holding work not yet in the cloud; the navigation waiting on the user | `register/unregister(key, source)`, `shouldAllow(to, from)` (router guard), `stay`, `approve`, `saveAll`. |
 
 Boot order on the client (`plugins/auth.client.ts`): `auth.init()` then
-`profile.init()`. The profile store watches `[auth.loading, auth.user.id]`
+`profile.init()`, then a watcher on `auth.user` that replays a parked copy
+(§9) once. The profile store watches `[auth.loading, auth.user.id]`
 and reloads whenever the user changes. `plugins/unsaved.client.ts` installs
 the router guard and the `beforeunload` listener for the unsaved store.
 
@@ -203,11 +214,11 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | --- | --- | --- |
 | `supabase.ts` | — | Lazily creates the client from `runtimeConfig.public` (safe under SSR). Exported as a Proxy so call sites just use `supabase.from(...)`. |
 | `database.ts` | `mixtapes` | save (idempotent id logic), load own/public/shared, toggle public, share tokens, `searchPublicMixtapes` (paged), `loadPublicMixtapesByUser`. Maps `snake_case` ↔ `camelCase`. |
-| `jcardDatabase.ts` | `jcards` | CRUD, `upsertJCard` for local→cloud upload, public queries by user / by mixtape, `toggleJCardPublic`. |
+| `jcardDatabase.ts` | `jcards`, `public_jcard_previews` | CRUD, `upsertJCard` for local→cloud upload, public queries by user / by mixtape, `toggleJCardPublic`, `searchPublicJCards` (paged, reads the view), `copyPublicJCard` (duplicates a public card *and* its images into the caller's library). Public queries exclude `is_copy` rows. |
 | `profileDatabase.ts` | `profiles`, `avatars` bucket | Username rules (`USERNAME_RE`, `normalizeUsername`, `usernameError`), `loadOrCreateOwnProfile` (fallback if the trigger didn't run), `loadProfilesByIds` (bylines), `updateProfile`, avatar upload with canvas crop, `deleteOwnAccount`. |
 | `notificationDatabase.ts` | `notifications` | `loadLatestNotification`, `listNotifications`, `createNotification`, `deleteNotification`. |
 | `feedbackDatabase.ts` | `feedback` | `submitFeedback`, `isRateLimitError`, `listFeedback`, `deleteFeedback` (admin). |
-| `supabaseImages.ts` | `jcard-images` bucket | Upload with data-URL fallback if the bucket is unavailable; delete by public URL. |
+| `supabaseImages.ts` | `jcard-images` bucket | Upload plus a canvas-made WebP thumbnail beside it; delete by public URL; `duplicateJCardImages` re-points a copied card's images at its own folder. Falls back to inlining the file as a `data:` URL when the bucket refuses the write — downscaled first if it's big enough to threaten the localStorage budget (see §13). |
 | `supportDatabase.ts` | `user_preferences` | `loadSupportPrefs` (null when no row), `saveSupportPrefs` (upsert). Errors propagate so the store can stay on localStorage. |
 
 ### Spotify
@@ -237,7 +248,8 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | `profanity.ts` | `containsProfanity`, `findProfanity(fields)`, `PROFANITY_MESSAGE`. Used for usernames, bios, and anything being made public. Client-side only. |
 | `mixtapeTitle.ts` | `DEFAULT_MIXTAPE_TITLE`, `isMixtapeUntitled` (blocks cloud-saving unnamed tapes). |
 | `timeUtils.ts` | Duration formatting, side-limit maths, `generateId`. |
-| `localStorage.ts` | The keys listed in §4.3. |
+| `localStorage.ts` | The keys listed in §4.3. `saveJCardToLocal` returns `false` on a refused write so callers don't report a card as saved when it landed nowhere. |
+| `pendingAction.ts` | Parks one "copy this once I'm signed in" request in localStorage with a 30-minute expiry. J-cards park an id; mixtapes park the whole tape (see §9). |
 | `supportPrompt.ts` | `SUPPORT_URL`, the coffee-block rules (`evaluateSupportBlock`: opt-out → 180-day donor cooldown → 30-day show cooldown), `mergeSupportState`, and the localStorage read/write for §4.3's support keys. |
 | `mixtapeStats.ts` | `mixtapeFacts(mixtape)` — runtime per side vs. capacity, distinct artists; the "facts, not praise" lines in success modals. |
 | `analytics.ts` | `trackEvent(name, props)` wrapper over Vercel Analytics `track()`; events: `support_block_shown/clicked/opted_out` (with `trigger`), `print_checklist_opted_out`. |
@@ -266,6 +278,8 @@ the router guard and the `beforeunload` listener for the unsaved store.
 - `mixtape/MixtapeDetailView.vue` — read-only tape page used by `/explore/:id` and `/share/:token`: cassette, Spotify export, `tape/ReadOnlySide` lists, "Copy to my library", author byline, linked public J-cards.
 - `ui/AuthorByline.vue` — "by @username" with avatar. Rendered as a `<span role="link">` so it can sit inside a card that is itself a link.
 - `ExplorePagination.vue` — wraps `UPagination` with the site's button styling; `show-edges` keeps first/last visible.
+- `explore/ExploreMixtapes.vue` / `explore/ExploreJCards.vue` — one per tab, same shape: search window, result count, pagination, skeleton / error / empty states, page 1 rendered on the server.
+- `jcard/JCardExplorePreview.vue` — the grid thumbnail: the real `Spine` + `CoverFlap` parts at natural mm size under one `transform: scale()`, so line breaks match the full-size card instead of being re-flowed. The scale is measured **once per grid** by the tab component and handed down as `--jc-scale`; the preview owns no observer of its own. Custom fonts are deliberately not registered here — `registerCustomFonts` writes to the global `document.fonts`, so same-named fonts from different cards would collide across the grid.
 
 ### J-card designer (`/cards/designer`)
 - `jcard/JCardView.vue` — owns the card being edited: undo/redo history, debounced autosave (local first, cloud if signed in), public toggle guard. Renders previews + settings.
@@ -313,14 +327,72 @@ toast. The library's optimistic toggle rolls back on `false`.
 **Explore.** SSR fetches page 1 with `searchPublicMixtapes` (RLS only returns
 `is_public` rows that aren't copies) then batch-loads authors with
 `loadProfilesByIds`. Client-side search/paging repeats the same two calls.
+The J-Cards tab is the same shape against `searchPublicJCards`, which reads
+the trimmed `public_jcard_previews` view rather than `jcards`.
 
-**Copy from Explore.** `MixtapeDetailView.handleCopy` clones the tape with a
-new local id and `isCopy: true`, loads it into the editor. The store keeps a
-content signature; until the content differs, "Make Public" stays disabled.
+**Copy to my library (auth-gated).** Both kinds of copy go through
+`useCopyToLibrary`. Signed in, the copy runs immediately. Signed out, the
+request is parked in localStorage and `AuthModal` opens with a line saying
+why; `plugins/auth.client.ts` replays it as soon as a session appears and
+drops the user in the matching editor.
+
+Parking it is what carries the request across Google's OAuth leg, which is a
+*full-page redirect back to the site root* — not to the page the button was
+on — so nothing in memory or in the URL survives. It covers the email
+confirm flow for the same reason.
+
+Two details worth keeping:
+- The plugin **watches `auth.user`** instead of subscribing to
+  `onAuthStateChange`. `getSession()` and the `INITIAL_SESSION` event both
+  deliver the same session (a raw subscription fires twice), and supabase-js
+  holds its auth lock across that callback, where awaiting further Supabase
+  calls can deadlock. A watcher runs outside the lock, guarded to replay once.
+- The parked action is **cleared before it runs**, so a failure can't re-fire
+  on every reload. The cost is that a failed resume is gone; the error toast
+  says to open the card and try again.
+
+What each kind parks differs on purpose. A J-card parks only its id — the
+copy re-reads the card anyway, and card content can be megabytes of inlined
+images. A mixtape parks the whole tape: copying one is purely client-side
+with nothing to re-read, and `MixtapeDetailView` also serves `/share/:token`,
+whose tapes aren't public and so couldn't be re-read by id.
+
+**Copying a mixtape.** Clones the tape with a new local id and
+`isCopy: true` and loads it into the editor (nothing is written to the cloud
+until the user saves). The store keeps a content signature; until the content
+differs, "Make Public" stays disabled.
+
+**Copying a J-card.** Unlike a mixtape this *is* a cloud write, because the
+images have to be dealt with. `copyPublicJCard` mints the new card's UUID
+first so images can be filed under the card that owns them, duplicates every
+image in the content into `{myUserId}/{newCardId}/` — server-side copy, else
+fetch and re-upload, else keep the original URL — then inserts a private,
+mixtape-unlinked row with `is_copy` and `copied_from_id` set. Duplicating
+rather than sharing the URLs means the copy survives the original author
+replacing or deleting their images. Images the source carried inline are
+uploaded rather than copied across, so a copy never inherits a `data:` URL.
+`JCardView` then tracks a content signature exactly like the mixtape store:
+editing clears `is_copy` (which rides along on every save), undoing back to
+the original restores it, and an unedited copy can't be made public from
+either the designer or the library.
 
 **J-card autosave.** `JCardView.update()` pushes history, saves to
 localStorage, and schedules `doSave()` 1.2s later; if signed in it creates or
 updates the cloud row and adopts the returned id.
+
+Two invariants hold this together, and breaking either loses work silently:
+
+- **The working card is mirrored into `mixtape.activeCard` on every change.**
+  The store is what persists `jcard-active`, and what seeds `JCardView` when
+  it mounts, so a card that only ever lives in the component's own ref is
+  gone on reload or browser-back — while the library, which reads the
+  separate `jcards` key that autosave *does* write, still shows it.
+- **Only a UUID id means "the cloud has this row".** `jcards.id` is a `uuid`
+  column and local drafts carry a timestamp id from `generateId()`, so
+  querying with one is an error, not a miss. `doSave` branches on
+  `isCloudId()`: update a known row, check-then-write an unconfirmed UUID, or
+  let Postgres mint an id for a local draft and adopt it (dropping the
+  local-id entry so the library doesn't list the card twice).
 
 **PDF export.** `exportJCardToPDF()` mounts the printable components in a
 hidden `createApp`, waits for fonts/images, `toPng()`s each face, and places
@@ -427,5 +499,7 @@ Environment variables (see `.env.example`):
 - **Deterministic mixtape ids** mean the same local draft always maps to the same cloud row; don't replace this with `crypto.randomUUID()` or retries will duplicate tapes.
 - **Printable vs preview** J-card components must stay visually identical; they share the `parts/` components and `inside.ts` for that reason.
 - **SSR pages can't use** `localStorage`, `document`, `window`, or the auth session. Wrap browser-only components in `<ClientOnly>` (see `JCardReadOnly.vue`).
+- **Signed-out image uploads fall back to inlining.** `ImageUpload` passes `auth.user?.id ?? 'local'`, and the bucket's owner-folder policy refuses a write to `local/…`, so every image a signed-out visitor adds ends up as a `data:` URL inside the card. Those are capped to 1200px / ~600KB before inlining, because a full-resolution photo base64s past the whole localStorage budget and takes the card with it. Don't remove the cap without giving signed-out uploads somewhere real to go.
+- **Never put `opacity` on a container that holds a button.** It composites the element and its descendants as one group, so the CTA fades with the text and no child rule can win the contrast back (this is why `.lib-empty` and `.jcard-library-empty` mute their `<p>`s instead of themselves).
 - **Fonts are bundled**, not fetched. Adding a font means adding a Fontsource package and an `@import` in `fonts.css`, then listing it in `fontManager.ts` if the designer should offer it.
 - **`DEPLOYMENT.md` still references a `nuxt/` subfolder** from the React→Nuxt migration; the app now lives at the repo root, so read it with that in mind.

@@ -66,6 +66,8 @@ export interface JCardContent {
   shortBack: boolean;
   backgroundColor: string;
   backgroundImageUrl?: string;
+  /** Small upload-time thumbnail of backgroundImageUrl, used by the Explore grid preview. Falls back to the original when absent (e.g. older cards). */
+  backgroundImageThumbUrl?: string;
   /** When true a single background image/color spans the whole card instead of repeating per-panel */
   continuousBackground?: boolean;
   /** Separate background image for the inside panels (flaps, spine, back). Falls back to backgroundColor when absent. */
@@ -73,6 +75,8 @@ export interface JCardContent {
   /** When true a single background image spans all inside panels (independent of continuousBackground for outside) */
   insideContinuousBackground?: boolean;
   coverImageUrl?: string;
+  /** Small upload-time thumbnail of coverImageUrl, used by the Explore grid preview. Falls back to the original when absent (e.g. older cards). */
+  coverImageThumbUrl?: string;
   coverImageBehindContent: boolean;
   isFullCoverImage: boolean;
   /** Per-flap images for outside content flaps (indices 1-5; index 0 / cover uses coverImageUrl). */
@@ -132,6 +136,22 @@ export interface JCard {
   updatedAt: string;
   /** Visible on the owner's public profile and on the linked mixtape's detail page. */
   isPublic?: boolean;
+  /** True for a fresh copy of another user's public card until the user makes a real edit. */
+  isCopy?: boolean;
+  /** Id of the public card this one was copied from, if any. */
+  copiedFromId?: string | null;
+}
+
+/** A trimmed row from the `public_jcard_previews` view — Explore grid data only, never the inside face. */
+export interface JCardPreviewRow {
+  id: string;
+  title: string;
+  userId: string;
+  mixtapeId: string | null;
+  updatedAt: string;
+  flapCount: number;
+  hasInside: boolean;
+  content: JCardContent;
 }
 
 /** A user's public-facing profile row (mirrors the `profiles` table). */

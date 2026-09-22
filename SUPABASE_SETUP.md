@@ -532,6 +532,249 @@ CREATE POLICY "Users can update their own preferences"
 Keep the column list in sync with `app/utils/supportDatabase.ts`. Deleting an
 account (Step 3g) cascades to this row.
 
+## Step 3i: J-Cards Explore Tab (Copies + Public Previews)
+
+Powers the "J-Cards" tab on `/explore`, "Copy to my library" on `/jcard/{id}`,
+and the "Based on … by @user" credit line. Run the whole block in the SQL
+Editor **in this order**.
+
+### 1. Copy tracking columns
+
+Mirrors the `is_copy` column mixtapes already have (Step 3c), plus a link back
+to the card a copy was made from.
+
+```sql
+-- True for a fresh copy of another user's public card, cleared as soon as the
+-- user edits it. Used client-side to block "Make Public" on unedited duplicates.
+ALTER TABLE jcards ADD COLUMN is_copy boolean NOT NULL DEFAULT false;
+
+-- The card this one was copied from, if any. Cleared automatically if that
+-- card is later deleted — the copy keeps its own content either way.
+ALTER TABLE jcards ADD COLUMN copied_from_id uuid NULL REFERENCES jcards(id) ON DELETE SET NULL;
+```
+
+### 2. Explore listing index
+
+```sql
+CREATE INDEX jcards_public_updated_idx ON jcards (updated_at DESC) WHERE is_public;
+```
+
+### 3. Public preview view
+
+The Explore grid needs title/byline/badge data for many cards at once, but
+must never ship a card's full inside content, custom fonts, or any
+locally-embedded (`data:`) image to a page anonymous visitors can load. This
+view does that trimming server-side, once, instead of relying on every
+client to remember to do it. `security_invoker = true` means it still runs
+under the querying role, so the existing "Anyone can view public jcards" RLS
+policy applies exactly as it does to the table.
+
+```sql
+-- True when any inside panel (within the card's actual flap count) has real
+-- text, or the inside has an image anywhere. Mirrors the client-side check in
+-- app/utils/jcardPdf.ts (jcardHasInsideContent), computed here so it survives
+-- the content-stripping step below.
+CREATE OR REPLACE FUNCTION public.jcard_has_inside(content jsonb)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT
+    EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(COALESCE(content->'insideFlapContents', '[]'::jsonb)) WITH ORDINALITY AS t(val, ord)
+      WHERE ord <= COALESCE((content->>'flaps')::int, 6)
+        AND trim(COALESCE(val, '')) <> ''
+        AND trim(COALESCE(val, '')) <> '<p><br></p>'
+    )
+    OR NULLIF(trim(COALESCE(content->>'insideSpineContent', '')), '') IS NOT NULL
+    OR NULLIF(trim(COALESCE(content->>'insideBackContent', '')), '') IS NOT NULL
+    OR EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(COALESCE(content->'insideFlapImageUrls', '[]'::jsonb)) WITH ORDINALITY AS t(val, ord)
+      WHERE ord <= COALESCE((content->>'flaps')::int, 6)
+        AND COALESCE(val, '') <> ''
+    )
+    OR COALESCE(content->>'insideBackPanelImageUrl', '') <> ''
+    OR COALESCE(content->>'insideBackgroundImageUrl', '') <> '';
+$$;
+
+REVOKE ALL ON FUNCTION public.jcard_has_inside(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.jcard_has_inside(jsonb) TO anon, authenticated;
+
+-- Strips everything the Explore preview must never expose: the inside face
+-- entirely (content + images), custom font payloads, every content flap but
+-- the cover (index 0), and any image field still holding an inline data: URL
+-- (a locally-embedded image that never made it to storage).
+CREATE OR REPLACE FUNCTION public.jcard_trim_preview_content(content jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  result jsonb := content;
+  trimmed jsonb;
+  img_key text;
+BEGIN
+  result := result - 'customFonts' - 'insideContent' - 'insideFlapContents'
+                    - 'insideSpineContent' - 'insideBackContent' - 'insideFlapImageUrls'
+                    - 'insideBackPanelImageUrl' - 'insideBackgroundImageUrl';
+
+  IF jsonb_typeof(result->'flapContents') = 'array' THEN
+    SELECT jsonb_agg(CASE WHEN ord = 1 THEN val ELSE '""'::jsonb END ORDER BY ord)
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapContents') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapContents}', COALESCE(trimmed, result->'flapContents'));
+  END IF;
+
+  FOREACH img_key IN ARRAY ARRAY['backgroundImageUrl', 'coverImageUrl', 'backPanelImageUrl']
+  LOOP
+    IF left(COALESCE(result->>img_key, ''), 5) = 'data:' THEN
+      result := jsonb_set(result, ARRAY[img_key], 'null'::jsonb);
+    END IF;
+  END LOOP;
+
+  IF jsonb_typeof(result->'flapImageUrls') = 'array' THEN
+    SELECT jsonb_agg(
+             CASE WHEN left(COALESCE(val #>> '{}', ''), 5) = 'data:' THEN 'null'::jsonb ELSE val END
+             ORDER BY ord
+           )
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapImageUrls') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapImageUrls}', COALESCE(trimmed, result->'flapImageUrls'));
+  END IF;
+
+  RETURN result;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.jcard_trim_preview_content(jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.jcard_trim_preview_content(jsonb) TO anon, authenticated;
+
+CREATE VIEW public.public_jcard_previews
+WITH (security_invoker = true) AS
+SELECT
+  j.id,
+  j.title,
+  j.user_id,
+  j.mixtape_id,
+  j.updated_at,
+  COALESCE((j.content->>'flaps')::int, 6) AS flap_count,
+  public.jcard_has_inside(j.content) AS has_inside,
+  public.jcard_trim_preview_content(j.content) AS content
+FROM jcards j
+WHERE j.is_public = true AND j.is_copy = false;
+
+GRANT SELECT ON public.public_jcard_previews TO anon, authenticated;
+```
+
+### 4. Upload-time thumbnails
+
+The editor now uploads a small WebP/JPEG thumbnail alongside a card's cover
+and background images (`app/utils/supabaseImages.ts`), stored on the card as
+`coverImageThumbUrl` / `backgroundImageThumbUrl`. The view already passes
+unrecognized `content` keys through untouched, so existing rows need no
+backfill — old cards simply have no thumb fields and the Explore grid falls
+back to the full-size originals. This just extends the same `data:` URL
+guard the other image fields already get, in case a thumbnail ever ends up
+inlined instead of uploaded.
+
+```sql
+CREATE OR REPLACE FUNCTION public.jcard_trim_preview_content(content jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  result jsonb := content;
+  trimmed jsonb;
+  img_key text;
+BEGIN
+  result := result - 'customFonts' - 'insideContent' - 'insideFlapContents'
+                    - 'insideSpineContent' - 'insideBackContent' - 'insideFlapImageUrls'
+                    - 'insideBackPanelImageUrl' - 'insideBackgroundImageUrl';
+
+  IF jsonb_typeof(result->'flapContents') = 'array' THEN
+    SELECT jsonb_agg(CASE WHEN ord = 1 THEN val ELSE '""'::jsonb END ORDER BY ord)
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapContents') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapContents}', COALESCE(trimmed, result->'flapContents'));
+  END IF;
+
+  FOREACH img_key IN ARRAY ARRAY[
+    'backgroundImageUrl', 'coverImageUrl', 'backPanelImageUrl',
+    'backgroundImageThumbUrl', 'coverImageThumbUrl'
+  ]
+  LOOP
+    IF left(COALESCE(result->>img_key, ''), 5) = 'data:' THEN
+      result := jsonb_set(result, ARRAY[img_key], 'null'::jsonb);
+    END IF;
+  END LOOP;
+
+  IF jsonb_typeof(result->'flapImageUrls') = 'array' THEN
+    SELECT jsonb_agg(
+             CASE WHEN left(COALESCE(val #>> '{}', ''), 5) = 'data:' THEN 'null'::jsonb ELSE val END
+             ORDER BY ord
+           )
+      INTO trimmed
+      FROM jsonb_array_elements(result->'flapImageUrls') WITH ORDINALITY AS t(val, ord);
+    result := jsonb_set(result, '{flapImageUrls}', COALESCE(trimmed, result->'flapImageUrls'));
+  END IF;
+
+  RETURN result;
+END;
+$$;
+```
+
+## Step 3j: Copying a Public J-Card (Image Bucket Policies)
+
+"Copy to my library" on a public J-card duplicates the card row **and** its
+images, so the copy keeps working after the original author replaces or
+deletes theirs. No schema changes — `is_copy` and `copied_from_id` came in
+step 3i. What this needs is the right policies on the `jcard-images` bucket.
+
+The app first asks Supabase to copy the object server-side, and falls back to
+downloading and re-uploading it through the browser when that's refused, so a
+bucket with public reads and owner-scoped writes works either way. If your
+bucket predates this app's storage setup and has no policies recorded
+anywhere, these are the ones it wants — the same shape as the avatars bucket
+in step 3f.4:
+
+```sql
+-- Public bucket; the editor uploads under {user_id}/{card_id}/{cover|background}-….{ext}
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('jcard-images', 'jcard-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Readable by anyone: public cards render their images to logged-out visitors,
+-- and copying one reads the source author's object.
+CREATE POLICY "J-card images are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'jcard-images');
+
+-- Writes are confined to the user's own folder. A copy writes into
+-- {my_user_id}/{new_card_id}/, so this covers copying someone else's image in.
+CREATE POLICY "Users can upload their own jcard images"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can update their own jcard images"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can delete their own jcard images"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'jcard-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+If the bucket already exists with working policies, run nothing — uploads
+working in the editor today means SELECT and INSERT are already in place, and
+the copy uses exactly those two. `CREATE POLICY` fails on a duplicate name, so
+check **Storage → Policies** before pasting.
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

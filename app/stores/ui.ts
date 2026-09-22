@@ -48,6 +48,7 @@ export interface SuccessModalState extends SuccessModalOptions {
 export const useUiStore = defineStore('ui', () => {
   const toast = ref<{ message: string; type: ToastType } | null>(null);
   const isAuthModalOpen = ref(false);
+  const authContext = ref<string | null>(null);
   const isFeedbackModalOpen = ref(false);
   const successModal = ref<SuccessModalState | null>(null);
 
@@ -57,11 +58,14 @@ export const useUiStore = defineStore('ui', () => {
   function clearToast() {
     toast.value = null;
   }
-  function openAuth() {
+  /** `context` says why the modal appeared, e.g. that a copy is waiting on a session. */
+  function openAuth(context?: string) {
+    authContext.value = context ?? null;
     isAuthModalOpen.value = true;
   }
   function closeAuth() {
     isAuthModalOpen.value = false;
+    authContext.value = null;
   }
   function openFeedback() {
     isFeedbackModalOpen.value = true;
@@ -123,6 +127,7 @@ export const useUiStore = defineStore('ui', () => {
   return {
     toast,
     isAuthModalOpen,
+    authContext,
     isFeedbackModalOpen,
     successModal,
     showToast,

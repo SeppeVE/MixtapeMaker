@@ -82,13 +82,14 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
 
 <template>
   <div class="lib-page">
-    <NavBar library>
-      <NuxtLink to="/explore" class="lp-nav-link">◀ Explore</NuxtLink>
-      <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
-    </NavBar>
+    <div class="lib-screen">
+      <NavBar library>
+        <NuxtLink to="/explore" class="lp-nav-link">◀ Explore</NuxtLink>
+        <span class="lp-nav-sep">/</span>
+        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
+      </NavBar>
 
-    <div class="lib-content">
+      <div class="lib-content">
       <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
@@ -183,7 +184,9 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           </section>
         </template>
       </div>
+      </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

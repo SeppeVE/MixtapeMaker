@@ -92,6 +92,8 @@ async function handleGoogleSignIn() {
 
       <h2>{{ isSignUp ? 'Create Account' : 'Sign In' }}</h2>
 
+      <p v-if="ui.authContext" class="auth-context">{{ ui.authContext }}</p>
+
       <div v-if="success" class="success-message">
         Account created! Please check your email to verify your account, then sign in.
       </div>

@@ -266,6 +266,39 @@
   display: flex;
 }
 
+/* ── J-card detail page action bar (Export PDF / Edit / Copy) ── */
+.jcard-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.jcard-detail-actions-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.jcard-detail-paper-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+.jcard-detail-paper-select {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  box-shadow: var(--bevel-in);
+  color: var(--color-text);
+}
+
 /* ── Read-only J-card (public page + mixtape detail) ── */
 .jcard-readonly {
   display: flex;

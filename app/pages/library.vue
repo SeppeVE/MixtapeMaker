@@ -152,32 +152,33 @@ function newCard() {
 
 <template>
   <div class="lib-page">
-    <NavBar library>
-      <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
-      <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Library</span>
-    </NavBar>
+    <div class="lib-screen">
+      <NavBar library>
+        <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
+        <span class="lp-nav-sep">/</span>
+        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Library</span>
+      </NavBar>
 
-    <div class="lib-header">
-      <div class="lib-header-inner">
-        <div>
-          <div class="lib-page-eyebrow">◆ YOUR COLLECTION</div>
-          <h1 class="lib-page-title">Library</h1>
-        </div>
-        <div class="lib-tabs">
-          <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
-            <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
-            <span v-if="cloudTapes.length > 0" class="lib-tab-count">{{ cloudTapes.length + (draftIsUnsaved ? 1 : 0) }}</span>
-          </button>
-          <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
-            <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
-            <span v-if="jcardLibrary.allCards.length > 0" class="lib-tab-count">{{ jcardLibrary.allCards.length }}</span>
-          </button>
+      <div class="lib-header">
+        <div class="lib-header-inner">
+          <div>
+            <div class="lib-page-eyebrow">◆ YOUR COLLECTION</div>
+            <h1 class="lib-page-title">Library</h1>
+          </div>
+          <div class="lib-tabs">
+            <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
+              <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes
+              <span v-if="cloudTapes.length > 0" class="lib-tab-count">{{ cloudTapes.length + (draftIsUnsaved ? 1 : 0) }}</span>
+            </button>
+            <button :class="`lib-tab${activeTab === 'jcards' ? ' lib-tab--active' : ''}`" @click="setTab('jcards')">
+              <IconCard class="icon-inline" aria-hidden="true" /> J-Cards
+              <span v-if="jcardLibrary.allCards.length > 0" class="lib-tab-count">{{ jcardLibrary.allCards.length }}</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="lib-content">
+      <div class="lib-content">
       <!-- MIXTAPES TAB -->
       <div v-if="activeTab === 'mixtapes'" class="lib-section-stack">
         <section v-if="draftIsUnsaved" class="lib-section">
@@ -359,7 +360,9 @@ function newCard() {
           <JCardLibrary embedded :mixtapes="cloudTapes" @open-card="openCard" @new-card="newCard" />
         </section>
       </div>
+      </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

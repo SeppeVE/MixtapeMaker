@@ -620,8 +620,13 @@
   opacity: 0.75;
 }
 
-/* Bottom rail — credits left, featured badge right, on plum */
+/* Bottom rail — credits left, featured badge right, on plum.
+   Own stacking context (see .lp-footer above): HomeFooterRail can render this
+   outside .lp-footer's wrapping <footer>, so it needs the same z-index itself
+   rather than inheriting it from a shared parent. */
 .lp-foot-rail {
+  position: relative;
+  z-index: 2;
   background: var(--color-plum);
   padding: 14px 40px;
   display: flex;

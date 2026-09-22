@@ -182,23 +182,24 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
 
 <template>
   <div class="lib-page">
-    <NavBar library>
-      <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
-      <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
-    </NavBar>
+    <div class="lib-screen">
+      <NavBar library>
+        <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
+        <span class="lp-nav-sep">/</span>
+        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
+      </NavBar>
 
-    <div class="lib-header">
-      <div class="lib-header-inner">
-        <div>
-          <div class="lib-page-eyebrow">◆ YOUR ACCOUNT</div>
-          <h1 class="lib-page-title">Profile</h1>
+      <div class="lib-header">
+        <div class="lib-header-inner">
+          <div>
+            <div class="lib-page-eyebrow">◆ YOUR ACCOUNT</div>
+            <h1 class="lib-page-title">Profile</h1>
+          </div>
+          <NuxtLink v-if="profile" :to="profileUrl" class="lp-btn lp-btn-paper">View public page →</NuxtLink>
         </div>
-        <NuxtLink v-if="profile" :to="profileUrl" class="lp-btn lp-btn-paper">View public page →</NuxtLink>
       </div>
-    </div>
 
-    <div class="lib-content">
+      <div class="lib-content">
       <div v-if="!auth.user && !auth.loading" class="lib-sign-gate">
         <IconSmiley class="lib-sign-gate-icon" aria-hidden="true" />
         <p class="lib-sign-gate-text">Sign in to set up your profile, pick a username and choose a profile picture.</p>
@@ -350,7 +351,9 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
           </div>
         </section>
       </div>
+      </div>
+      <HomeFooterMain />
     </div>
-    <HomeFooter />
+    <HomeFooterRail />
   </div>
 </template>

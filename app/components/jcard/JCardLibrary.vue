@@ -88,7 +88,7 @@ async function handlePrint(card: JCard) {
 
     <div v-if="!library.loading && !library.error && library.allCards.length === 0" class="jcard-library-empty">
       <p>No J-cards yet.</p>
-      <button v-if="!auth.user" class="btn btn-primary" style="margin-top:12px" @click="ui.openAuth()">Sign in to get started</button>
+      <button v-if="!auth.user" class="btn btn-primary" style="margin-top:12px" @click="ui.openAuth()">Sign in to save your work to the cloud</button>
       <button class="btn btn-primary" style="margin-top:12px" @click="emit('newCard')">Create your first J-card</button>
     </div>
 
@@ -129,6 +129,9 @@ async function handlePrint(card: JCard) {
                 {{ card.isPublic ? 'Public' : 'Private' }}
               </span>
             </div>
+            <p v-if="card.isCopy" class="lib-copy-note">
+              This is an unedited copy of another J-card, and will not show up in the explore page
+            </p>
             <p class="jcl-card-edited">Edited {{ fmt(card.updatedAt) }}</p>
           </div>
         </div>
@@ -158,7 +161,8 @@ async function handlePrint(card: JCard) {
           <button
             v-if="library.cardStatus(card) !== 'local'"
             class="btn jcl-visibility"
-            :title="card.isPublic ? 'Hide this card from your profile' : 'Show this card on your profile'"
+            :disabled="card.isCopy === true"
+            :title="card.isCopy ? 'This is an unedited copy of another J-card, and will not show up in the explore page' : card.isPublic ? 'Hide this card from your profile' : 'Show this card on your profile'"
             @click="library.togglePublic(card)"
           >
             <VisibilityToggleIcon :is-public="card.isPublic" />

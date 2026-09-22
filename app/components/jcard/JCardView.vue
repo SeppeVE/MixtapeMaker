@@ -5,11 +5,13 @@ import type { JCard, JCardContent, Mixtape } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useRoute } from 'vue-router';
+import { useMixtapeStore } from '~/stores/mixtape';
 import { useUnsavedStore } from '~/stores/unsaved';
+import { isCloudId } from '~/utils/database';
 import { generateId } from '~/utils/timeUtils';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
-import { saveJCardToLocal } from '~/utils/localStorage';
+import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
 import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import IconSettings from '~icons/material-symbols/settings-rounded';
@@ -21,10 +23,18 @@ const props = defineProps<{
 
 const auth = useAuthStore();
 const ui = useUiStore();
+const mixtapeStore = useMixtapeStore();
 const unsaved = useUnsavedStore();
 
 const COALESCE_MS = 600;
 const MAX_HISTORY = 20;
+
+// Content fingerprint used to tell whether a copy is still an exact duplicate
+// of the card it came from (so edit-then-undo doesn't "unlock" it). A card has
+// no track list to summarise the way a mixtape does, so this is the design itself.
+function contentSignature(c: JCard): string {
+  return JSON.stringify({ title: c.title, content: c.content });
+}
 
 function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
   const content = mixtape
@@ -49,6 +59,15 @@ const isSaving = ref(false);
 // a successful cloud write, so signed-out editing stays "unsaved".
 const cloudDirty = ref(false);
 
+// The card being designed has to live in the store, not only in this
+// component. The store is what persists `jcard-active`, and what seeds this
+// component when it mounts — so without this write-back a reload (or browser
+// back) re-seeds from whatever was open when the designer was *entered*,
+// throwing away every edit since. On "New Card" that's nothing at all, so the
+// designer came back blank while the library, which reads the `jcards` key
+// that autosave does write, still listed the work.
+watch(card, (c) => { mixtapeStore.activeCard = c; });
+
 onMounted(() => {
   unsaved.register('jcard', {
     path: useRoute().path,
@@ -69,7 +88,16 @@ onBeforeUnmount(() => unsaved.unregister('jcard'));
 
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
-let persisted = !!props.initialCard;
+// "The cloud already has a row for this id." Only a UUID id can be one: local
+// drafts carry a timestamp id from generateId(), and `jcards.id` is a uuid
+// column, so querying it with one errors rather than simply missing. Seeding
+// this from `!!initialCard` alone was wrong the moment a local draft was
+// reopened — and now that a reload re-seeds from the stored card, it would be
+// wrong every time.
+let persisted = !!props.initialCard && isCloudId(props.initialCard.id);
+// Signature of the untouched copy this card started as, or null when it isn't
+// tracking a copy at all.
+const copySignature: string | null = seed.isCopy ? contentSignature(seed) : null;
 let histStack: JCard[] = [seed];
 let histIdx = 0;
 let lastPushMs = 0;
@@ -87,32 +115,54 @@ watch(
 // Resolves true when the cloud now holds `target` (false when signed out or the sync failed).
 async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
   isSaving.value = true;
-  saveJCardToLocal(target); // always persist locally first
+  const localOk = saveJCardToLocal(target); // always persist locally first
   let cloudOk = false;
+  // A card that reached neither the browser nor the cloud is gone the moment
+  // this tab closes, so never report that one as saved.
+  const report = () => {
+    if (!feedback) return;
+    if (cloudOk || localOk) ui.showToast('J-card saved', 'success');
+    else ui.showToast('Could not save — this card is too big for offline storage. Sign in to save it to the cloud.', 'error');
+  };
   try {
     if (auth.user) {
+      // isCopy rides along on every write: without it a copy edited into
+      // something original would stay flagged in the cloud for good.
+      const patch = {
+        title: target.title,
+        content: target.content,
+        mixtapeId: target.mixtapeId ?? null,
+        isPublic: target.isPublic ?? false,
+        isCopy: target.isCopy ?? false,
+      };
       let saved: JCard;
       if (persisted) {
-        saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
-      } else {
+        saved = await updateJCard(target.id, patch);
+      } else if (isCloudId(target.id)) {
+        // A UUID we haven't confirmed yet — a cloud card reopened in a fresh
+        // session. It may or may not still be there.
         const exists = await loadJCard(target.id);
-        if (exists) {
-          persisted = true;
-          saved = await updateJCard(target.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
-        } else {
-          saved = await createJCard(auth.user.id, { title: target.title, content: target.content, mixtapeId: target.mixtapeId ?? null, isPublic: target.isPublic ?? false });
-          persisted = true;
-        }
+        saved = exists
+          ? await updateJCard(target.id, patch)
+          : await createJCard(auth.user.id, { ...patch, id: target.id, copiedFromId: target.copiedFromId ?? null });
+      } else {
+        // A local draft reaching the cloud for the first time: let Postgres
+        // mint the UUID and adopt it below, dropping the local-id entry so the
+        // library doesn't list the card twice.
+        saved = await createJCard(auth.user.id, { ...patch, copiedFromId: target.copiedFromId ?? null });
+        deleteJCardFromLocal(target.id);
       }
+      persisted = true;
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
+      if (saved.id !== target.id) saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
       // Only mark clean if no further edit was queued while the request was in flight.
       if (target === lastScheduled) cloudDirty.value = false;
       cloudOk = true;
     }
-    if (feedback) ui.showToast('J-card saved', 'success');
+    report();
   } catch (e) {
-    console.error('Supabase sync failed (card is still saved locally):', e);
-    if (feedback) ui.showToast('J-card saved', 'success');
+    console.error('Supabase sync failed:', e);
+    report();
   } finally {
     isSaving.value = false;
   }
@@ -179,6 +229,10 @@ useEventListener(typeof document !== 'undefined' ? document : null, 'keydown', (
 
 function update(partial: Partial<JCard>) {
   const updated = { ...card.value, ...partial, updatedAt: new Date().toISOString() };
+  // A card that started as a copy stops being one the moment its design
+  // actually differs from the original — and becomes one again if the user
+  // undoes their way back to it.
+  if (copySignature !== null) updated.isCopy = contentSignature(updated) === copySignature;
   card.value = updated;
   cloudDirty.value = true;
   pushHistory(updated);
@@ -186,6 +240,12 @@ function update(partial: Partial<JCard>) {
 }
 
 function setPublic(isPublic: boolean) {
+  // Explore filters unedited copies out anyway — refuse here so the toggle
+  // can't look like it worked.
+  if (isPublic && card.value.isCopy) {
+    ui.showToast('Make it your own first — unedited copies stay private', 'error');
+    return;
+  }
   if (isPublic && containsProfanity(card.value.title)) {
     ui.showToast(PROFANITY_MESSAGE('card title'), 'error');
     return;

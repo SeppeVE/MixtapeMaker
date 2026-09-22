@@ -88,7 +88,7 @@ async function handlePrint(card: JCard) {
 
     <div v-if="!library.loading && !library.error && library.allCards.length === 0" class="jcard-library-empty">
       <p>No J-cards yet.</p>
-      <button v-if="!auth.user" class="btn btn-primary" style="margin-top:12px" @click="ui.openAuth()">Sign in to get started</button>
+      <button v-if="!auth.user" class="btn btn-primary" style="margin-top:12px" @click="ui.openAuth()">Sign in to save your work to the cloud</button>
       <button class="btn btn-primary" style="margin-top:12px" @click="emit('newCard')">Create your first J-card</button>
     </div>
 

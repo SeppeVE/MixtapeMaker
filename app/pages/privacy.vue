@@ -197,6 +197,7 @@ const PROVIDERS = [
             <li>The mixtape and J-card you're currently working on, plus J-cards you haven't uploaded.</li>
             <li>Your login session token, so you stay signed in.</li>
             <li>Your Spotify access token if you connected Spotify for playlist export. It is never sent to our server.</li>
+            <li>If you asked to copy a mixtape or J-card while signed out, which one it was — so the copy can finish once you sign in. It is discarded after 30 minutes, or as soon as the copy is made.</li>
             <li>Small flags such as "feedback sent recently", "notification closed in this tab" and, when signed out, whether you muted the "Buy me a coffee" note or the print checklist.</li>
           </ul>
           <p class="gd-p">Clearing your browser's site data removes all of it.</p>

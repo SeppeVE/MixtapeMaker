@@ -341,15 +341,21 @@
   font-family: var(--font-display);
   font-size: 20px;
   color: var(--color-text);
-  opacity: 0.65;
 }
 
-.lib-empty-icon { font-size: 48px; opacity: 0.6; }
+/* Mute the contents, never the wrapper. `opacity` composites the element and
+   its descendants as one group, so a faded container drags the CTA buttons
+   some empty states carry (Make a Tape, Sign In) down with it, and no child
+   rule can win the contrast back. These values are the ones the old nested
+   opacities actually composited to. */
+.lib-empty > p:not(.lib-empty-sub) { opacity: 0.65; }
+
+.lib-empty-icon { font-size: 48px; opacity: 0.4; }
 
 .lib-empty-sub {
   font-family: var(--font-body);
   font-size: 13px;
-  opacity: 0.7;
+  opacity: 0.45;
 }
 
 /* ── Cards grid (shared by both tabs) ── */

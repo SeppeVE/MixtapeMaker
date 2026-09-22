@@ -39,3 +39,21 @@ const shapes = computed(() => (props.sideA ? SHAPES_A : SHAPES_B));
     </div>
   </div>
 </template>
+
+<style scoped>
+/* .floater positions the wrapper only; the <FloaterShape> child styles
+   itself, so no :deep() is needed here. */
+.floaters {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.floater {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  opacity: 0.35;
+}
+</style>

@@ -235,3 +235,152 @@
   align-items: center;
   gap: 6;
 }
+/* ═══════════════════════════════════════════════════════
+   JCardSettings — moved out of inline style attributes
+   ═══════════════════════════════════════════════════════ */
+
+/* Vertical rhythm between stacked controls inside a .jc-body. Three steps
+   cover every spacing the panel used inline. */
+.jc-mt-sm { margin-top: 6px; }
+.jc-mt    { margin-top: 8px; }
+.jc-mt-lg { margin-top: 10px; }
+
+/* ── Presets ── */
+.jc-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jc-preset-btn {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
+.jc-preset-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* ── Custom fonts ── */
+.jc-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.jc-font-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--color-text);
+  background: var(--color-paper);
+}
+
+.jc-font-tag {
+  font-family: var(--font-body);
+  font-size: 10px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.jc-font-warning {
+  font-family: var(--font-body);
+  font-size: 11px;
+  margin: 0 0 6px;
+  color: var(--color-accent);
+}
+
+/* Hidden <input type="file"> driven by a sibling button. */
+.jc-file-input {
+  display: none;
+}
+
+/* Full-width action button (font upload, export). */
+.jc-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Background ── */
+.jc-swatch-row--tight {
+  margin-bottom: 6px;
+}
+
+.jc-color-input {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-text);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── Panel content ── */
+.jc-flap-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.jc-flap-tab {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.jc-image-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.jc-image-actions--inside {
+  margin-bottom: 8px;
+}
+
+/* ── Export ── */
+.jc-print-note {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 8px 0 2px;
+  font-family: var(--font-body);
+  letter-spacing: 0.5px;
+}
+
+.jc-print-list {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 0;
+  padding-left: 14px;
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+/* ── SettingsBlock ── */
+.jc-heading-caret {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* ── MixtapeLinkPicker ── */
+.jc-link-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.jc-link-btn {
+  font-size: 12px;
+}
+
+.jc-link-warning {
+  font-size: 11px;
+  color: var(--color-warning);
+  margin-top: 4px;
+}

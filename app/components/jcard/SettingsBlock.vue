@@ -17,7 +17,7 @@ const emit = defineEmits<{ toggle: [id: Section] }>();
   <div v-if="visible" class="jc-block">
     <button class="jc-heading" :style="{ background: bg, color: fg }" @click="emit('toggle', id)">
       <span>{{ label }}</span>
-      <span style="font-size:14px;opacity:0.8">{{ open ? '▲' : '▼' }}</span>
+      <span class="jc-heading-caret">{{ open ? '▲' : '▼' }}</span>
     </button>
     <div v-if="open" class="jc-body">
       <slot />

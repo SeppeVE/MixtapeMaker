@@ -224,7 +224,7 @@ function blockAttrs(id: Section) {
     <SettingsBlock v-bind="blockAttrs('info')" label="✎ Card info" @toggle="toggle">
       <label class="jc-label">Title</label>
       <input class="jc-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
-      <label class="jc-checkbox-label" style="margin-top:6px">
+      <label class="jc-checkbox-label jc-mt-sm">
         <input
           type="checkbox"
           :checked="card.isPublic === true"
@@ -243,15 +243,14 @@ function blockAttrs(id: Section) {
     <!-- 1b. Presets -->
     <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Presets" @toggle="toggle">
       <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="jc-preset-list">
         <button
           v-for="preset in JCARD_PRESETS"
           :key="preset.id"
-          class="btn"
-          style="justify-content:flex-start;gap:8px;padding:5px 10px"
+          class="btn jc-preset-btn"
           @click="handleApplyPreset(preset.id)"
         >
-          <span style="font-family:var(--font-body);font-size:12px">{{ preset.label }}</span>
+          <span class="jc-preset-label">{{ preset.label }}</span>
         </button>
       </div>
     </SettingsBlock>
@@ -266,7 +265,7 @@ function blockAttrs(id: Section) {
         <input type="checkbox" :checked="content.shortBack" @change="patch({ shortBack: ($event.target as HTMLInputElement).checked })" />
         Short back panel (10 mm)
       </label>
-      <label class="jc-label" style="margin-top:6px">Panels: {{ content.flaps }}</label>
+      <label class="jc-label jc-mt-sm">Panels: {{ content.flaps }}</label>
       <input
         type="range" :min="1" :max="6" :value="content.flaps"
         class="jc-range"
@@ -289,24 +288,23 @@ function blockAttrs(id: Section) {
         Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
       </p>
 
-      <div v-if="customFonts.length > 0" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">
+      <div v-if="customFonts.length > 0" class="jc-font-list">
         <div
           v-for="f in customFonts"
           :key="f.name"
-          style="display:flex;align-items:center;gap:6px;padding:3px 6px;border:1.5px solid var(--color-text);background:var(--color-paper)"
+          class="jc-font-row"
         >
           <span :style="{ fontFamily: f.name, fontSize: '1.25rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ f.name }}</span>
-          <span style="font-family:var(--font-body);font-size:10px;opacity:0.5;flex-shrink:0">custom</span>
+          <span class="jc-font-tag">custom</span>
           <button class="btn btn-small" :title="`Remove ${f.name}`" @click="removeFont(f.name)">x</button>
         </div>
       </div>
 
-      <p v-if="fontWarning" style="font-family:var(--font-body);font-size:11px;margin:0 0 6px;color:var(--color-accent)">{{ fontWarning }}</p>
+      <p v-if="fontWarning" class="jc-font-warning">{{ fontWarning }}</p>
 
-      <input ref="fontInputRef" type="file" accept=".woff2,.woff,.otf,.ttf" style="display:none" @change="handleFontUpload" />
+      <input ref="fontInputRef" type="file" accept=".woff2,.woff,.otf,.ttf" class="jc-file-input" @change="handleFontUpload" />
       <button
-        class="btn"
-        style="width:100%;justify-content:center"
+        class="btn jc-btn-full"
         :disabled="fontUploading || customFonts.length >= MAX_FONTS"
         @click="fontWarning = null; fontInputRef?.click()"
       >
@@ -317,7 +315,7 @@ function blockAttrs(id: Section) {
     <!-- 4. Background -->
     <SettingsBlock v-bind="blockAttrs('background')" label="▧ Background" @toggle="toggle">
       <label class="jc-label">Color</label>
-      <div class="jc-swatch-row" style="margin-bottom:6px">
+      <div class="jc-swatch-row jc-swatch-row--tight">
         <div
           v-for="c in COLOR_PRESETS"
           :key="c"
@@ -329,7 +327,7 @@ function blockAttrs(id: Section) {
         <input
           type="color"
           :value="content.backgroundColor"
-          style="width:22px;height:22px;border:2px solid var(--color-text);cursor:pointer;padding:0"
+          class="jc-color-input"
           @input="patch({ backgroundColor: ($event.target as HTMLInputElement).value })"
         />
       </div>
@@ -341,7 +339,7 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="handleBackgroundImageChange"
       />
-      <label class="jc-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.continuousBackground" @change="patch({ continuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
@@ -354,7 +352,7 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="patch({ insideBackgroundImageUrl: $event.url ?? undefined })"
       />
-      <label class="jc-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.insideContinuousBackground" @change="patch({ insideContinuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
@@ -363,13 +361,12 @@ function blockAttrs(id: Section) {
     <!-- 5. Panel content -->
     <SettingsBlock v-bind="blockAttrs('flaps')" label="◫ Panel content" @toggle="toggle">
       <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
-      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="jc-flap-tabs">
         <button
           v-for="i in content.flaps"
           :key="i - 1"
           type="button"
-          :class="`btn${activeFlap === i - 1 ? ' active' : ''}`"
-          style="font-size:0.8rem;padding:4px 8px;min-width:0"
+          :class="`btn jc-flap-tab${activeFlap === i - 1 ? ' active' : ''}`"
           @click="activeFlap = i - 1"
         >
           {{ flapLabel(i - 1) }}
@@ -384,7 +381,7 @@ function blockAttrs(id: Section) {
           :card-id="card.id"
           @change="handleCoverImageChange"
         />
-        <div v-if="content.coverImageUrl" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+        <div v-if="content.coverImageUrl" class="jc-image-actions">
           <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.isFullCoverImage" @change="patch({ isFullCoverImage: ($event.target as HTMLInputElement).checked })" />
             Fill panel with image
@@ -404,7 +401,7 @@ function blockAttrs(id: Section) {
           :card-id="card.id"
           @change="setFlapImage($event.url)"
         />
-        <div v-if="content.flapImageUrls?.[activeFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+        <div v-if="content.flapImageUrls?.[activeFlap]" class="jc-image-actions">
           <label class="jc-checkbox-label">
             <input type="checkbox" :checked="content.flapImageFulls?.[activeFlap] ?? false" @change="setFlapImageFull(($event.target as HTMLInputElement).checked)" />
             Fill panel with image
@@ -416,7 +413,7 @@ function blockAttrs(id: Section) {
         </div>
       </template>
 
-      <label class="jc-label" style="margin-top:10px">Text (shift + enter for new line)</label>
+      <label class="jc-label jc-mt-lg">Text (shift + enter for new line)</label>
       <ContentEditor
         :key="activeFlap"
         :value="content.flapContents[activeFlap] ?? ''"
@@ -427,13 +424,12 @@ function blockAttrs(id: Section) {
       />
 
       <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
-      <div style="display:flex;gap:4px;margin-top:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="jc-flap-tabs jc-mt">
         <button
           v-for="i in content.flaps"
           :key="i - 1"
           type="button"
-          :class="`btn${activeInsideFlap === i - 1 ? ' active' : ''}`"
-          style="font-size:0.8rem;padding:4px 8px;min-width:0"
+          :class="`btn jc-flap-tab${activeInsideFlap === i - 1 ? ' active' : ''}`"
           @click="activeInsideFlap = i - 1"
         >
           {{ flapLabel(i - 1) }}
@@ -446,7 +442,7 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="setInsideFlapImage($event.url)"
       />
-      <div v-if="content.insideFlapImageUrls?.[activeInsideFlap]" style="display:flex;flex-direction:column;gap:4px;margin-top:6px;margin-bottom:8px">
+      <div v-if="content.insideFlapImageUrls?.[activeInsideFlap]" class="jc-image-actions jc-image-actions--inside">
         <label class="jc-checkbox-label">
           <input type="checkbox" :checked="content.insideFlapImageFulls?.[activeInsideFlap] ?? false" @change="setInsideFlapImageFull(($event.target as HTMLInputElement).checked)" />
           Fill panel with image
@@ -471,13 +467,13 @@ function blockAttrs(id: Section) {
       <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
       <label class="jc-label">Top</label>
       <ContentEditor :value="content.spineTopContent" placeholder="Mixtape title" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineTopContent: $event })" />
-      <label class="jc-label" style="margin-top:8px">Center</label>
+      <label class="jc-label jc-mt">Center</label>
       <ContentEditor :value="content.spineCenterContent" placeholder="Side A / Side B" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineCenterContent: $event })" />
-      <label class="jc-label" style="margin-top:8px">Bottom</label>
+      <label class="jc-label jc-mt">Bottom</label>
       <ContentEditor :value="content.spineBottomContent" placeholder="90 min" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineBottomContent: $event })" />
 
       <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
-      <label class="jc-label" style="margin-top:8px">Center</label>
+      <label class="jc-label jc-mt">Center</label>
       <ContentEditor :value="content.insideSpineContent ?? ''" placeholder="Spine inside..." min-height="40px" :custom-font-names="customFontNames" @change="patch({ insideSpineContent: $event })" />
     </SettingsBlock>
 
@@ -486,11 +482,11 @@ function blockAttrs(id: Section) {
       <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
       <label class="jc-label">Left column (Side A)</label>
       <ContentEditor :value="content.backLeftContent" placeholder="Side A tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backLeftContent: $event })" />
-      <label class="jc-label" style="margin-top:8px">Right column (Side B)</label>
+      <label class="jc-label jc-mt">Right column (Side B)</label>
       <ContentEditor :value="content.backRightContent" placeholder="Side B tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backRightContent: $event })" />
 
       <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
-      <label class="jc-label" style="margin-top:8px">Content</label>
+      <label class="jc-label jc-mt">Content</label>
       <ContentEditor :value="content.insideBackContent ?? ''" placeholder="Back panel inside..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ insideBackContent: $event })" />
     </SettingsBlock>
 
@@ -521,7 +517,7 @@ function blockAttrs(id: Section) {
         The card is wider than this paper — the PDF will use a custom page instead.
       </p>
 
-      <label class="jc-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.showCutGuides" @change="patch({ showCutGuides: ($event.target as HTMLInputElement).checked })" />
         Show fold / cut guides
       </label>
@@ -538,7 +534,7 @@ function blockAttrs(id: Section) {
       </p>
 
       <template v-if="exportInside">
-        <label class="jc-label" style="margin-top:6px">Printer flips the sheet on the</label>
+        <label class="jc-label jc-mt-sm">Printer flips the sheet on the</label>
         <select
           class="jc-select"
           :value="duplexFlip"
@@ -553,12 +549,12 @@ function blockAttrs(id: Section) {
         </p>
       </template>
 
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" :disabled="exporting" @click="handleExport">
+      <button class="btn btn-primary jc-btn-full jc-mt" :disabled="exporting" @click="handleExport">
         {{ exporting ? 'Generating...' : 'Export PDF' }}
       </button>
 
-      <p style="font-size:10px;color:var(--color-text-light);margin:8px 0 2px;font-family:var(--font-body);letter-spacing:0.5px">PRINT SETTINGS</p>
-      <ul style="font-size:10px;color:var(--color-text-light);margin:0;padding-left:14px;font-family:var(--font-body);line-height:1.5">
+      <p class="jc-print-note">PRINT SETTINGS</p>
+      <ul class="jc-print-list">
         <li>Paper: {{ paperLabel }}</li>
         <li>Scale: 100% / actual size — never "fit to page" or "shrink to printable area"</li>
         <li v-if="exportInside">Two-sided: on, flip on {{ duplexFlip }} edge (or feed page 1 back in by hand the same way)</li>

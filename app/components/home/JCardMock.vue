@@ -52,9 +52,9 @@ const ART_LINES = [80, 60, 50, 70, 45];
         </div>
       </div>
 
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <div class="lp-btn lp-btn-plum" style="font-size:16px;padding:4px 14px 2px;cursor:default;box-shadow:2px 2px 0 var(--color-text)">↓ Export PDF</div>
-        <div class="lp-btn lp-btn-paper" style="font-size:16px;padding:4px 14px 2px;cursor:default;box-shadow:2px 2px 0 var(--color-text)">↓ Export PNG</div>
+      <div class="mock-jcard-actions">
+        <div class="lp-btn lp-btn-plum lp-btn-sm mock-jcard-btn">↓ Export PDF</div>
+        <div class="lp-btn lp-btn-paper lp-btn-sm mock-jcard-btn">↓ Export PNG</div>
       </div>
     </div>
   </div>

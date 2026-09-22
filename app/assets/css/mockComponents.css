@@ -543,3 +543,25 @@
   background: var(--color-seafoam);
   border-right: 1px solid var(--color-text);
 }
+
+/* Decorative export buttons in the J-card mock. They are divs, not real
+   buttons, so they opt out of .lp-btn's pointer and lift on hover. */
+.mock-jcard-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+/* box-shadow is nested under the mock's root so it outranks .lp-btn:hover
+   and .lp-btn:active (both 0-2-0), exactly as the inline style used to.
+   transform is deliberately left alone — the old inline style did not set
+   it, so the hover/active nudge from .lp-btn still applies. */
+.mock-jcard-btn {
+  cursor: default;
+}
+
+.mock-jcard-window .mock-jcard-btn,
+.mock-jcard-window .mock-jcard-btn:hover,
+.mock-jcard-window .mock-jcard-btn:active {
+  box-shadow: 2px 2px 0 var(--color-text);
+}

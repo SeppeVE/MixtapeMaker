@@ -30,8 +30,3 @@ export function pairTapes(mixtapes: Mixtape[], cards: JCard[]): TapeData[] {
   }
   return out;
 }
-
-/** Cache key for anything rendered from a tape's J-card: changes whenever the card is saved. */
-export function jcardCacheKey(jcard: JCard): string {
-  return `${jcard.id}@${jcard.updatedAt}`;
-}

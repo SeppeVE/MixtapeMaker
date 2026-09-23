@@ -2,6 +2,9 @@ import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
 import { resolveHeroTape } from '~/composables/useHeroTapeData';
+import { useAuthStore } from '~/stores/auth';
+import { isCloudId } from '~/utils/database';
+import { uploadJCardRender } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
@@ -12,6 +15,8 @@ export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupporte
  */
 export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const route = useRoute();
+  const auth = useAuthStore();
+  const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl ?? '');
   const status = ref<Cassette3DStatus>('loading');
   /** The J-card and label textures, which arrive after the scene is up. */
   const textureStatus = ref<TextureReport['status']>('idle');
@@ -29,15 +34,22 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       return;
     }
     try {
-      const [{ createCassetteScene }, { createHero }, debug] = await Promise.all([
+      const [{ createCassetteScene }, { createHero }, debug, { createSnapshotSource }] = await Promise.all([
         import('~/lib/cassette3d/scene'),
         import('~/lib/cassette3d/hero'),
         import('~/lib/cassette3d/debug'),
+        import('~/lib/cassette3d/textures/snapshotSource'),
       ]);
       if (unmounted) return;
       const params = debug.parseDebugParams(route.query);
       handle = createCassetteScene(el, { onStatus: (s) => { status.value = s; } });
-      hero = createHero(handle, params.hero);
+      // Stored renders first; a card you own that had to be rendered here gets its render uploaded.
+      const snapshotSource = createSnapshotSource({
+        supabaseUrl,
+        canWriteBack: (jcard) => !!auth.user && jcard.userId === auth.user.id && isCloudId(jcard.id),
+        writeBack: (jcard, snapshot, version) => uploadJCardRender(jcard, snapshot, version),
+      });
+      hero = createHero(handle, params.hero, snapshotSource);
       hero.onTextureStatus((s) => { textureStatus.value = s; });
       const cleanup = await debug.installDebug(handle, hero, params, import.meta.dev);
       if (unmounted) cleanup();

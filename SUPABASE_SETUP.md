@@ -775,6 +775,74 @@ working in the editor today means SELECT and INSERT are already in place, and
 the copy uses exactly those two. `CREATE POLICY` fails on a duplicate name, so
 check **Storage → Policies** before pasting.
 
+## Step 3k: Stored J-Card Renders for the 3D Library
+
+The 3D library (`/library/3d`) shows each mixtape's J-card as a texture. Rendering a
+card in the browser takes 1–4 seconds, so the editor renders it once after a
+save (in the background, a few seconds after the last edit) and stores the
+images. The 3D view uses the stored images while they still match the card's
+content, and renders the card itself otherwise. When that happens to one of your
+own cards, the 3D view uploads the result for next time.
+
+Until this step is run, everything keeps working: the editor notices the missing
+column or bucket, stops trying for that session, and the 3D view always renders
+in the browser.
+
+### 1. Render column
+
+One nullable JSON column. It holds the image URLs, each panel's pixel columns in
+them, and `version`: a hash of the card's content that the render belongs to
+(see `app/lib/cassette3d/textures/jcardRender.ts`). No new row policies are
+needed: whatever lets the editor save a card (the `jcards` owner policies aren't
+recorded in this guide) also lets its owner write `render`, and "Anyone can view
+public jcards" (step 3f.3) covers reading it.
+
+```sql
+ALTER TABLE jcards ADD COLUMN render jsonb NULL;
+```
+
+If `jcards` uses column-level grants (as `profiles` does in step 3f.1), also run
+`GRANT UPDATE (render) ON jcards TO authenticated;`. With plain table grants,
+that line is harmless.
+
+### 2. Render bucket
+
+Public reads (public cards are shown to other people), writes only into the
+user's own folder: `{user_id}/{card_id}/{version}-{outside|inside}.webp`. Every
+file name carries the content hash, so the files are uploaded with a one-year
+cache lifetime, and older versions of a card are deleted after each upload.
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('jcard-renders', 'jcard-renders', true, 10485760, ARRAY['image/webp', 'image/png'])
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "J-card renders are publicly readable"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'jcard-renders');
+
+CREATE POLICY "Users can upload their own jcard renders"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'jcard-renders' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can update their own jcard renders"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'jcard-renders' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can delete their own jcard renders"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'jcard-renders' AND (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+Deleting a card removes its renders, and "Delete my account" (step 3g) removes
+the whole `{user_id}/` folder, just as it does for `jcard-images`.
+
+**Undo:** `ALTER TABLE jcards DROP COLUMN render;`, then empty and delete the
+bucket in **Storage**. The app falls back to rendering in the browser.
+
 ## Step 4: Configure Authentication
 
 1. In the Supabase dashboard, click on **Authentication** in the sidebar

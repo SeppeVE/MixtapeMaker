@@ -209,7 +209,11 @@ async function removeUserFiles(bucket: string, userId: string): Promise<void> {
  * the profile, mixtapes, J-cards and feedback attribution. Ends signed out.
  */
 export async function deleteOwnAccount(userId: string): Promise<void> {
-  await Promise.all([removeUserFiles(AVATAR_BUCKET, userId), removeUserFiles('jcard-images', userId)]);
+  await Promise.all([
+    removeUserFiles(AVATAR_BUCKET, userId),
+    removeUserFiles('jcard-images', userId),
+    removeUserFiles('jcard-renders', userId),
+  ]);
   const { error } = await supabase.rpc('delete_own_account');
   if (error) throw error;
   await supabase.auth.signOut();

@@ -73,6 +73,7 @@ const HERO_SHOTS = [
   ['threeQuarterBack', (api) => api.setView('threeQuarterBack')],
   ['lid-open', (api) => { api.setView('threeQuarter'); api.setLidAngle(105); }],
   ['lid-open-spine', (api) => { api.setView('spine'); api.setLidAngle(60); }],
+  ['lid-open-back', (api) => { api.setView('threeQuarterBack'); api.setLidAngle(105); }],
   ['smoke', (api) => { api.setView('threeQuarter'); api.setLidAngle(0); api.setCaseTint('smoke'); }],
   ['cassette', (api) => { api.setCaseTint('clear'); api.setView('threeQuarter'); api.setPartsVisible({ case: false, jcard: false }); }],
   ['cassette-back', (api) => api.setView('threeQuarterBack')],
@@ -121,7 +122,7 @@ try {
     const report = await page.evaluate((f) => window.__cassette3d.loadFixture(f), fixture);
     const badFonts = report.fonts.filter((f) => !f.loaded).map((f) => f.family);
     const badImages = report.images.filter((i) => !i.ok);
-    check(report.status === 'ready', `fixture ${fixture}: textures ready`, `${report.totalMs} ms, snapshot ${report.snapshotMs} ms${report.cached ? ', cached' : ''}`);
+    check(report.status === 'ready', `fixture ${fixture}: textures ready`, `${report.origin}, ${report.totalMs} ms, snapshot ${report.snapshotMs} ms`);
     check(badFonts.length === 0, `fixture ${fixture}: fonts loaded`, badFonts.join(', ') || report.fonts.map((f) => f.family).join(', '));
     check(badImages.length === 0, `fixture ${fixture}: images fetch with CORS`, JSON.stringify(badImages));
     for (const [name, setup] of FIXTURE_SHOTS) {
@@ -136,7 +137,7 @@ try {
     });
   }
   const again = await page.evaluate(() => window.__cassette3d.loadFixture('1'));
-  check(again.cached, 'fixture 1 again: served from the snapshot cache', `${again.totalMs} ms`);
+  check(again.origin === 'memory', 'fixture 1 again: served from the snapshot cache', `${again.origin}, ${again.totalMs} ms`);
 
   // Phone framing: the whole case must stay in view at every turntable angle.
   await page.setViewportSize({ width: 390, height: 844 });

@@ -134,8 +134,10 @@ export async function applyLabelTextures(
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
   const originals = new Map<Mesh, Material | Material[]>();
   const owned: MeshStandardMaterial[] = [];
-  for (const [mesh, side] of [[cassette.labelA, 'A'], [cassette.labelB, 'B']] as const) {
-    const texture = new CanvasTexture(await drawLabel(mixtape, side, style));
+  const sides = [[cassette.labelA, 'A'], [cassette.labelB, 'B']] as const;
+  const canvases = await Promise.all(sides.map(([, side]) => drawLabel(mixtape, side, style)));
+  for (const [i, [mesh, side]] of sides.entries()) {
+    const texture = new CanvasTexture(canvases[i]!);
     texture.colorSpace = SRGBColorSpace;
     texture.anisotropy = anisotropy;
     texture.minFilter = LinearMipmapLinearFilter;

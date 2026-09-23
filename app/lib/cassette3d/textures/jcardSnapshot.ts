@@ -14,6 +14,7 @@ import {
   waitForImages,
 } from '~/utils/jcardPdf';
 import type { JCardPanelName } from '../objects/jcard';
+import { DEFAULT_DPI } from './jcardRender';
 
 /**
  * Renders a J-card's faces to canvases with the same printable components and
@@ -22,8 +23,6 @@ import type { JCardPanelName } from '../objects/jcard';
  */
 
 const MM_TO_PX = 96 / 25.4;
-/** Default capture resolution: 300 dpi of physical size. */
-export const DEFAULT_DPI = 300;
 const FONT_TIMEOUT_MS = 4000;
 
 export type JCardFace = 'outside' | 'inside';

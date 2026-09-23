@@ -83,6 +83,8 @@ app/components/cassette3d/Library3D.vue   # mounts canvas + overlay (inside <Cli
 app/components/cassette3d/Overlay.vue     # (Stage 3+) Vue UI on top of the canvas
 app/composables/useCassetteScene.ts       # bridge: Vue <-> scene
 app/composables/useHeroTapeData.ts        # which tape to show (fixture / ?tape= / latest)
+app/utils/jcardRenders.ts                 # Supabase side of stored renders + render-after-save
+scripts/test-render-cache.mjs             # render cache end to end against a mocked Supabase
 app/utils/featureFlags.ts                 # isLibrary3DEnabled()
 app/lib/cassette3d/
   scene.ts            # renderer, camera, lights, env map, resize, render loop, dispose
@@ -98,7 +100,9 @@ app/lib/cassette3d/
     jcardSnapshot.ts  # J-card DOM → canvases (printable components + html-to-image)
     jcardTexture.ts   # canvases → per-panel textures on the hinged card
     labelTexture.ts   # cassette labels on a 2D canvas
-    snapshotCache.ts  # in-memory LRU of snapshots, keyed by card id + updatedAt
+    jcardRender.ts    # stored renders: content hash, encode, load back, URL check
+    snapshotSource.ts # memory → stored render → render here (+ upload if yours)
+    snapshotCache.ts  # in-memory LRU of snapshots, keyed by card id + content hash
   objects/
     geometry.ts       # extrusion helpers (profiles along Y, shapes along Z)
     caseModel.ts      # tray + lid on the hinge axis
@@ -191,7 +195,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 - [x] Mount the existing J-card component offscreen at ~300 dpi of physical size (fixed-position, moved off screen, not `display: none`). Both faces use `JCardPrintable` / `JCardInsidePrintable`, the same components and html-to-image path as the PDF export. That's why `jcardPdf.ts` now *exports* its font/image helpers (`inlineCrossOriginFonts`, `inlineCustomFonts`, `collectImageUrls`, `waitForImages`), with no behaviour change.
 - [x] Wait for images and `document.fonts.load(...)` for every font used; convert with html-to-image `toCanvas`; unmount. Families are read from the card HTML's `font-family` styles. Uploaded fonts are registered first (`registerCustomFonts`). Each family gets a 4 s timeout, and the result says which ones loaded.
-- [x] UV regions per panel (front, spine, back flap, extra panels); both sides when there's an inside face, otherwise plain paper back. **Deviation:** instead of one atlas with UV regions, each panel face gets its own texture (≤ 65 × 102 mm ≈ 770 × 1200 px at 300 dpi). No texture can hit a GPU size limit (a 6-flap card is ~4900 px wide as a single strip), and the panel boxes keep their own 0–1 UVs. Panel pixel ranges are measured from the laid-out DOM, so reversed cards and the mirrored inside need no special cases.
+- [x] UV regions per panel (front, spine, back flap, extra panels); both sides when there's an inside face, otherwise plain paper back. Each face is uploaded once as one texture. Each panel shows its columns through a texture clone with its own offset/repeat; clones share the upload. A face wider than the GPU's texture limit (a 6-flap card is ~4900 px wide) is scaled down to fit. Panel pixel ranges are measured from the laid-out DOM, so reversed cards and the mirrored inside need no special cases. (A first version cropped each panel into its own canvas; that took seconds per card on software-rendered canvases.)
 - [x] Texture: SRGBColorSpace, max anisotropy, mipmaps.
 
 ### CORS
@@ -208,7 +212,18 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ### Caching (**ASK FIRST**: Storage bucket + DB column)
 
-- [ ] Proposal: render the J-card image once on save, upload to Supabase Storage, store URL + version on the row. Until approved, generate at runtime with an in-memory cache. **Runtime cache done:** an LRU of 6 snapshots keyed by `jcard.id@updatedAt` survives leaving and re-entering the route. A cached tape comes back in ~40 ms instead of 1–4 s. The persistent version is still waiting for approval; see the proposal in the progress log.
+- [x] Proposal: render the J-card image once on save, upload to Supabase Storage, store URL + version on the row. Until approved, generate at runtime with an in-memory cache. **Approved and built (2026-09-23).** Migration: `SUPABASE_SETUP.md` step 3k, which adds a nullable `jcards.render jsonb` and a public `jcard-renders` bucket with owner-folder write policies. **Not yet run on the real project.**
+  - **Version = content hash**, not `updated_at`: `updateJCard` saves content without touching `updated_at`, and Postgres reorders jsonb keys, so the hash is taken over key-sorted JSON (plus a pipeline version `r1`; bump it when rendering changes).
+  - **After a save:** the editor (and the library's "save to cloud") calls `scheduleJCardRender`. Once edits have been quiet for 8 s, in idle time, one render at a time, it checks the stored version, renders, uploads `{user}/{card}/{hash}-{outside|inside}.webp` (1-year cache), writes `render` to the row, and deletes older versions. Leaving the editor flushes pending renders. Renders with failed images are not stored. If the column or bucket is missing, it stops for the session.
+  - **In the 3D view:** memory cache → stored render (only when the hash matches and the URLs are in our own bucket) → render in the browser. When a card you own had to be rendered in the browser, it uploads the result for next time (write-back). Report fields: `origin` (memory/stored/runtime), `version`, `writeBack`.
+  - **Cleanup:** deleting a card removes its renders; account deletion removes the user's `jcard-renders/` folder.
+  - **Tested** end to end against a mocked Supabase (`npm run test:render-cache`, 20 checks). Covered:
+    - runtime render + owner upload, then the stored render used in a fresh tab
+    - an edited card re-rendered, with the old files deleted
+    - someone else's card never uploaded, and a foreign URL ignored
+    - the editor storing a render ~9 s after Save
+  - Loading a stored render took ~25 ms here vs 5–10 s to render the card in this GPU-less browser.
+  - Runtime cache: an LRU of 6 snapshots keyed by card id + content hash survives leaving and re-entering the route (~40 ms).
 
 **Which tape shows (until the shelf):** `?fixture=1|2|3` (built-in samples); `?tape=<mixtape id>` (yours, signed in); otherwise your most recently updated mixtape that has a J-card; otherwise sample 1. Dev hooks: `__cassette3d.loadFixture(n)`, `showTape({ mixtape, jcard })`, `getTextureReport()`.
 
@@ -221,7 +236,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 - **Reversed cards** (`isReversed`) put every panel's own artwork on the right panel, but the 3D card still folds the normal way. A background that runs across panels therefore won't line up at the creases on a reversed card.
 - A faint light line can show along some creases when the card lies flat (panel edge faces).
-- A snapshot takes 0.5–4 s in headless Chromium without a GPU, with the most time going to font embedding. That's fine for one hero tape; the shelf (Stage 4) will need the persistent cache or the low-res spine path.
+- A snapshot takes 0.5–4 s in headless Chromium without a GPU, with the most time going to font embedding. The stored-render cache removes that for any card that has been saved since step 3k was run.
 
 **Human checkpoint.**
 
@@ -328,6 +343,10 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
 - **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.
 - **2026-09-23 · Decision.** The 3D viewer only shows mixtapes that have a linked J-card (see Discovery).
+- **2026-09-23 · Render cache approved + hinge change.**
+  - Stored renders built as proposed (step 3k), with the hash-based version and viewer write-back described under Stage 2.
+  - **Hinge (human request):** the cassette now follows the hinge. Both halves hang off pivots on the pin axis, and by default the **tray** (with the cassette on its spindles) swings while the lid and its J-card stay put. The J-card cover lies between the lid and the cassette, so the two have to be on opposite halves; the only real choice is which half moves. `?moving=lid` (or the GUI) swaps them.
+  - Also: faces are now one shared texture each (8 instead of 11 textures per mount); the leak check still passes.
 - **2026-09-23 · Stage 1 approved.**
 - **2026-09-23 · Stage 2 (in progress).** Texture pipeline built: J-card snapshot → per-panel textures, cassette labels, spine thumbnails, runtime cache, tape selection (fixtures / `?tape=` / latest), texture report + debug hooks, Stage 2 screenshots. The leak check still passes with textures on (11 textures per mount, all freed). Production build: the fixtures (75 kB, incl. an inlined font) and html-to-image load only dynamically from the 3D page. **Open:** real-data check (needs rows), CORS against the real hosts, persistent-cache approval.
   - **Persistent cache proposal (ASK FIRST, not built).** Render the J-card on save, in the editor, where it's already mounted and its fonts are loaded. Upload the outside/inside PNGs (≈ 300 dpi, WebP) to a new public bucket `jcard-renders/<user>/<jcard id>-<face>.webp`, and store `render_url`, `render_inside_url` and `render_version` (= `updated_at`) on `jcards`. The 3D view uses them when `render_version` matches `updated_at`, and falls back to rendering at runtime. That needs a migration (2–3 nullable columns), a bucket with RLS like `jcard-images`, and a hook in the J-card save path.

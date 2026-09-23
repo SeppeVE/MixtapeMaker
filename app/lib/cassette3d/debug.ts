@@ -17,7 +17,7 @@ import { isTapeState, type TapeState } from './states';
  * Tape (Stage 2): ?fixture=1|2|3 shows a built-in sample; ?tape=<mixtape id> one of yours.
  *
  * Hero inspection params (Stage 1): ?view=front|threeQuarter|spine|back|threeQuarterBack,
- * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?fold=<0–1>, ?turntable=0.
+ * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?moving=lid|tray, ?fold=<0–1>, ?turntable=0.
  *
  * State jumps are recorded but have nothing to move until Stage 3 adds the tape machine.
  */
@@ -62,6 +62,7 @@ function parseHeroParams(query: Record<string, QueryValue>): HeroOptions {
     tint: tint === 'smoke' || tint === 'clear' ? tint : d.tint,
     view: isHeroViewName(view) ? view : null,
     lidDeg: numberParam(query.lid, d.lidDeg, 0, CASE.lidOpenDeg),
+    movingHalf: first(query.moving) === 'lid' ? 'lid' : d.movingHalf,
     fold: numberParam(query.fold, d.fold, 0, 1),
     autoRotate: first(query.turntable) !== '0',
   };
@@ -81,6 +82,7 @@ export interface Cassette3DDebugApi {
   setElevation: (deg: number) => void;
   setDistanceScale: (scale: number) => void;
   setLidAngle: (deg: number) => void;
+  setMovingHalf: Hero['setMovingHalf'];
   setJCardFold: (amount: number) => void;
   setJCardLayout: (flaps: number, shortBack?: boolean) => void;
   setCaseTint: (tint: CaseTint) => void;
@@ -135,6 +137,7 @@ export async function installDebug(
       setElevation: (deg) => hero.view.setElevation(deg),
       setDistanceScale: (scale) => hero.view.setDistanceScale(scale),
       setLidAngle: (deg) => hero.setLidAngle(deg),
+      setMovingHalf: (half) => hero.setMovingHalf(half),
       setJCardFold: (amount) => hero.setJCardFold(amount),
       setJCardLayout: (flaps, shortBack = false) => hero.setJCardLayout({ flaps, shortBack }),
       setCaseTint: (tint) => hero.tape.setCaseTint(tint),
@@ -185,6 +188,7 @@ export async function installDebug(
       view: params.hero.view ?? 'threeQuarter',
       turntable: params.hero.autoRotate && !params.hero.view,
       lid: params.hero.lidDeg,
+      moving: params.hero.movingHalf,
       fold: params.hero.fold,
       flaps: params.hero.flaps,
       shortBack: params.hero.shortBack,
@@ -197,7 +201,8 @@ export async function installDebug(
       turntableCtrl.updateDisplay();
     });
     const turntableCtrl = tape.add(settings, 'turntable').onChange((on: boolean) => hero.view.setAutoRotate(on));
-    tape.add(settings, 'lid', 0, CASE.lidOpenDeg, 1).name('lid (deg)').onChange((v: number) => hero.setLidAngle(v));
+    tape.add(settings, 'lid', 0, CASE.lidOpenDeg, 1).name('open (deg)').onChange((v: number) => hero.setLidAngle(v));
+    tape.add(settings, 'moving', ['tray', 'lid']).name('swinging half').onChange((v: 'tray' | 'lid') => hero.setMovingHalf(v));
     tape.add(settings, 'fold', 0, 1, 0.01).name('J-card fold').onChange((v: number) => hero.setJCardFold(v));
     const relayout = () => hero.setJCardLayout({ flaps: settings.flaps, shortBack: settings.shortBack });
     tape.add(settings, 'flaps', 1, 6, 1).onChange(relayout);

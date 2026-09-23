@@ -14,20 +14,32 @@ import { extrudeAlongY, extrudeSlabY } from './geometry';
  * The Norelco case: a deep tray and a lid that pivots on two pins at the short ends.
  * Built in the case frame described in dimensions.ts.
  *
+ * Both halves hang off a pivot on the hinge axis, so either one can be the half
+ * that swings. By default the tray swings and the lid stays put: the cassette sits
+ * on the tray's spindles and the J-card is clipped into the lid, so opening the
+ * case swings the cassette out while the J-card stays in place. (The J-card cover
+ * lies between the lid and the cassette, so they have to be on opposite halves.)
+ *
  * Hierarchy:
  *   root
- *   ├─ tray          fixed: body, end walls, pins, spindle posts, ribs, nubs
- *   └─ lidPivot      sits on the hinge axis; rotation.y opens the lid (see setLidAngle)
- *      └─ lid        offset back by the axis, so its children use case coordinates
- *                    (the J-card goes in here: it rides with the lid)
+ *   ├─ trayPivot     on the hinge axis
+ *   │  └─ tray       offset back by the axis, so its children use case coordinates:
+ *   │                body, end walls, pins, spindle posts, ribs, nubs (+ the cassette)
+ *   └─ lidPivot      on the hinge axis
+ *      └─ lid        same offset: front plate, tabs, clips (+ the J-card)
  */
+export type CaseHalf = 'tray' | 'lid';
+
 export interface CaseModel {
   root: Group;
+  trayPivot: Group;
   tray: Group;
   lidPivot: Group;
   lid: Group;
-  /** Open the lid by `deg` degrees (0 = closed, CASE.lidOpenDeg = fully open). */
+  /** Open the case by `deg` degrees (0 = closed, CASE.lidOpenDeg = fully open). */
   setLidAngle: (deg: number) => void;
+  /** Which half swings when the case opens (the other stays where it is). Default 'tray'. */
+  setMovingHalf: (half: CaseHalf) => void;
 }
 
 const hx = CASE.width / 2;
@@ -44,9 +56,15 @@ export function createCase(plastic: Material): CaseModel {
   const root = new Group();
   root.name = 'case';
 
+  const trayPivot = new Group();
+  trayPivot.name = 'trayPivot';
+  trayPivot.position.set(HINGE_AXIS.x, 0, HINGE_AXIS.z);
+  root.add(trayPivot);
+
   const tray = new Group();
   tray.name = 'tray';
-  root.add(tray);
+  tray.position.set(-HINGE_AXIS.x, 0, -HINGE_AXIS.z);
+  trayPivot.add(tray);
 
   const lidPivot = new Group();
   lidPivot.name = 'lidPivot';
@@ -157,14 +175,29 @@ export function createCase(plastic: Material): CaseModel {
     obj.receiveShadow = false;
   });
 
+  let angle = 0;
+  let moving: CaseHalf = 'tray';
+  const apply = () => {
+    // Opening turns the lid's free edge (+X) up towards +Z, a negative turn about Y,
+    // relative to the tray. Turning the tray the other way gives the same relative motion.
+    const rad = (angle * Math.PI) / 180;
+    lidPivot.rotation.y = moving === 'lid' ? -rad : 0;
+    trayPivot.rotation.y = moving === 'tray' ? rad : 0;
+  };
+
   return {
     root,
+    trayPivot,
     tray,
     lidPivot,
     lid,
     setLidAngle(deg) {
-      // Positive opening swings the free edge (+X) up towards +Z: a negative turn about Y.
-      lidPivot.rotation.y = -(deg * Math.PI) / 180;
+      angle = deg;
+      apply();
+    },
+    setMovingHalf(half) {
+      moving = half;
+      apply();
     },
   };
 }

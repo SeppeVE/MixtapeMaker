@@ -126,6 +126,24 @@ export interface JCardContent {
   insideBackContent?: string;
 }
 
+/** One face of a stored J-card render: a WebP/PNG image plus each panel's pixel columns in it. */
+export interface JCardRenderFace {
+  url: string;
+  panels: Record<string, { x: number; width: number }>;
+}
+
+/**
+ * Pre-rendered J-card images in the `jcard-renders` bucket, used by the 3D
+ * library instead of rendering the card in the browser. Valid only while
+ * `version` matches the card's current content hash (see jcardRenderVersion).
+ */
+export interface JCardRender {
+  version: string;
+  pxPerMm: number;
+  outside: JCardRenderFace;
+  inside?: JCardRenderFace | null;
+}
+
 export interface JCard {
   id: string;
   title: string;
@@ -140,6 +158,8 @@ export interface JCard {
   isCopy?: boolean;
   /** Id of the public card this one was copied from, if any. */
   copiedFromId?: string | null;
+  /** Stored render for the 3D library, if one has been made. */
+  render?: JCardRender | null;
 }
 
 /** A trimmed row from the `public_jcard_previews` view — Explore grid data only, never the inside face. */

@@ -13,6 +13,7 @@ import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaul
 import { registerCustomFonts } from '~/utils/fontManager';
 import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
 import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
+import { scheduleJCardRender, flushJCardRenders } from '~/utils/jcardRenders';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import IconSettings from '~icons/material-symbols/settings-rounded';
 
@@ -84,7 +85,11 @@ onMounted(() => {
     },
   });
 });
-onBeforeUnmount(() => unsaved.unregister('jcard'));
+onBeforeUnmount(() => {
+  unsaved.unregister('jcard');
+  // Render any card saved in the last few seconds now instead of waiting it out.
+  flushJCardRenders();
+});
 
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -154,6 +159,8 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
       }
       persisted = true;
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
+      // Pre-render it for the 3D library once the edits settle (in the background).
+      scheduleJCardRender({ id: saved.id, userId: auth.user.id, content: target.content });
       if (saved.id !== target.id) saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
       // Only mark clean if no further edit was queued while the request was in flight.
       if (target === lastScheduled) cloudDirty.value = false;

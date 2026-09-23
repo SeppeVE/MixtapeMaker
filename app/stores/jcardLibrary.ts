@@ -5,6 +5,7 @@ import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '~/utils/localStorage';
 import { listJCards, upsertJCard, deleteJCard, toggleJCardPublic } from '~/utils/jcardDatabase';
+import { scheduleJCardRender } from '~/utils/jcardRenders';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 
 export type StorageStatus = 'local' | 'cloud' | 'synced';
@@ -75,6 +76,7 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
       cloudCardIds.value = cloudIds;
       localCards.value = [...localCards.value.filter((c) => c.id !== card.id), synced];
       ui.showToast('Card saved to cloud ☁', 'success');
+      scheduleJCardRender(synced);
     } catch {
       ui.showToast('Upload failed', 'error');
     } finally {
@@ -88,7 +90,7 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
     if (!window.confirm(`Delete "${card.title || 'Untitled'}"?`)) return;
     try {
       const status = cardStatus(card);
-      if (status === 'cloud' || status === 'synced') await deleteJCard(card.id);
+      if (status === 'cloud' || status === 'synced') await deleteJCard(card.id, auth.user?.id);
       if (status === 'local' || status === 'synced') deleteJCardFromLocal(card.id);
       allCards.value = allCards.value.filter((c) => c.id !== card.id);
       const cloudIds = new Set(cloudCardIds.value);

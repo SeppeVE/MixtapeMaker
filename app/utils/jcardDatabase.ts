@@ -1,11 +1,14 @@
 import { supabase } from './supabase';
-import { CustomFont, JCard, JCardContent, JCardPreviewRow } from '../types';
+import { CustomFont, JCard, JCardContent, JCardPreviewRow, JCardRender } from '../types';
 import { duplicateJCardImages } from './supabaseImages';
+import { deleteJCardRenders } from './jcardRenders';
 
 interface DbJCard {
   id: string; user_id: string; mixtape_id: string | null;
   title: string; content: JCardContent; created_at: string; updated_at: string;
   is_public: boolean | null; is_copy: boolean | null; copied_from_id: string | null;
+  /** Absent until SUPABASE_SETUP.md step 3k has been run. */
+  render?: JCardRender | null;
 }
 
 interface DbJCardPreviewRow {
@@ -17,7 +20,7 @@ function dbToJCard(r: DbJCard): JCard {
   return {
     id: r.id, title: r.title, userId: r.user_id, mixtapeId: r.mixtape_id, content: r.content,
     createdAt: r.created_at, updatedAt: r.updated_at, isPublic: r.is_public ?? false,
-    isCopy: r.is_copy ?? false, copiedFromId: r.copied_from_id,
+    isCopy: r.is_copy ?? false, copiedFromId: r.copied_from_id, render: r.render ?? null,
   };
 }
 
@@ -163,9 +166,11 @@ export async function toggleJCardPublic(id: string, isPublic: boolean): Promise<
   if (error) throw error;
 }
 
-export async function deleteJCard(id: string): Promise<void> {
+/** Delete a card. Pass the owner's id to also remove its stored 3D renders. */
+export async function deleteJCard(id: string, userId?: string): Promise<void> {
   const { error } = await supabase.from('jcards').delete().eq('id', id);
   if (error) throw error;
+  if (userId) void deleteJCardRenders(userId, id);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

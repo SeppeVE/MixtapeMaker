@@ -1,14 +1,15 @@
 import { CASE_LAYOUT } from './dimensions';
 import { createHeroView, type HeroView, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
+import type { CaseHalf } from './objects/caseModel';
 import { createJCard, type JCardOptions } from './objects/jcard';
 import { createTape, type TapeModel } from './objects/tape';
 import { disposeObjectTree, type CassetteScene } from './scene';
-import { jcardCacheKey, type TapeData } from './tapeData';
+import type { TapeData } from './tapeData';
 import { applyJCardTextures, type JCardTextureSet } from './textures/jcardTexture';
 import type { ImageCheck } from './textures/jcardSnapshot';
 import { applyLabelTextures, labelStyleFor, type LabelTextureSet } from './textures/labelTexture';
-import { getSnapshot, isSnapshotCached } from './textures/snapshotCache';
+import { createSnapshotSource, type SnapshotResult, type SnapshotSource, type WriteBackStatus } from './textures/snapshotSource';
 
 /**
  * Stage 1 content: one closed tape with a placeholder J-card on the hero turntable.
@@ -20,6 +21,8 @@ export interface HeroOptions extends JCardOptions {
   view: HeroViewName | null;
   /** Lid opening in degrees (debug: checks the hinge). */
   lidDeg: number;
+  /** Which half swings open (debug). */
+  movingHalf: CaseHalf;
   /** J-card fold, 1 = folded in the case, 0 = flat (debug). */
   fold: number;
   autoRotate: boolean;
@@ -31,6 +34,7 @@ export const DEFAULT_HERO_OPTIONS: HeroOptions = {
   tint: 'clear',
   view: null,
   lidDeg: 0,
+  movingHalf: 'tray',
   fold: 1,
   autoRotate: true,
 };
@@ -39,7 +43,12 @@ export const DEFAULT_HERO_OPTIONS: HeroOptions = {
 export interface TextureReport {
   status: 'idle' | 'loading' | 'ready' | 'error';
   tape: { id: string; title: string; source: TapeData['source']; jcardId: string } | null;
-  cached: boolean;
+  /** memory: this tab had it; stored: the saved render; runtime: rendered here just now. */
+  origin: SnapshotResult['origin'] | null;
+  /** Content hash of the card (what a stored render must match). */
+  version: string | null;
+  /** Whether a runtime render of your own card was uploaded for next time. */
+  writeBack: WriteBackStatus | 'pending' | null;
   /** Snapshot time (J-card DOM → canvases), then the whole thing incl. labels. */
   snapshotMs: number | null;
   totalMs: number | null;
@@ -54,6 +63,7 @@ export interface Hero {
   tape: TapeModel;
   view: HeroView;
   setLidAngle: (deg: number) => void;
+  setMovingHalf: (half: CaseHalf) => void;
   setJCardFold: (amount: number) => void;
   /** Rebuild the placeholder J-card with a different panel layout. */
   setJCardLayout: (layout: JCardOptions) => void;
@@ -66,7 +76,11 @@ export interface Hero {
   dispose: () => void;
 }
 
-export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
+export function createHero(
+  handle: CassetteScene,
+  options: HeroOptions,
+  snapshotSource: SnapshotSource = createSnapshotSource({ supabaseUrl: '' }),
+): Hero {
   const tape = createTape(options);
   const view = createHeroView(handle, { autoRotate: options.autoRotate && !options.view });
   view.turntable.add(tape.root);
@@ -105,6 +119,7 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
     jcard.setFold(fold);
   }
 
+  tape.case.setMovingHalf(options.movingHalf);
   tape.case.setLidAngle(options.lidDeg);
   tape.jcard.setFold(fold);
   if (options.view) view.setView(options.view);
@@ -114,6 +129,9 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
     view,
     setLidAngle(deg) {
       tape.case.setLidAngle(deg);
+    },
+    setMovingHalf(half) {
+      tape.case.setMovingHalf(half);
     },
     setJCardFold(amount) {
       fold = amount;
@@ -125,11 +143,10 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
       setReport(emptyReport());
     },
     setPartsVisible(parts) {
-      // The J-card and cassette are children of the case root, so hide the case's own parts.
+      // The cassette rides in the tray and the J-card in the lid, so hide only the plastic parts.
       if (parts.case !== undefined) {
-        tape.case.tray.visible = parts.case;
-        for (const child of tape.case.lid.children) {
-          if (child !== tape.jcard.root) child.visible = parts.case;
+        for (const child of [...tape.case.tray.children, ...tape.case.lid.children]) {
+          if (child !== tape.jcard.root && child !== tape.cassette.root) child.visible = parts.case!;
         }
       }
       if (parts.cassette !== undefined) tape.cassette.root.visible = parts.cassette;
@@ -138,17 +155,16 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
     async setTape(data) {
       const gen = ++generation;
       const { mixtape, jcard } = data;
-      const key = jcardCacheKey(jcard);
       const t0 = performance.now();
       setReport({
         ...emptyReport(),
         status: 'loading',
         tape: { id: mixtape.id, title: mixtape.title, source: data.source, jcardId: jcard.id },
-        cached: isSnapshotCached(key),
       });
       relayout({ flaps: jcard.content.flaps, shortBack: jcard.content.shortBack });
       try {
-        const snapshot = await getSnapshot(key, jcard.content);
+        const result = await snapshotSource(jcard);
+        const { snapshot } = result;
         if (disposed || gen !== generation) return;
         jcardTextures = applyJCardTextures(tape.jcard, snapshot, handle.renderer, tape.materials.paper);
         const labels = await applyLabelTextures(tape.cassette, mixtape, labelStyleFor(jcard.content), handle.renderer);
@@ -166,6 +182,12 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
           fonts: snapshot.fonts,
           images: snapshot.images,
           hasInside: !!snapshot.inside,
+          origin: result.origin,
+          version: result.version,
+          writeBack: 'pending',
+        });
+        void result.writeBack.then((status) => {
+          if (!disposed && gen === generation) report = { ...report, writeBack: status };
         });
         const failed = snapshot.images.filter((i) => !i.ok);
         if (failed.length) console.warn('[cassette3d] J-card images that could not be fetched with CORS:', failed);
@@ -192,7 +214,7 @@ export function createHero(handle: CassetteScene, options: HeroOptions): Hero {
 
 function emptyReport(): TextureReport {
   return {
-    status: 'idle', tape: null, cached: false, snapshotMs: null, totalMs: null,
+    status: 'idle', tape: null, origin: null, version: null, writeBack: null, snapshotMs: null, totalMs: null,
     pxPerMm: null, fonts: [], images: [], hasInside: false,
   };
 }

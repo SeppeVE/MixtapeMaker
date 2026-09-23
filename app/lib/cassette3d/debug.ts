@@ -62,7 +62,7 @@ function parseHeroParams(query: Record<string, QueryValue>): HeroOptions {
     tint: tint === 'smoke' || tint === 'clear' ? tint : d.tint,
     view: isHeroViewName(view) ? view : null,
     lidDeg: numberParam(query.lid, d.lidDeg, 0, CASE.lidOpenDeg),
-    movingHalf: first(query.moving) === 'lid' ? 'lid' : d.movingHalf,
+    movingHalf: first(query.moving) === 'tray' ? 'tray' : d.movingHalf,
     fold: numberParam(query.fold, d.fold, 0, 1),
     autoRotate: first(query.turntable) !== '0',
   };

@@ -15,18 +15,18 @@ import { extrudeAlongY, extrudeSlabY } from './geometry';
  * Built in the case frame described in dimensions.ts.
  *
  * Both halves hang off a pivot on the hinge axis, so either one can be the half
- * that swings. By default the tray swings and the lid stays put: the cassette sits
- * on the tray's spindles and the J-card is clipped into the lid, so opening the
- * case swings the cassette out while the J-card stays in place. (The J-card cover
- * lies between the lid and the cassette, so they have to be on opposite halves.)
+ * that swings; by default the lid does. The J-card and the cassette both ride in
+ * the lid (reference photos, case opened flat: the cassette lies on the J-card in
+ * the flat lid half, and the deep half with the spindle posts comes away empty).
+ * Closed, the spindle posts reach up from the tray floor into the cassette's hubs.
  *
  * Hierarchy:
  *   root
  *   ├─ trayPivot     on the hinge axis
  *   │  └─ tray       offset back by the axis, so its children use case coordinates:
- *   │                body, end walls, pins, spindle posts, ribs, nubs (+ the cassette)
+ *   │                body, end walls, pins, spindle posts, ribs, nubs
  *   └─ lidPivot      on the hinge axis
- *      └─ lid        same offset: front plate, tabs, clips (+ the J-card)
+ *      └─ lid        same offset: front plate, tabs, clips (+ the J-card and the cassette)
  */
 export type CaseHalf = 'tray' | 'lid';
 
@@ -38,7 +38,7 @@ export interface CaseModel {
   lid: Group;
   /** Open the case by `deg` degrees (0 = closed, CASE.lidOpenDeg = fully open). */
   setLidAngle: (deg: number) => void;
-  /** Which half swings when the case opens (the other stays where it is). Default 'tray'. */
+  /** Which half swings when the case opens (the other stays where it is). Default 'lid'. */
   setMovingHalf: (half: CaseHalf) => void;
 }
 
@@ -176,7 +176,7 @@ export function createCase(plastic: Material): CaseModel {
   });
 
   let angle = 0;
-  let moving: CaseHalf = 'tray';
+  let moving: CaseHalf = 'lid';
   const apply = () => {
     // Opening turns the lid's free edge (+X) up towards +Z, a negative turn about Y,
     // relative to the tray. Turning the tray the other way gives the same relative motion.

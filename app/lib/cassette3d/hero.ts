@@ -34,7 +34,7 @@ export const DEFAULT_HERO_OPTIONS: HeroOptions = {
   tint: 'clear',
   view: null,
   lidDeg: 0,
-  movingHalf: 'tray',
+  movingHalf: 'lid',
   fold: 1,
   autoRotate: true,
 };
@@ -143,7 +143,7 @@ export function createHero(
       setReport(emptyReport());
     },
     setPartsVisible(parts) {
-      // The cassette rides in the tray and the J-card in the lid, so hide only the plastic parts.
+      // The cassette and the J-card ride in the lid, so hide only the plastic parts.
       if (parts.case !== undefined) {
         for (const child of [...tape.case.tray.children, ...tape.case.lid.children]) {
           if (child !== tape.jcard.root && child !== tape.cassette.root) child.visible = parts.case!;

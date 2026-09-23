@@ -39,13 +39,13 @@ export function createTape(options: TapeOptions): TapeModel {
   jcard.root.position.set(CASE_LAYOUT.jcard.x, CASE_LAYOUT.jcard.y, CASE_LAYOUT.jcard.z);
   caseModel.lid.add(jcard.root);
 
-  // The cassette sits on the tray's spindles, tape edge towards the hinge, so it
-  // swings with the tray. (Stage 3 lifts it out with Object3D.attach, which keeps
-  // its world pose when it changes parent.)
+  // The cassette lies on the J-card in the lid, tape edge towards the hinge, and
+  // swings with the lid; closed, the tray's spindle posts sit in its hubs.
+  // (Stage 3 lifts it out with Object3D.attach, which keeps its world pose.)
   const cassette = createCassette(materials);
   cassette.root.position.set(CASE_LAYOUT.cassette.x, CASE_LAYOUT.cassette.y, CASE_LAYOUT.cassette.z);
   cassette.root.rotation.z = -Math.PI / 2;
-  caseModel.tray.add(cassette.root);
+  caseModel.lid.add(cassette.root);
 
   return {
     root,

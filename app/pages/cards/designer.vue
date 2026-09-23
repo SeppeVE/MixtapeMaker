@@ -108,3 +108,57 @@ useEventListener(typeof window !== 'undefined' ? window : null, 'resize', schedu
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Desktop-only warning banner (hidden on desktop) ── */
+.designer-mobile-warning {
+  display: none;
+}
+
+/* ── Page: designer fills the space, footer pinned below it (like the mixtape editor) ── */
+.jcard-page {
+  overflow-y: auto;
+}
+
+.jcard-page-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.jcard-page-footer {
+  flex-shrink: 0;
+}
+
+/* Screen too short for previews + footer: the workspace takes the whole viewport
+   and the footer waits below the fold (designer.vue measures and sets this). */
+.jcard-page--footer-below .jcard-page-body {
+  flex: 0 0 auto;
+  height: calc(100vh - var(--jcard-chrome-h, 0px));
+}
+
+@media screen and (max-width: 768px) {
+  /* Natural scroll on mobile: the page scrolls as a whole and the footer sits at the end */
+    .jcard-page-body,
+    .jcard-page--footer-below .jcard-page-body {
+      flex: none;
+      height: auto;
+      overflow: visible;
+    }
+
+  /* Show the warning */
+    .designer-mobile-warning {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--color-mustard);
+      border-bottom: 2px solid var(--color-text);
+      padding: 8px 14px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-text);
+      flex-shrink: 0;
+    }
+}
+</style>

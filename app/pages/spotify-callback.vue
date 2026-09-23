@@ -75,3 +75,16 @@ onMounted(async () => {
     <p>Connecting to Spotify...</p>
   </div>
 </template>
+
+<style scoped>
+.spotify-callback {
+  padding: 3rem;
+  text-align: center;
+  font-family: inherit;
+}
+
+.spotify-callback-error {
+  margin-bottom: 1rem;
+  color: #d4524a;
+}
+</style>

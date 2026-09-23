@@ -106,3 +106,38 @@ function handleCopy() {
     <HomeFooter />
   </div>
 </template>
+
+<style scoped>
+/* The page borrows the library shell (.lib-page / .lib-content) and
+   Profile.css's .detail-jcards / .pf-inline-link — those stay global. */
+.mxd-dedication {
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.mxd-author {
+  margin-bottom: 16px;
+}
+
+.mxd-cassette {
+  max-width: 320px;
+  margin-bottom: 24px;
+}
+
+.mxd-export {
+  margin-bottom: 24px;
+  width: max-content;
+}
+
+/* J-card entries listed under the tape. */
+.mxd-jcard-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mxd-jcard-link {
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+</style>

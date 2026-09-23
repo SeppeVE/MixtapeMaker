@@ -82,6 +82,7 @@ app/pages/library/3d.vue                  # route, behind feature flag
 app/components/cassette3d/Library3D.vue   # mounts canvas + overlay (inside <ClientOnly>)
 app/components/cassette3d/Overlay.vue     # (Stage 3+) Vue UI on top of the canvas
 app/composables/useCassetteScene.ts       # bridge: Vue <-> scene
+app/composables/useHeroTapeData.ts        # which tape to show (fixture / ?tape= / latest)
 app/utils/featureFlags.ts                 # isLibrary3DEnabled()
 app/lib/cassette3d/
   scene.ts            # renderer, camera, lights, env map, resize, render loop, dispose
@@ -89,8 +90,15 @@ app/lib/cassette3d/
   debug.ts            # debug hooks
   dimensions.ts       # every physical dimension (cm) + where things sit in the case
   materials.ts        # case plastic (clear / smoke), shell, paper, label, …
-  hero.ts             # Stage 1 content: one tape on the hero turntable
+  hero.ts             # one tape on the hero turntable; setTape() textures it (Stage 2)
   heroView.ts         # hero camera framing + turntable (drag to spin / tilt)
+  tapeData.ts         # TapeData (mixtape + J-card), pairing, cache key
+  fixtures.ts         # 3 sample tapes for dev/screenshots (?fixture=1|2|3)
+  textures/
+    jcardSnapshot.ts  # J-card DOM → canvases (printable components + html-to-image)
+    jcardTexture.ts   # canvases → per-panel textures on the hinged card
+    labelTexture.ts   # cassette labels on a 2D canvas
+    snapshotCache.ts  # in-memory LRU of snapshots, keyed by card id + updatedAt
   objects/
     geometry.ts       # extrusion helpers (profiles along Y, shapes along Z)
     caseModel.ts      # tray + lid on the hinge axis
@@ -175,34 +183,45 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **The paper is flat and bright** because it has no texture yet. Stage 2 gives the J-card and the label their real textures.
 - The hero case draws in ~100 draw calls. That's fine for one tape; the shelf (Stage 4) uses instancing.
 
-**Human checkpoint:** does it look like a real cassette case?
+**Human checkpoint:** does it look like a real cassette case? ✅ Approved 2026-09-23.
 
 ## Stage 2: Texture pipeline
 
 ### J-card texture (jcardTexture.ts)
 
-- [ ] Mount the existing J-card component offscreen at ~300 dpi of physical size (fixed-position, moved off screen, not `display: none`).
-- [ ] Wait for images and `document.fonts.load(...)` for every font used; convert with html-to-image `toCanvas`; unmount.
-- [ ] UV regions per panel (front, spine, back flap, extra panels); both sides when there's an inside face, otherwise plain paper back.
-- [ ] Texture: SRGBColorSpace, max anisotropy, mipmaps.
+- [x] Mount the existing J-card component offscreen at ~300 dpi of physical size (fixed-position, moved off screen, not `display: none`). Both faces use `JCardPrintable` / `JCardInsidePrintable`, the same components and html-to-image path as the PDF export. That's why `jcardPdf.ts` now *exports* its font/image helpers (`inlineCrossOriginFonts`, `inlineCustomFonts`, `collectImageUrls`, `waitForImages`), with no behaviour change.
+- [x] Wait for images and `document.fonts.load(...)` for every font used; convert with html-to-image `toCanvas`; unmount. Families are read from the card HTML's `font-family` styles. Uploaded fonts are registered first (`registerCustomFonts`). Each family gets a 4 s timeout, and the result says which ones loaded.
+- [x] UV regions per panel (front, spine, back flap, extra panels); both sides when there's an inside face, otherwise plain paper back. **Deviation:** instead of one atlas with UV regions, each panel face gets its own texture (≤ 65 × 102 mm ≈ 770 × 1200 px at 300 dpi). No texture can hit a GPU size limit (a 6-flap card is ~4900 px wide as a single strip), and the panel boxes keep their own 0–1 UVs. Panel pixel ranges are measured from the laid-out DOM, so reversed cards and the mirrored inside need no special cases.
+- [x] Texture: SRGBColorSpace, max anisotropy, mipmaps.
 
 ### CORS
 
-- [ ] If any image source lacks CORS headers, propose a fix (likely a Nuxt server image proxy). **ASK FIRST.**
+- [ ] If any image source lacks CORS headers, propose a fix (likely a Nuxt server image proxy). **ASK FIRST.** Before capture, every image is now fetched with `mode: 'cors'`, and failures are reported (texture report, console warning, and a FAIL in the screenshot script). **Still untested against the real hosts:** the sandbox can't reach `i.scdn.co` or a Supabase project. To test, open `/library/3d?3d=1&tape=<id>` signed in and run `__cassette3d.getTextureReport().images` in the console (dev build).
 
 ### Cassette label (labelTexture.ts)
 
-- [ ] 2D canvas: mixtape name, A/B marks, cassette-label style (ruled lines, stripe band). Colours/font from the J-card where possible.
+- [x] 2D canvas: mixtape name, A/B marks, cassette-label style (ruled lines, stripe band). Colours/font from the J-card where possible. The title uses the cover's first font (fallback Permanent Marker) and shrinks, then ellipsises, to fit. The stripe uses the card's background colour unless it's near white or near black (fallback red). Also: the tape length, and STEREO in the small print. Label UVs now span the label area 0–1.
 
 ### Spine texture
 
-- [ ] Crop the spine region from the J-card texture at low resolution, for the shelf.
+- [x] Crop the spine region from the J-card texture at low resolution, for the shelf. It's `spineThumbnail` (256 px tall) on the texture set; Stage 4 packs these into the atlas.
 
 ### Caching (**ASK FIRST**: Storage bucket + DB column)
 
-- [ ] Proposal: render the J-card image once on save, upload to Supabase Storage, store URL + version on the row. Until approved, generate at runtime with an in-memory cache.
+- [ ] Proposal: render the J-card image once on save, upload to Supabase Storage, store URL + version on the row. Until approved, generate at runtime with an in-memory cache. **Runtime cache done:** an LRU of 6 snapshots keyed by `jcard.id@updatedAt` survives leaving and re-entering the route. A cached tape comes back in ~40 ms instead of 1–4 s. The persistent version is still waiting for approval; see the proposal in the progress log.
+
+**Which tape shows (until the shelf):** `?fixture=1|2|3` (built-in samples); `?tape=<mixtape id>` (yours, signed in); otherwise your most recently updated mixtape that has a J-card; otherwise sample 1. Dev hooks: `__cassette3d.loadFixture(n)`, `showTape({ mixtape, jcard })`, `getTextureReport()`.
 
 **Acceptance:** for 3 real mixtapes, correct J-card on the lid, readable spine, correct label; sharp text at hero distance.
+
+- [x] With the 3 **fixtures** (`.screenshots/tape{1,2,3}-*.png`): the J-card is on the lid, the spine reads, the back flap shows through the tray, and labels A/B are correct. The cover close-up is sharp. Flat outside/inside shots check panel mapping, including a continuous background running across panels and the mirrored inside face. The script checks each fixture: textures ready, every font loaded, every image fetched with CORS, and the cache hit.
+- [ ] With **3 real mixtapes**: waiting on real rows from the human (or a signed-in run).
+
+**Known issues:**
+
+- **Reversed cards** (`isReversed`) put every panel's own artwork on the right panel, but the 3D card still folds the normal way. A background that runs across panels therefore won't line up at the creases on a reversed card.
+- A faint light line can show along some creases when the card lies flat (panel edge faces).
+- A snapshot takes 0.5–4 s in headless Chromium without a GPU, with the most time going to font embedding. That's fine for one hero tape; the shelf (Stage 4) will need the persistent cache or the low-res spine path.
 
 **Human checkpoint.**
 
@@ -309,4 +328,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
 - **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.
 - **2026-09-23 · Decision.** The 3D viewer only shows mixtapes that have a linked J-card (see Discovery).
+- **2026-09-23 · Stage 1 approved.**
+- **2026-09-23 · Stage 2 (in progress).** Texture pipeline built: J-card snapshot → per-panel textures, cassette labels, spine thumbnails, runtime cache, tape selection (fixtures / `?tape=` / latest), texture report + debug hooks, Stage 2 screenshots. The leak check still passes with textures on (11 textures per mount, all freed). Production build: the fixtures (75 kB, incl. an inlined font) and html-to-image load only dynamically from the 3D page. **Open:** real-data check (needs rows), CORS against the real hosts, persistent-cache approval.
+  - **Persistent cache proposal (ASK FIRST, not built).** Render the J-card on save, in the editor, where it's already mounted and its fonts are loaded. Upload the outside/inside PNGs (≈ 300 dpi, WebP) to a new public bucket `jcard-renders/<user>/<jcard id>-<face>.webp`, and store `render_url`, `render_inside_url` and `render_version` (= `updated_at`) on `jcards`. The 3D view uses them when `render_version` matches `updated_at`, and falls back to rendering at runtime. That needs a migration (2–3 nullable columns), a bucket with RLS like `jcard-images`, and a hook in the J-card save path.
 - **2026-09-23 · Stage 1.** Physical objects built procedurally from `dimensions.ts`: case (tray + lid on the pin axis), cassette, hinged placeholder J-card, materials, and a hero turntable view. The Stage 0 placeholder box is gone. New debug params and hooks for views, lid angle, J-card fold, flaps and tint. Fixed a transmission render-target leak (three.js never frees it). Screenshots, the 3-cycle leak check and the production build all pass. Known issues listed under Stage 1. **Waiting on the human checkpoint.**

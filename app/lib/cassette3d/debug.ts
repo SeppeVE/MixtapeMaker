@@ -1,5 +1,6 @@
 import { CASE } from './dimensions';
-import { DEFAULT_HERO_OPTIONS, type Hero, type HeroOptions } from './hero';
+import { DEFAULT_HERO_OPTIONS, type Hero, type HeroOptions, type TextureReport } from './hero';
+import type { TapeData } from './tapeData';
 import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
 import type { CassetteScene } from './scene';
@@ -12,6 +13,8 @@ import { isTapeState, type TapeState } from './states';
  *  - ?debugState=<state>&tape=<id>  jump straight to a state, no animation
  *  - window.__cassette3d            (dev only) goTo / setTape / getState / renderer info,
  *                                   plus the Stage 1 hero controls (views, lid, J-card fold)
+ *
+ * Tape (Stage 2): ?fixture=1|2|3 shows a built-in sample; ?tape=<mixtape id> one of yours.
  *
  * Hero inspection params (Stage 1): ?view=front|threeQuarter|spine|back|threeQuarterBack,
  * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?fold=<0–1>, ?turntable=0.
@@ -76,11 +79,18 @@ export interface Cassette3DDebugApi {
   setView: (view: HeroViewName) => void;
   setAutoRotate: (on: boolean) => void;
   setElevation: (deg: number) => void;
+  setDistanceScale: (scale: number) => void;
   setLidAngle: (deg: number) => void;
   setJCardFold: (amount: number) => void;
   setJCardLayout: (flaps: number, shortBack?: boolean) => void;
   setCaseTint: (tint: CaseTint) => void;
   setPartsVisible: Hero['setPartsVisible'];
+  // Stage 2 textures.
+  /** Show a built-in sample tape (1–3); resolves when its textures are on. */
+  loadFixture: (name: string) => Promise<TextureReport>;
+  /** Show any mixtape + J-card pair, e.g. rows pasted from the database. */
+  showTape: (data: Omit<TapeData, 'source'> & { source?: TapeData['source'] }) => Promise<TextureReport>;
+  getTextureReport: () => TextureReport;
 }
 
 declare global {
@@ -123,11 +133,24 @@ export async function installDebug(
       setView: (view) => hero.view.setView(view),
       setAutoRotate: (on) => hero.view.setAutoRotate(on),
       setElevation: (deg) => hero.view.setElevation(deg),
+      setDistanceScale: (scale) => hero.view.setDistanceScale(scale),
       setLidAngle: (deg) => hero.setLidAngle(deg),
       setJCardFold: (amount) => hero.setJCardFold(amount),
       setJCardLayout: (flaps, shortBack = false) => hero.setJCardLayout({ flaps, shortBack }),
       setCaseTint: (tint) => hero.tape.setCaseTint(tint),
       setPartsVisible: (parts) => hero.setPartsVisible(parts),
+      async loadFixture(name) {
+        const { FIXTURES } = await import('./fixtures');
+        const make = FIXTURES[name];
+        if (!make) throw new Error(`Unknown fixture "${name}"`);
+        await hero.setTape(make());
+        return hero.getTextureReport();
+      },
+      async showTape(data) {
+        await hero.setTape({ source: 'fixture', ...data });
+        return hero.getTextureReport();
+      },
+      getTextureReport: () => hero.getTextureReport(),
     };
     cleanups.push(() => {
       window.__cassette3dLastDispose = { ...renderer.info.memory };

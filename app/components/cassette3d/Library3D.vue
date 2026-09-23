@@ -6,12 +6,13 @@ import { useCassetteScene } from '~/composables/useCassetteScene';
 // <ClientOnly>: WebGL has nothing to render on the server. (Not a .client.vue:
 // Nuxt's client-only wrapper runs onMounted before template refs are bound.)
 const container = useTemplateRef<HTMLElement>('canvasHost');
-const { status } = useCassetteScene(container);
+const { status, textureStatus } = useCassetteScene(container);
 </script>
 
 <template>
   <div class="lib3d">
     <div ref="canvasHost" class="lib3d-canvas" />
+    <div v-if="status === 'ready' && textureStatus === 'loading'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">
       <template v-if="status === 'loading'">Loading 3D library…</template>
       <template v-else-if="status === 'contextLost'">The 3D view lost its graphics context. It will resume when the browser restores it.</template>
@@ -49,6 +50,17 @@ const { status } = useCassetteScene(container);
   font-size: 14px;
   text-align: center;
   color: var(--color-paper);
+}
+.lib3d-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-paper);
+  opacity: 0.7;
+  pointer-events: none;
 }
 .lib3d-notice a {
   display: block;

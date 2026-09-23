@@ -40,9 +40,29 @@ async function frames(page, n = 3) {
 
 async function waitForScene(page) {
   await page.waitForFunction(() => (window.__cassette3d?.info().render.calls ?? 0) > 0, null, { timeout: 30_000 });
+  // The tape's textures arrive after the scene is up; memory numbers are only comparable once they're on.
+  await page.waitForFunction(
+    () => ['ready', 'error'].includes(window.__cassette3d?.getTextureReport().status),
+    null,
+    { timeout: 60_000 },
+  );
   // A few more frames so shadows and the environment have settled.
   await frames(page);
 }
+
+// Stage 2: each sample tape, textured. `setup` runs in the page after the fixture is on.
+const FIXTURE_SHOTS = [
+  ['front', (api) => api.setView('front')],
+  ['threeQuarter', (api) => api.setView('threeQuarter')],
+  ['cover-closeup', (api) => { api.setView('front'); api.setDistanceScale(0.45); }],
+  ['spine', (api) => { api.setView('spine'); api.setDistanceScale(0.6); }],
+  ['back', (api) => api.setView('back')],
+  ['label', (api) => { api.setPartsVisible({ case: false, jcard: false }); api.setView('front'); api.setElevation(0); api.setDistanceScale(0.8); }],
+  ['label-b', (api) => { api.setView('back'); api.setElevation(0); api.setDistanceScale(0.8); }],
+  ['flat-outside', (api) => { api.setPartsVisible({ case: false, cassette: false, jcard: true }); api.setJCardFold(0); api.setView('front'); api.setElevation(0); api.setDistanceScale(1.9); }],
+  ['flat-inside', (api) => { api.setView('back'); api.setElevation(0); api.setDistanceScale(1.9); }],
+];
+const FIXTURES = (process.env.FIXTURES ?? '1,2,3').split(',').filter(Boolean);
 
 // Stage 1: the closed case from fixed views, then variants. `setup` runs in the page.
 const HERO_SHOTS = [
@@ -96,6 +116,27 @@ try {
     api.setJCardFold(1);
     api.setLidAngle(0);
   });
+
+  for (const fixture of FIXTURES) {
+    const report = await page.evaluate((f) => window.__cassette3d.loadFixture(f), fixture);
+    const badFonts = report.fonts.filter((f) => !f.loaded).map((f) => f.family);
+    const badImages = report.images.filter((i) => !i.ok);
+    check(report.status === 'ready', `fixture ${fixture}: textures ready`, `${report.totalMs} ms, snapshot ${report.snapshotMs} ms${report.cached ? ', cached' : ''}`);
+    check(badFonts.length === 0, `fixture ${fixture}: fonts loaded`, badFonts.join(', ') || report.fonts.map((f) => f.family).join(', '));
+    check(badImages.length === 0, `fixture ${fixture}: images fetch with CORS`, JSON.stringify(badImages));
+    for (const [name, setup] of FIXTURE_SHOTS) {
+      await page.evaluate(`(${setup.toString()})(window.__cassette3d)`);
+      await frames(page);
+      await page.screenshot({ path: `${OUT_DIR}tape${fixture}-${name}.png` });
+    }
+    await page.evaluate(() => {
+      const api = window.__cassette3d;
+      api.setPartsVisible({ case: true, cassette: true, jcard: true });
+      api.setJCardFold(1);
+    });
+  }
+  const again = await page.evaluate(() => window.__cassette3d.loadFixture('1'));
+  check(again.cached, 'fixture 1 again: served from the snapshot cache', `${again.totalMs} ms`);
 
   // Phone framing: the whole case must stay in view at every turntable angle.
   await page.setViewportSize({ width: 390, height: 844 });

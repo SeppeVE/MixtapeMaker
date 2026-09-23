@@ -425,7 +425,7 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number): s
 
 // ─── asset helpers ──────────────────────────────────────────────────────────
 
-function inlineCustomFonts(host: HTMLElement, content: JCardContent): void {
+export function inlineCustomFonts(host: HTMLElement, content: JCardContent): void {
   if (!content.customFonts?.length) return;
   const css = content.customFonts
     .map((f) => `@font-face { font-family: '${f.name}'; src: url('data:${f.mimeType};base64,${f.data}'); }`)
@@ -444,7 +444,7 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   return out;
 }
 
-async function inlineCrossOriginFonts(host: HTMLElement): Promise<void> {
+export async function inlineCrossOriginFonts(host: HTMLElement): Promise<void> {
   const externalLinks = Array.from(
     document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
   ).filter((l) => {
@@ -530,7 +530,7 @@ function arrayBufferToBase64(buf: ArrayBuffer): Promise<string> {
 }
 
 /** Every image URL the card can reference, outside and inside. */
-function collectImageUrls(content: JCardContent): string[] {
+export function collectImageUrls(content: JCardContent): string[] {
   const urls = [
     content.backgroundImageUrl,
     content.coverImageUrl,
@@ -544,7 +544,7 @@ function collectImageUrls(content: JCardContent): string[] {
 }
 
 /** Warm the browser cache so the snapshot does not race image loads. */
-function waitForImages(content: JCardContent): Promise<void> {
+export function waitForImages(content: JCardContent): Promise<void> {
   const urls = collectImageUrls(content);
   if (urls.length === 0) return Promise.resolve();
 

@@ -60,6 +60,16 @@ export function createCassette(materials: TapeMaterials): CassetteModel {
   const labelShape = roundedRect(-label.width / 2, label.bottom, label.width, label.top - label.bottom, label.cornerRadius);
   labelShape.holes.push(windowPath());
   const labelGeometry = new ShapeGeometry(labelShape, 12);
+  // ShapeGeometry's UVs are the shape's own coordinates; stretch them to 0–1 over
+  // the label area so a label texture maps onto it edge to edge.
+  const uv = labelGeometry.getAttribute('uv');
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(
+      i,
+      (uv.getX(i) + label.width / 2) / label.width,
+      (uv.getY(i) - label.bottom) / (label.top - label.bottom),
+    );
+  }
   const labelA = add(new Mesh(labelGeometry, materials.label), 'labelA');
   labelA.position.z = coreHalf + 0.002;
   const labelB = add(new Mesh(labelGeometry.clone(), materials.label), 'labelB');

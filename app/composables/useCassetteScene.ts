@@ -1,6 +1,7 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
-import type { Hero } from '~/lib/cassette3d/hero';
+import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
+import { resolveHeroTape } from '~/composables/useHeroTapeData';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
@@ -12,6 +13,8 @@ export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupporte
 export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const route = useRoute();
   const status = ref<Cassette3DStatus>('loading');
+  /** The J-card and label textures, which arrive after the scene is up. */
+  const textureStatus = ref<TextureReport['status']>('idle');
 
   let handle: CassetteScene | null = null;
   let hero: Hero | null = null;
@@ -35,10 +38,14 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       const params = debug.parseDebugParams(route.query);
       handle = createCassetteScene(el, { onStatus: (s) => { status.value = s; } });
       hero = createHero(handle, params.hero);
+      hero.onTextureStatus((s) => { textureStatus.value = s; });
       const cleanup = await debug.installDebug(handle, hero, params, import.meta.dev);
       if (unmounted) cleanup();
       else debugCleanup = cleanup;
       status.value = 'ready';
+
+      const data = await resolveHeroTape(route.query);
+      if (data && hero) await hero.setTape(data);
     } catch (err) {
       console.error('[cassette3d] Failed to start the 3D scene', err);
       status.value = 'error';
@@ -57,7 +64,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
     debugCleanup = null;
   });
 
-  return { status };
+  return { status, textureStatus };
 }
 
 function hasWebGL2(): boolean {

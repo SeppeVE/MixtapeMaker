@@ -32,6 +32,8 @@ export interface HeroView {
   setAutoRotate: (on: boolean) => void;
   /** Camera elevation in degrees (debug; dragging is limited to a gentler range). */
   setElevation: (deg: number) => void;
+  /** Multiply the fitted camera distance (debug: < 1 for close-ups, > 1 to see a flat J-card). */
+  setDistanceScale: (scale: number) => void;
   /** Turntable angle in degrees. */
   getAngle: () => number;
   dispose: () => void;
@@ -56,6 +58,7 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
   let autoRotate = options.autoRotate ?? true;
   let elevation = DEFAULT_ELEVATION;
   let spinVelocity = 0;
+  let distanceScale = 1;
   const target = new Vector3(0, turntable.position.y, 0);
 
   /**
@@ -76,7 +79,7 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
   }
 
   function placeCamera() {
-    const d = fitDistance();
+    const d = fitDistance() * distanceScale;
     const e = MathUtils.degToRad(elevation);
     camera.position.set(0, target.y + Math.sin(e) * d, Math.cos(e) * d);
     camera.lookAt(target);
@@ -140,6 +143,7 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
       autoRotate = false;
       spinVelocity = 0;
       elevation = DEFAULT_ELEVATION;
+      distanceScale = 1;
       turntable.rotation.y = MathUtils.degToRad(HERO_VIEWS[view]);
       placeCamera();
     },
@@ -149,6 +153,10 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
     },
     setElevation(deg) {
       elevation = MathUtils.clamp(deg, -89, 89);
+      placeCamera();
+    },
+    setDistanceScale(scale) {
+      distanceScale = MathUtils.clamp(scale, 0.2, 5);
       placeCamera();
     },
     getAngle: () => MathUtils.radToDeg(turntable.rotation.y),

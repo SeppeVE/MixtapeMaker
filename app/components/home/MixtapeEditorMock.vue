@@ -61,3 +61,74 @@ const MOCK_SONGS = [
     </div>
   </div>
 </template>
+
+<style scoped>
+.mock-save-btn {
+  background: var(--color-plum);
+  color: var(--color-paper);
+  padding: 2px 10px 1px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  border-radius: 2px;
+}
+
+.mock-song-number {
+  background: var(--color-forest);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 13px;
+  min-width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid var(--color-text);
+  padding: 5px 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mock-song-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--color-seafoam);
+  border-left: 1.5px solid var(--color-text);
+  border-bottom: 1.5px solid var(--color-text);
+}
+
+.mock-song-duration {
+  font-family: var(--font-display);
+  font-size: 15px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.mock-song-add {
+  display: flex;
+  align-items: center;
+  background: var(--color-paper);
+  border: 2px dashed rgba(42,30,40,0.25);
+  padding: 6px 9px;
+  opacity: 0.45;
+  gap: 8px;
+}
+
+.mock-add-icon {
+  min-width: 30px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  opacity: 0.5;
+}
+
+.mock-add-text {
+  font-size: 11px;
+  font-style: italic;
+}
+</style>

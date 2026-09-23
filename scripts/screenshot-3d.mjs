@@ -30,11 +30,38 @@ function check(ok, label, detail = '') {
   if (!ok) failures++;
 }
 
+async function frames(page, n = 3) {
+  await page.evaluate((count) => new Promise((resolve) => {
+    let left = count;
+    const tick = () => (--left <= 0 ? resolve() : requestAnimationFrame(tick));
+    requestAnimationFrame(tick);
+  }), n);
+}
+
 async function waitForScene(page) {
   await page.waitForFunction(() => (window.__cassette3d?.info().render.calls ?? 0) > 0, null, { timeout: 30_000 });
   // A few more frames so shadows and the environment have settled.
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+  await frames(page);
 }
+
+// Stage 1: the closed case from fixed views, then variants. `setup` runs in the page.
+const HERO_SHOTS = [
+  ['front', (api) => api.setView('front')],
+  ['threeQuarter', (api) => api.setView('threeQuarter')],
+  ['spine', (api) => api.setView('spine')],
+  ['back', (api) => api.setView('back')],
+  ['threeQuarterBack', (api) => api.setView('threeQuarterBack')],
+  ['lid-open', (api) => { api.setView('threeQuarter'); api.setLidAngle(105); }],
+  ['lid-open-spine', (api) => { api.setView('spine'); api.setLidAngle(60); }],
+  ['smoke', (api) => { api.setView('threeQuarter'); api.setLidAngle(0); api.setCaseTint('smoke'); }],
+  ['cassette', (api) => { api.setCaseTint('clear'); api.setView('threeQuarter'); api.setPartsVisible({ case: false, jcard: false }); }],
+  ['cassette-back', (api) => api.setView('threeQuarterBack')],
+  // From above: the case's cross-section, then the J-card folding on its own.
+  ['top', (api) => { api.setPartsVisible({ case: true, jcard: true }); api.setView('front'); api.setElevation(89); }],
+  ['top-6flaps', (api) => { api.setJCardLayout(6, false); api.setView('front'); api.setElevation(89); }],
+  ['jcard-folding', (api) => { api.setPartsVisible({ case: false, cassette: false }); api.setJCardLayout(4, false); api.setJCardFold(0.6); api.setView('front'); api.setElevation(89); }],
+  ['jcard-flat', (api) => { api.setJCardFold(0); api.setView('back'); }],
+];
 
 await mkdir(OUT_DIR, { recursive: true });
 const browser = await chromium.launch({
@@ -55,11 +82,29 @@ try {
   await waitForScene(page);
   const baseline = await page.evaluate(() => window.__cassette3d.info());
   check(baseline.render.calls > 0, 'scene renders', JSON.stringify(baseline));
-  await page.screenshot({ path: `${OUT_DIR}stage0-scene.png` });
+  await page.screenshot({ path: `${OUT_DIR}scene.png` });
 
+  for (const [name, setup] of HERO_SHOTS) {
+    await page.evaluate(`(${setup.toString()})(window.__cassette3d)`);
+    await frames(page);
+    await page.screenshot({ path: `${OUT_DIR}hero-${name}.png` });
+  }
+  await page.evaluate(() => {
+    const api = window.__cassette3d;
+    api.setPartsVisible({ case: true, cassette: true, jcard: true });
+    api.setJCardLayout(2, false);
+    api.setJCardFold(1);
+    api.setLidAngle(0);
+  });
+
+  // Phone framing: the whole case must stay in view at every turntable angle.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT_DIR}stage0-scene-mobile.png` });
+  for (const view of ['front', 'spine', 'threeQuarter']) {
+    await page.evaluate((v) => window.__cassette3d.setView(v), view);
+    await frames(page);
+    await page.screenshot({ path: `${OUT_DIR}hero-mobile-${view}.png` });
+  }
   await page.setViewportSize({ width: 1280, height: 800 });
 
   // 3. Navigate away and back, client-side, and compare renderer memory.
@@ -90,7 +135,7 @@ try {
   await page.goto(`${BASE_URL}/library/3d?3d=1&debug=1`, { waitUntil: 'networkidle' });
   await waitForScene(page);
   check(await page.locator('.lil-gui').count() > 0, 'lil-gui shows with ?debug=1');
-  await page.screenshot({ path: `${OUT_DIR}stage0-debug.png` });
+  await page.screenshot({ path: `${OUT_DIR}debug.png` });
 
   // 5. Optional per-state shots via ?debugState.
   for (const state of STATES) {

@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
+import type { Hero } from '~/lib/cassette3d/hero';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
@@ -13,6 +14,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const status = ref<Cassette3DStatus>('loading');
 
   let handle: CassetteScene | null = null;
+  let hero: Hero | null = null;
   let debugCleanup: (() => void) | null = null;
   let unmounted = false;
 
@@ -24,13 +26,16 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       return;
     }
     try {
-      const [{ createCassetteScene }, debug] = await Promise.all([
+      const [{ createCassetteScene }, { createHero }, debug] = await Promise.all([
         import('~/lib/cassette3d/scene'),
+        import('~/lib/cassette3d/hero'),
         import('~/lib/cassette3d/debug'),
       ]);
       if (unmounted) return;
+      const params = debug.parseDebugParams(route.query);
       handle = createCassetteScene(el, { onStatus: (s) => { status.value = s; } });
-      const cleanup = await debug.installDebug(handle, debug.parseDebugParams(route.query), import.meta.dev);
+      hero = createHero(handle, params.hero);
+      const cleanup = await debug.installDebug(handle, hero, params, import.meta.dev);
       if (unmounted) cleanup();
       else debugCleanup = cleanup;
       status.value = 'ready';
@@ -42,8 +47,11 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
 
   onBeforeUnmount(() => {
     unmounted = true;
+    // The scene first: it frees GPU resources three.js only reaches through live materials.
     handle?.dispose();
     handle = null;
+    hero?.dispose();
+    hero = null;
     // After dispose, so the debug hook can record what the renderer still holds.
     debugCleanup?.();
     debugCleanup = null;

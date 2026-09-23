@@ -87,9 +87,18 @@ app/lib/cassette3d/
   scene.ts            # renderer, camera, lights, env map, resize, render loop, dispose
   states.ts           # TAPE_STATES (moves into tapeMachine.ts in Stage 3)
   debug.ts            # debug hooks
-  dimensions.ts       # (Stage 1)
+  dimensions.ts       # every physical dimension (cm) + where things sit in the case
+  materials.ts        # case plastic (clear / smoke), shell, paper, label, …
+  hero.ts             # Stage 1 content: one tape on the hero turntable
+  heroView.ts         # hero camera framing + turntable (drag to spin / tilt)
+  objects/
+    geometry.ts       # extrusion helpers (profiles along Y, shapes along Z)
+    caseModel.ts      # tray + lid on the hinge axis
+    cassette.ts       # cassette shell, window, hubs, tape, screws, labels
+    jcard.ts          # J-card as hinged panels
+    tape.ts           # case + cassette + J-card assembled
   quality.ts          # (Stage 7)
-  objects/…  textures/…  animation/tapeMachine.ts  interaction/picking.ts   # later stages
+  textures/…  animation/tapeMachine.ts  interaction/picking.ts   # later stages
 scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 ```
 
@@ -104,8 +113,9 @@ scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 ### Debug hooks
 
 - `?debugState=<state>&tape=<id>` jumps straight to a state with no animation. *(Parsed and recorded. Nothing moves until Stage 3.)*
-- `?debug=1` shows lil-gui and stats.
-- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). `window.__cassette3dLastDispose` records renderer memory after the last unmount.
+- `?debug=1` shows lil-gui and stats. Stage 1 added folders for the tape (view, turntable, lid angle, J-card fold, flap count, short back) and for the case plastic and shell materials.
+- Hero inspection (Stage 1): `?view=front|threeQuarter|spine|back|threeQuarterBack`, `?case=smoke`, `?flaps=1–6`, `?shortBack=1`, `?lid=<deg>`, `?fold=<0–1>`, `?turntable=0`.
+- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. `window.__cassette3dLastDispose` records renderer memory after the last unmount.
 
 ### Self-verification with screenshots
 
@@ -142,15 +152,28 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Unfolded J-card + seated cassette:** fold order cover → spine → back → extra panel. The cassette sits flat in the tray, with small retaining ribs and guide tabs at the tray's open end.
   - **Hinge (empty clear case, open ~90°):** the hinge is **two short round pins**, one at each end of the long hinge edge, not a full-length barrel. The lid's short end tabs sit on the *outside* of the tray's end walls, and the pins go through both. The pivot axis is the line between the two pins, about 3–4 mm in from the hinge edge (an estimate; the human checks it at the checkpoint), not the outer corner. A narrow upright strip along the hinge edge is the spine window. Inside the tray: two cross-shaped spindle posts that go into the cassette hubs, small cassette-retaining ribs, and snap nubs on the top edge that keep the case closed.
   - **Look references:** a dark smoky cassette shell seen through a clear case. A studio render with crisp specular highlights on the plastic edges against a dark backdrop sets the lighting bar. One loose white cassette shows the label area, window, hubs and bottom edge.
-- [ ] **Case base.** Tray with walls, two spindle posts, ribs. RoundedBoxGeometry / ExtrudeGeometry with bevels.
-- [ ] **Case lid.** Separate group, pivot exactly on the hinge axis. Model the hinge knuckles.
-- [ ] **Cassette shell.** Screw holes, tape window, two toothed hubs, visible tape, label recess, write-protect tabs.
-- [ ] **Case plastic material.** MeshPhysicalMaterial, transmission ≈ 1, low roughness, small thickness, IOR ≈ 1.5. Smoky-tint variant.
-- [ ] **Cassette shell material.** Satin black, MeshStandardMaterial, roughness ≈ 0.5.
-- [ ] **J-card placeholder.** Hinged panels in jcard.ts, plain paper. Each fold is a Group pivot at the crease, next panel parented to it.
-- [ ] **Hero view.** Default camera and turntable for inspecting a closed case. (Stage 0's camera crops the placeholder on narrow phones; fit the framing to the aspect ratio here.)
+- [x] **Case base.** Tray with walls, two spindle posts, ribs. The long parts are cross-section profiles extruded along the case (ExtrudeGeometry, rounded corners, creased normals). Also: cross-shaped spindle posts, floor ribs kept clear of the J-card back flap, guide tabs, snap nubs, and hinge pins through the end walls.
+- [x] **Case lid.** `lidPivot` sits exactly on the pin axis, 3.5 mm in from the hinge edge and 3.5 mm down from the lid's top face. `setLidAngle(deg)`. The lid's hinge edge is a quarter-round knuckle centred on that axis, and the tray's spine window and end walls are cut back along the circle it sweeps, so the lid opens to 105° without passing through the tray. End tabs: a band along the top of each short end that widens into a round ear round the pin. Two J-card clips on the lid's inner face.
+- [x] **Cassette shell.** Solid core between two thin face plates that leave the label area recessed. Screw holes (with recessed screws), window with clear panes, two toothed hubs, brown tape pack, tape running past the head openings (plus the felt pad), raised trapezoid, and write-protect tabs in their pockets. Label meshes for side A and side B are ready for Stage 2 textures.
+- [x] **Case plastic material.** MeshPhysicalMaterial, transmission 1, roughness 0.02, thickness 0.12, IOR 1.5, `FrontSide`: the parts are closed solids, and double-sided transmission sampled the J-card twice and blurred it. Smoky variant via attenuation (`?case=smoke`).
+- [x] **Cassette shell material.** Satin black MeshStandardMaterial, roughness 0.5; the trapezoid is slightly glossier (0.32).
+- [x] **J-card placeholder.** Hinged panels in `objects/jcard.ts`, plain paper. The chain starts at the cover: spine and back fold 90° + 90° into a J, and extra flaps concertina behind the cover (180°, alternating). `setFold(0…1)`; Stage 3 drives the hinges one by one.
+- [x] **Hero view.** The case stands on its short end on a turntable under a fixed key light, so the highlights move across it. Framing fits the case at any turntable angle and any aspect ratio (checked at 1280×800 and 390×844). Drag to spin (with inertia) or tilt; any drag stops the auto-spin.
 
-**Acceptance:** closed case with cassette and placeholder J-card, screenshotted from front, spine side, and 3/4.
+**Acceptance:**
+
+- [x] Closed case with cassette and placeholder J-card, screenshotted from front, 3/4, spine, back, 3/4 back, from above (the cross-section), with the lid open, smoky, and on a phone. The cassette and the folding J-card also get shots on their own. `npm run screenshot:3d` → `.screenshots/hero-*.png`.
+- [x] The leak check still passes. Transmission added one texture that three.js never frees: its transmission render target, which not even `renderer.dispose()` releases. `scene.ts` now disposes it.
+- [x] three is still only in its own chunk (≈576 kB), which the `/library/3d` page chunk loads only dynamically.
+
+**Known issues / open questions for the checkpoint:**
+
+- **Hinge geometry is a best guess** from the photo notes. Tray owns the upright spine window; lid = front plate + quarter-round knuckle; pins 3.5 mm in. Where the J-card's cover/spine crease meets the knuckle, the square card corner pokes about 0.5 mm into the rounded plastic. It's invisible from normal angles; paper crease rounding (Stage 6) would remove it.
+- **Everything is squeezed a little.** The plan's case depth (17 mm), the J-card spine (12.7 mm) and the cassette (12 mm) leave ~0.5 mm, so with **4 or more flaps** the concertina stack behind the cover overlaps the cassette's top face by up to 0.4 mm. Can't be seen when closed. If it matters, the fix is a slightly deeper case or thinner card (0.2 mm now).
+- **The J-card's spine and back flap swing with the lid** (the whole card is parented to the lid). With the lid open you can see them sweep through the cassette. Stage 3 has to animate those two panels (the card slides out, or they flex) anyway.
+- **Thin light seams** show along a few plastic edges at some angles. They come from transmission on very thin slivers, and Stage 6's HDRI/roughness work is the place to tune them.
+- **The paper is flat and bright** because it has no texture yet. Stage 2 gives the J-card and the label their real textures.
+- The hero case draws in ~100 draw calls. That's fine for one tape; the shelf (Stage 4) uses instancing.
 
 **Human checkpoint:** does it look like a real cassette case?
 
@@ -286,3 +309,4 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
 - **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.
 - **2026-09-23 · Decision.** The 3D viewer only shows mixtapes that have a linked J-card (see Discovery).
+- **2026-09-23 · Stage 1.** Physical objects built procedurally from `dimensions.ts`: case (tray + lid on the pin axis), cassette, hinged placeholder J-card, materials, and a hero turntable view. The Stage 0 placeholder box is gone. New debug params and hooks for views, lid angle, J-card fold, flaps and tint. Fixed a transmission render-target leak (three.js never frees it). Screenshots, the 3-cycle leak check and the production build all pass. Known issues listed under Stage 1. **Waiting on the human checkpoint.**

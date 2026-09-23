@@ -1,3 +1,7 @@
+import { CASE } from './dimensions';
+import { DEFAULT_HERO_OPTIONS, type Hero, type HeroOptions } from './hero';
+import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
+import type { CaseTint } from './materials';
 import type { CassetteScene } from './scene';
 import { isTapeState, type TapeState } from './states';
 
@@ -6,7 +10,11 @@ import { isTapeState, type TapeState } from './states';
  *
  *  - ?debug=1                       lil-gui + stats.js overlay
  *  - ?debugState=<state>&tape=<id>  jump straight to a state, no animation
- *  - window.__cassette3d            (dev only) goTo / setTape / getState / renderer info
+ *  - window.__cassette3d            (dev only) goTo / setTape / getState / renderer info,
+ *                                   plus the Stage 1 hero controls (views, lid, J-card fold)
+ *
+ * Hero inspection params (Stage 1): ?view=front|threeQuarter|spine|back|threeQuarterBack,
+ * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?fold=<0–1>, ?turntable=0.
  *
  * State jumps are recorded but have nothing to move until Stage 3 adds the tape machine.
  */
@@ -15,6 +23,7 @@ export interface DebugParams {
   debug: boolean;
   debugState: TapeState | null;
   tape: string | null;
+  hero: HeroOptions;
 }
 
 type QueryValue = string | null | (string | null)[] | undefined;
@@ -30,6 +39,28 @@ export function parseDebugParams(query: Record<string, QueryValue>): DebugParams
     debug: first(query.debug) === '1',
     debugState: isTapeState(state) ? state : null,
     tape: first(query.tape),
+    hero: parseHeroParams(query),
+  };
+}
+
+function numberParam(value: QueryValue, fallback: number, min: number, max: number): number {
+  const raw = first(value);
+  const n = raw === null ? NaN : Number(raw);
+  return Number.isFinite(n) ? Math.min(Math.max(n, min), max) : fallback;
+}
+
+function parseHeroParams(query: Record<string, QueryValue>): HeroOptions {
+  const d = DEFAULT_HERO_OPTIONS;
+  const view = first(query.view);
+  const tint = first(query.case);
+  return {
+    flaps: Math.round(numberParam(query.flaps, d.flaps, 1, 6)),
+    shortBack: first(query.shortBack) === '1',
+    tint: tint === 'smoke' || tint === 'clear' ? tint : d.tint,
+    view: isHeroViewName(view) ? view : null,
+    lidDeg: numberParam(query.lid, d.lidDeg, 0, CASE.lidOpenDeg),
+    fold: numberParam(query.fold, d.fold, 0, 1),
+    autoRotate: first(query.turntable) !== '0',
   };
 }
 
@@ -41,6 +72,15 @@ export interface Cassette3DDebugApi {
   readonly renderer: CassetteScene['renderer'];
   /** Snapshot of renderer.info.memory / render, safe to JSON-serialise from Playwright. */
   info: () => { memory: { geometries: number; textures: number }; render: { calls: number; triangles: number } };
+  // Stage 1 hero controls.
+  setView: (view: HeroViewName) => void;
+  setAutoRotate: (on: boolean) => void;
+  setElevation: (deg: number) => void;
+  setLidAngle: (deg: number) => void;
+  setJCardFold: (amount: number) => void;
+  setJCardLayout: (flaps: number, shortBack?: boolean) => void;
+  setCaseTint: (tint: CaseTint) => void;
+  setPartsVisible: Hero['setPartsVisible'];
 }
 
 declare global {
@@ -52,7 +92,12 @@ declare global {
 }
 
 /** Installs the debug hooks. Returns a cleanup function. */
-export async function installDebug(handle: CassetteScene, params: DebugParams, isDev: boolean): Promise<() => void> {
+export async function installDebug(
+  handle: CassetteScene,
+  hero: Hero,
+  params: DebugParams,
+  isDev: boolean,
+): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
   let state: TapeState = params.debugState ?? 'presented';
@@ -75,6 +120,14 @@ export async function installDebug(handle: CassetteScene, params: DebugParams, i
         memory: { ...renderer.info.memory },
         render: { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles },
       }),
+      setView: (view) => hero.view.setView(view),
+      setAutoRotate: (on) => hero.view.setAutoRotate(on),
+      setElevation: (deg) => hero.view.setElevation(deg),
+      setLidAngle: (deg) => hero.setLidAngle(deg),
+      setJCardFold: (amount) => hero.setJCardFold(amount),
+      setJCardLayout: (flaps, shortBack = false) => hero.setJCardLayout({ flaps, shortBack }),
+      setCaseTint: (tint) => hero.tape.setCaseTint(tint),
+      setPartsVisible: (parts) => hero.setPartsVisible(parts),
     };
     cleanups.push(() => {
       window.__cassette3dLastDispose = { ...renderer.info.memory };
@@ -104,6 +157,43 @@ export async function installDebug(handle: CassetteScene, params: DebugParams, i
     key.add(handle.keyLight.position, 'x', -60, 60, 0.5);
     key.add(handle.keyLight.position, 'y', 1, 80, 0.5);
     key.add(handle.keyLight.position, 'z', -60, 60, 0.5);
+
+    const settings = {
+      view: params.hero.view ?? 'threeQuarter',
+      turntable: params.hero.autoRotate && !params.hero.view,
+      lid: params.hero.lidDeg,
+      fold: params.hero.fold,
+      flaps: params.hero.flaps,
+      shortBack: params.hero.shortBack,
+      tint: params.hero.tint,
+    };
+    const tape = gui.addFolder('Tape');
+    tape.add(settings, 'view', Object.keys(HERO_VIEWS)).onChange((v: HeroViewName) => {
+      hero.view.setView(v);
+      settings.turntable = false;
+      turntableCtrl.updateDisplay();
+    });
+    const turntableCtrl = tape.add(settings, 'turntable').onChange((on: boolean) => hero.view.setAutoRotate(on));
+    tape.add(settings, 'lid', 0, CASE.lidOpenDeg, 1).name('lid (deg)').onChange((v: number) => hero.setLidAngle(v));
+    tape.add(settings, 'fold', 0, 1, 0.01).name('J-card fold').onChange((v: number) => hero.setJCardFold(v));
+    const relayout = () => hero.setJCardLayout({ flaps: settings.flaps, shortBack: settings.shortBack });
+    tape.add(settings, 'flaps', 1, 6, 1).onChange(relayout);
+    tape.add(settings, 'shortBack').onChange(relayout);
+
+    const plastic = hero.tape.materials.casePlastic;
+    const mat = gui.addFolder('Case plastic');
+    mat.add(settings, 'tint', ['clear', 'smoke']).onChange((v: CaseTint) => hero.tape.setCaseTint(v));
+    mat.add(plastic, 'roughness', 0, 0.5, 0.005);
+    mat.add(plastic, 'transmission', 0, 1, 0.01);
+    mat.add(plastic, 'thickness', 0, 1, 0.005);
+    mat.add(plastic, 'ior', 1, 2, 0.01);
+    mat.add(plastic, 'attenuationDistance', 0.05, 10, 0.05);
+    mat.add(plastic, 'envMapIntensity', 0, 3, 0.05);
+
+    const shell = hero.tape.materials.shell;
+    const shellFolder = gui.addFolder('Cassette shell');
+    shellFolder.add(shell, 'roughness', 0, 1, 0.01);
+    shellFolder.addColor(shell, 'color');
 
     cleanups.push(() => {
       offFrame();

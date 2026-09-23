@@ -1,11 +1,9 @@
 import {
   ACESFilmicToneMapping,
-  BoxGeometry,
   Color,
   DirectionalLight,
   HemisphereLight,
   Mesh,
-  MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -42,6 +40,8 @@ export interface CassetteScene {
   keyLight: DirectionalLight;
   /** Called every frame before rendering, with the frame delta in seconds. */
   onFrame: (fn: (dt: number) => void) => () => void;
+  /** Called after the canvas and camera have been resized. */
+  onResize: (fn: () => void) => () => void;
   dispose: () => void;
 }
 
@@ -69,7 +69,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   const scene = new Scene();
   scene.background = new Color(BACKGROUND);
 
-  const camera = new PerspectiveCamera(35, 1, 0.1, 1000);
+  // Near plane well out: the J-card sits millimetres behind the plastic, which needs the depth precision.
+  const camera = new PerspectiveCamera(35, 1, 1, 400);
   camera.position.set(0, 14, 34);
   camera.lookAt(0, 2, 0);
 
@@ -97,9 +98,10 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   keyLight.shadow.radius = 4;
   keyLight.shadow.bias = -0.0005;
   keyLight.shadow.normalBias = 0.02;
+  // Tight around the hero case, so its shadow stays crisp. Stage 4 widens this for the shelf.
   const sc = keyLight.shadow.camera;
-  sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30;
-  sc.near = 1; sc.far = 100;
+  sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12;
+  sc.near = 20; sc.far = 60;
   scene.add(keyLight);
 
   // Shadow-catcher floor: invisible except where shadows land.
@@ -109,19 +111,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   floor.name = 'floor';
   scene.add(floor);
 
-  // Stage 0 placeholder, sized like a closed case (≈ 10.9 × 6.9 × 1.7 cm), so
-  // lighting and shadows have something to show. Replaced by real objects in Stage 1.
-  const placeholder = new Mesh(
-    new BoxGeometry(10.9, 6.9, 1.7),
-    new MeshStandardMaterial({ color: '#c9c2b8', roughness: 0.35, metalness: 0 }),
-  );
-  placeholder.position.set(0, 6.9 / 2, 0);
-  placeholder.rotation.y = -0.45;
-  placeholder.castShadow = true;
-  placeholder.name = 'placeholder';
-  scene.add(placeholder);
-
   // --- Resize ---------------------------------------------------------------
+  const resizeCallbacks = new Set<() => void>();
   function resize() {
     const w = Math.max(1, container.clientWidth);
     const h = Math.max(1, container.clientHeight);
@@ -129,6 +120,7 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    for (const fn of resizeCallbacks) fn();
   }
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
@@ -186,7 +178,9 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     canvas.removeEventListener('webglcontextrestored', onContextRestored);
     resizeObserver.disconnect();
     frameCallbacks.clear();
+    resizeCallbacks.clear();
 
+    disposeTransmissionTargets(renderer, scene);
     disposeObjectTree(scene);
     scene.environment = null;
     envTarget?.dispose();
@@ -209,8 +203,31 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
       frameCallbacks.add(fn);
       return () => frameCallbacks.delete(fn);
     },
+    onResize(fn) {
+      resizeCallbacks.add(fn);
+      return () => resizeCallbacks.delete(fn);
+    },
     dispose,
   };
+}
+
+/**
+ * three.js keeps the render target for transmissive materials (the clear case) in
+ * its internal render state and never disposes it, not even in renderer.dispose().
+ * It's reachable through the materials' transmission sampler uniform.
+ */
+function disposeTransmissionTargets(renderer: WebGLRenderer, root: Object3D) {
+  const targets = new Set<{ dispose: () => void }>();
+  root.traverse((obj) => {
+    const material = (obj as Mesh).material as Material | Material[] | undefined;
+    if (!material) return;
+    for (const m of Array.isArray(material) ? material : [material]) {
+      const uniforms = (renderer.properties.get(m) as { uniforms?: Record<string, { value: unknown }> }).uniforms;
+      const texture = uniforms?.transmissionSamplerMap?.value as Texture | null | undefined;
+      if (texture?.renderTarget) targets.add(texture.renderTarget);
+    }
+  });
+  targets.forEach((t) => t.dispose());
 }
 
 /** Dispose every geometry, material and material texture under `root`, and detach its children. */

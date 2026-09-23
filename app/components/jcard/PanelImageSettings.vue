@@ -156,4 +156,18 @@ function onBehindChange(checked: boolean) {
     margin-bottom: 8px;
   }
 }
+
+/* ── Panel content ── */
+.jc-flap-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.jc-flap-tab {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  min-width: 0;
+}
 </style>

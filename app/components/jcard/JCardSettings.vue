@@ -486,3 +486,275 @@ function blockAttrs(id: Section) {
     </SettingsBlock>
   </div>
 </template>
+
+<style scoped>
+/* Settings panels — "punched plastic" SchWindow aesthetic */
+.jc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Text inputs */
+.jc-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  box-shadow: var(--bevel-in);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
+  box-sizing: border-box;
+  outline: none;
+  border-radius: 0;
+}
+
+.jc-input:focus {
+  background: rgba(212, 169, 53, 0.18);
+}
+
+/* Color swatch presets row */
+.jc-swatch-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.jc-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-text);
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+/* Range slider */
+.jc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  box-shadow: var(--bevel-in);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+}
+
+.jc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jc-range::-webkit-slider-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.jc-range::-moz-range-thumb {
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jc-range::-moz-range-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.jc-range::-moz-range-track {
+  background: var(--color-white);
+  border: none;
+}
+
+.jc-range-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--color-text);
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.jc-swatch.selected {
+  outline: 2px solid var(--color-mustard);
+  outline-offset: 1px;
+}
+
+/* Custom-colour swatch: a conic gradient behind a "+", with the real
+   <input type="color"> hidden next to it and opened by clicking the swatch. */
+.jc-swatch-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 0;
+  background: conic-gradient(#5b2838, #d4a935, #a8c4a2, #8fc9b7, #3d5a47, #b4a0c7, #5b2838);
+}
+
+.jc-swatch-plus {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 var(--color-text),
+    1px -1px 0 var(--color-text),
+    -1px 1px 0 var(--color-text),
+    1px 1px 0 var(--color-text);
+  pointer-events: none;
+}
+
+.jc-swatch-custom-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.jc-color-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.jc-side-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  padding: 0 2px;
+}
+
+.jc-side-divider {
+  border-top: 1.5px dashed rgba(0,0,0,0.15);
+  margin-top: 14px;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6;
+}
+
+.jc-side-divider-borderless {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6;
+}
+
+/* ═══════════════════════════════════════════════════════
+   JCardSettings — moved out of inline style attributes
+   ═══════════════════════════════════════════════════════ */
+
+/* Vertical rhythm between stacked controls inside a .jc-body. Three steps
+   cover every spacing the panel used inline. */
+.jc-mt-sm { margin-top: 6px; }
+
+.jc-mt    { margin-top: 8px; }
+
+.jc-mt-lg { margin-top: 10px; }
+
+/* ── Presets ── */
+.jc-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jc-preset-btn {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
+.jc-preset-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* ── Custom fonts ── */
+.jc-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.jc-font-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--color-text);
+  background: var(--color-paper);
+}
+
+.jc-font-tag {
+  font-family: var(--font-body);
+  font-size: 10px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.jc-font-warning {
+  font-family: var(--font-body);
+  font-size: 11px;
+  margin: 0 0 6px;
+  color: var(--color-accent);
+}
+
+/* Hidden <input type="file"> driven by a sibling button. */
+.jc-file-input {
+  display: none;
+}
+
+/* Full-width action button (font upload, export). */
+.jc-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Background ── */
+.jc-swatch-row--tight {
+  margin-bottom: 6px;
+}
+
+/* ── Export ── */
+.jc-print-note {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 8px 0 2px;
+  font-family: var(--font-body);
+  letter-spacing: 0.5px;
+}
+
+.jc-print-list {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 0;
+  padding-left: 14px;
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+</style>

@@ -63,3 +63,29 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
     </p>
   </div>
 </template>
+
+<style scoped>
+.jc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── MixtapeLinkPicker ── */
+.jc-link-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.jc-link-btn {
+  font-size: 12px;
+}
+
+.jc-link-warning {
+  font-size: 11px;
+  color: var(--color-warning);
+  margin-top: 4px;
+}
+</style>

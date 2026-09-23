@@ -79,7 +79,7 @@ const cardStyle = computed(() => ({
         <span v-if="label" class="jcard-preview-label">{{ label }}</span>
         <span class="jcard-preview-dim">
           {{ widthMm.toFixed(1) }} x {{ JCARD_HEIGHT_MM }} mm
-          <span style="margin-left:6px;opacity:0.55;font-size:11px;font-family:var(--font-body)">
+          <span class="jcard-preview-dim-note">
             seen as if you flipped the card over like a book
           </span>
         </span>
@@ -96,17 +96,17 @@ const cardStyle = computed(() => ({
         <div
           v-for="i in reversedFlapIndices"
           :key="i"
-          class="jcard-part"
-          :style="{ width: FLAP_WIDTHS[i], height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }"
+          class="jcard-part jcard-flap"
+          :style="{ width: FLAP_WIDTHS[i] }"
         >
           <InsidePanel :content="content" :sanitized-content="s.flaps[i]" :flap-index="i" />
         </div>
 
-        <div class="jcard-part jcard-spine" style="position:relative;z-index:1">
+        <div class="jcard-part jcard-spine jcard-part-positioned">
           <Spine :content="insideContent" sanitized-top="" :sanitized-center="s.spine" sanitized-bottom="" />
         </div>
 
-        <div :class="`jcard-part jcard-back${content.shortBack ? ' short' : ''}`" style="position:relative;z-index:1">
+        <div :class="`jcard-part jcard-back jcard-part-positioned${content.shortBack ? ' short' : ''}`">
           <InsideBackPanel :content="insideContent" :sanitized-content="s.back" />
         </div>
       </div>

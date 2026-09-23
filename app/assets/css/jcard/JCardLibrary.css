@@ -390,3 +390,15 @@ p.jcard-library-empty,
   background: var(--color-mustard);
   border: 1mm solid var(--color-text);
 }
+
+/* Icon + text run inside the sync banner and the error row. */
+.jcl-banner-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Call-to-action buttons in the empty state. */
+.jcard-library-empty-btn {
+  margin-top: 12px;
+}

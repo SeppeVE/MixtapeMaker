@@ -47,11 +47,6 @@
   animation: lp-float-up 3.2s ease-in-out infinite;
 }
 
-.lp-cursor::after {
-  content: '_';
-  animation: lp-blink 1s step-end infinite;
-}
-
 /* ── tape strip decoration ── */
 .lp-tape-strip {
   position: relative;
@@ -98,18 +93,6 @@
   gap: 24px;
 }
 
-.lp-hero-eyebrow {
-  background: var(--color-mustard);
-  color: var(--color-text);
-  border: 2px solid var(--color-text);
-  box-shadow: 3px 3px 0 var(--color-text);
-  padding: 3px 14px 1px;
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 2px;
-  width: fit-content;
-}
-
 .lp-hero-headline,
 .lp-section-title,
 .lp-step-title {
@@ -129,18 +112,6 @@
 .lp-hero-headline-accent {
   font-style: normal;
   color: var(--color-mustard);
-}
-
-.lp-hero-headline-kicker {
-  display: block;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--color-lavender);
-  text-shadow: none;
-  margin-bottom: 6px;
 }
 
 .lp-hero-sub {
@@ -263,6 +234,29 @@
   opacity: 0.85;
 }
 
+/* Per-section colour modifiers. Each feature section sets its own palette
+   against its background; the base classes above stay colour-agnostic. */
+.lp-section--mixtape {
+  background: var(--color-paper);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.lp-section--jcard {
+  background: var(--color-sage);
+  border-bottom: 3px solid var(--color-text);
+}
+
+.lp-section-label--muted   { color: var(--color-text-light); }
+.lp-section-label--forest  { color: var(--color-forest); }
+.lp-section-label--mustard { color: var(--color-mustard); letter-spacing: 3px; }
+
+.lp-section-title--plum    { color: var(--color-plum); }
+.lp-section-title--ink     { color: var(--color-text); }
+.lp-section-title--on-dark { color: var(--color-paper); margin-top: 8px; }
+
+.lp-section-body--muted    { color: var(--color-text-light); }
+.lp-feature-list--muted    { color: var(--color-text-light); }
+
 .lp-feature-list {
   list-style: none;
   display: flex;
@@ -296,36 +290,22 @@
 .lp-shadow-lg { box-shadow: 8px 8px 0 var(--color-text); }
 .lp-shadow     { box-shadow: 5px 5px 0 var(--color-text); }
 
-.lp-mock-titlebar {
-  color: var(--color-paper);
-  border-bottom: 2.5px solid var(--color-text);
-  padding: 5px 10px 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 0.5px;
-}
-
-.lp-mock-close {
-  width: 12px;
-  height: 12px;
-  background: var(--color-paper);
-  border: 1.5px solid var(--color-text);
-  font-size: 9px;
-  line-height: 12px;
-  text-align: center;
-  color: var(--color-text);
-  cursor: default;
-  flex-shrink: 0;
-}
-
 /* ── how it works ── */
 .lp-how {
   background: var(--color-text);
   border-top: 3px solid var(--color-text);
   border-bottom: 3px solid var(--color-text);
+}
+
+/* Centred intro / outro that bracket the .lp-steps-grid. */
+.lp-how-head {
+  text-align: center;
+  margin-bottom: 52px;
+}
+
+.lp-how-foot {
+  text-align: center;
+  margin-top: 40px;
 }
 
 .lp-steps-grid {
@@ -436,6 +416,9 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.lp-cta-card-head--forest { background: var(--color-forest); }
+.lp-cta-card-head--plum   { background: var(--color-plum); }
 
 .lp-cta-card-icon { font-size: 32px; color: var(--color-paper); }
 
@@ -767,9 +750,6 @@
   .lp-hero-headline {
     font-size: 52px;
     text-shadow: 4px 4px 0 var(--color-text);
-  }
-  .lp-hero-eyebrow {
-    font-size: 14px;
   }
   .lp-hero-sub {
     font-size: 14px;

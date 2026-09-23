@@ -105,3 +105,18 @@ const beads = [35, 47, 59, 71, 83];
     </svg>
   </div>
 </template>
+
+<style scoped>
+@media screen and (max-width: 1200px) {
+  .cassette-svg {
+      display: none;
+    }
+}
+
+@media screen and (max-width: 768px) {
+  .cassette-svg {
+      display: block;
+      width: 50%;
+    }
+}
+</style>

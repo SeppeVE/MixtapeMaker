@@ -81,7 +81,7 @@ const fmtDate = (iso: string) =>
     <div class="modal-content notif-modal" role="dialog" aria-modal="true" aria-labelledby="notif-title" @click.stop>
       <button class="modal-close" aria-label="Close" @click="close">×</button>
 
-      <h2 id="notif-title" style="display:flex;align-items:center;gap:6px"><IconStar class="icon-inline" aria-hidden="true" /> What's new</h2>
+      <h2 id="notif-title" class="notif-modal-heading"><IconStar class="icon-inline" aria-hidden="true" /> What's new</h2>
 
       <div class="notif-date">{{ fmtDate(notification.createdAt) }}</div>
       <h3 class="notif-title">{{ notification.title }}</h3>
@@ -106,3 +106,61 @@ const fmtDate = (iso: string) =>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* .modal-overlay / .modal-content / .modal-close stay global (AuthModal.css). */
+.notif-modal {
+  max-width: 460px;
+}
+
+.notif-date {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text-light);
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.notif-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.05;
+  color: var(--color-text);
+  margin: 0 0 10px;
+  font-weight: normal;
+}
+
+.notif-body {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text);
+  white-space: pre-line;
+  margin: 0 0 var(--spacing-md);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.notif-link {
+  font-size: 17px;
+  margin-bottom: var(--spacing-md);
+}
+
+.notif-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 2px solid rgba(42, 30, 40, 0.15);
+  padding-top: var(--spacing-md);
+}
+
+/* Heading with a leading icon. */
+.notif-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+</style>

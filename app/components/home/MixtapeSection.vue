@@ -5,7 +5,7 @@ const mixtape = useMixtapeStore();
 </script>
 
 <template>
-  <section id="mixtape" class="lp-section" style="background:var(--color-paper);border-bottom:3px solid var(--color-text)">
+  <section id="mixtape" class="lp-section lp-section--mixtape">
     <!-- Geo decorations -->
     <div class="decorative-square decorative-square-mixtape" />
     <div class="decorative-triangle-mixtape">
@@ -16,19 +16,19 @@ const mixtape = useMixtapeStore();
     <div class="lp-section-inner">
       <div class="lp-split">
         <div class="lp-split-text">
-          <div class="lp-section-label" style="color:var(--color-text-light)">Feature 01</div>
-          <h2 class="lp-section-title" style="color:var(--color-plum)">The Mixtape<br />Editor.</h2>
-          <p class="lp-section-body" style="color:var(--color-text-light)">
+          <div class="lp-section-label lp-section-label--muted">Feature 01</div>
+          <h2 class="lp-section-title lp-section-title--plum">The Mixtape<br />Editor.</h2>
+          <p class="lp-section-body lp-section-body--muted">
             Add tracks to Side A and Side B, and watch the length bar fill
             up in real time because of the auto length calculation. Select the length of your tape and easily fill it with your favourite songs.
           </p>
-          <ul class="lp-feature-list" style="color:var(--color-text-light)">
+          <ul class="lp-feature-list lp-feature-list--muted">
             <li>Drag-and-drop track ordering for both sides</li>
             <li>Real-time tape fill meter with over-length warnings</li>
             <li>Supports a range of the most popular tape lengths</li>
           </ul>
           <div>
-            <button class="lp-btn lp-btn-forest" style="font-size:22px;padding:7px 22px 4px" @click="mixtape.newMixtape()">
+            <button class="lp-btn lp-btn-forest lp-btn-md" @click="mixtape.newMixtape()">
               ▶ Try the Mixtape Editor →
             </button>
           </div>

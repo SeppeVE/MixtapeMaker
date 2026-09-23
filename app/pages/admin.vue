@@ -153,7 +153,7 @@ const fmtDate = (iso: string) =>
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Admin</span>
+      <span class="lp-nav-current">Admin</span>
     </NavBar>
 
     <div class="lib-header">
@@ -166,13 +166,13 @@ const fmtDate = (iso: string) =>
     </div>
 
     <div class="lib-content">
-      <p v-if="!ready" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="!ready" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="!allowed" class="lib-empty">
         <IconLock class="lib-empty-icon" aria-hidden="true" />
         <p>Admins only.</p>
         <p class="lib-empty-sub">{{ auth.user ? 'Your account does not have admin access.' : 'Sign in with an admin account.' }}</p>
-        <button v-if="!auth.user" class="lp-btn lp-btn-plum" style="margin-top:8px" @click="ui.openAuth()">Sign In →</button>
+        <button v-if="!auth.user" class="lp-btn lp-btn-plum lib-empty-action" @click="ui.openAuth()">Sign In →</button>
       </div>
 
       <div v-else class="lib-section-stack">
@@ -277,8 +277,8 @@ const fmtDate = (iso: string) =>
                 </div>
                 <p class="adm-item-body">{{ f.message }}</p>
                 <div class="adm-feedback-meta">
-                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link" style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> {{ f.email }}</a>
-                  <span v-else style="display:inline-flex;align-items:center;gap:4px"><IconMail class="icon-inline" aria-hidden="true" /> no email left</span>
+                  <a v-if="f.email" :href="`mailto:${f.email}`" class="pf-inline-link adm-feedback-contact"><IconMail class="icon-inline" aria-hidden="true" /> {{ f.email }}</a>
+                  <span v-else class="adm-feedback-contact"><IconMail class="icon-inline" aria-hidden="true" /> no email left</span>
                   <span v-if="f.page">· sent from <code>{{ f.page }}</code></span>
                 </div>
               </div>

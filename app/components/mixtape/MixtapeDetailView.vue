@@ -49,11 +49,11 @@ function handleCopy() {
       <button v-if="showBack" class="lp-nav-link" @click="goBack">◀ Back</button>
       <NuxtLink v-else to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">{{ breadcrumbLabel }}</span>
+      <span class="lp-nav-current">{{ breadcrumbLabel }}</span>
     </NavBar>
 
     <div class="lib-content">
-      <p v-if="loading" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="loading" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
         <IconCassette class="lib-empty-icon" aria-hidden="true" />
@@ -67,16 +67,16 @@ function handleCopy() {
             <span>{{ mixtape.title }}</span>
             <button class="lp-btn lp-btn-forest" @click="handleCopy">⎘ Copy to my library</button>
           </div>
-          <p v-if="mixtape.dedicatedTo" style="margin-bottom:16px;font-style:italic">For {{ mixtape.dedicatedTo }}</p>
-          <p v-if="author" style="margin-bottom:16px">
+          <p v-if="mixtape.dedicatedTo" class="mxd-dedication">For {{ mixtape.dedicatedTo }}</p>
+          <p v-if="author" class="mxd-author">
             <AuthorByline :profile="author" prefix="Made by" />
           </p>
 
-          <div style="max-width:320px;margin-bottom:24px">
+          <div class="mxd-cassette">
             <CassetteSVG :title="mixtape.title" side="A" :float="false" />
           </div>
 
-          <div style="margin-bottom:24px;width:max-content">
+          <div class="mxd-export">
             <ExportToSpotify :mixtape="mixtape" />
           </div>
 
@@ -94,8 +94,8 @@ function handleCopy() {
           <div class="detail-jcards">
             <div v-for="card in jcards" :key="card.id">
               <h3 class="detail-jcard-title">
-                <span style="display:inline-flex;align-items:center;gap:6px"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.title || 'Untitled J-Card' }}</span>
-                <NuxtLink :to="`/jcard/${card.id}`" class="pf-inline-link" style="font-family:var(--font-body);font-size:12px">Open ↗</NuxtLink>
+                <span class="mxd-jcard-label"><IconCard class="icon-inline" aria-hidden="true" /> {{ card.title || 'Untitled J-Card' }}</span>
+                <NuxtLink :to="`/jcard/${card.id}`" class="pf-inline-link mxd-jcard-link">Open ↗</NuxtLink>
               </h3>
               <JCardReadOnly :content="card.content" />
             </div>
@@ -106,3 +106,38 @@ function handleCopy() {
     <HomeFooter />
   </div>
 </template>
+
+<style scoped>
+/* The page borrows the library shell (.lib-page / .lib-content) and
+   Profile.css's .detail-jcards / .pf-inline-link — those stay global. */
+.mxd-dedication {
+  margin-bottom: 16px;
+  font-style: italic;
+}
+
+.mxd-author {
+  margin-bottom: 16px;
+}
+
+.mxd-cassette {
+  max-width: 320px;
+  margin-bottom: 24px;
+}
+
+.mxd-export {
+  margin-bottom: 24px;
+  width: max-content;
+}
+
+/* J-card entries listed under the tape. */
+.mxd-jcard-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mxd-jcard-link {
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+</style>

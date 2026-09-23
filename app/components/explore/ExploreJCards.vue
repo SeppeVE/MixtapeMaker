@@ -185,11 +185,68 @@ function onPageChange(p: number) {
           :page="page"
           :total="total"
           :page-size="PAGE_SIZE"
-          class="explore-pager--left"
-          style="margin-top:24px"
+          class="explore-pager--left explore-pager--spaced"
           @update:page="onPageChange"
         />
       </template>
     </section>
   </div>
 </template>
+
+<style scoped>
+/* ── Explore J-cards grid: preview on top, info below (mirrors .lib-tape-card) ── */
+.jce-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.jce-grid-card {
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.07s, box-shadow 0.07s;
+  display: flex;
+  flex-direction: column;
+}
+
+.jce-grid-card:hover  { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+
+.jce-grid-card:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.jce-grid-info {
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.jce-grid-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-text);
+  letter-spacing: 0.3px;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jce-grid-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.jce-grid-date {
+  margin-top: auto;
+  padding-top: 2px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text-light);
+}
+</style>

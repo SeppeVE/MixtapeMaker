@@ -41,6 +41,14 @@
   opacity: 0.7;
 }
 
+/* Trailing explainer inside .jcard-preview-dim (inside-panel preview only). */
+.jcard-preview-dim-note {
+  margin-left: 6px;
+  opacity: 0.55;
+  font-size: 11px;
+  font-family: var(--font-body);
+}
+
 .jcard-actual-btn.active {
   background: var(--color-mustard);
   border-color: var(--color-text);

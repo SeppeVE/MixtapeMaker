@@ -86,11 +86,11 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       <NavBar library>
         <NuxtLink to="/explore" class="lp-nav-link">◀ Explore</NuxtLink>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
+        <span class="lp-nav-current">Profile</span>
       </NavBar>
 
       <div class="lib-content">
-      <p v-if="pending" style="padding:40px;text-align:center">Loading…</p>
+      <p v-if="pending" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="notFound" class="lib-empty">
         <IconSmiley class="lib-empty-icon" aria-hidden="true" />
@@ -111,7 +111,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             <p v-if="profile.bio && (!profile.isPrivate || isOwner)" class="pf-bio">{{ profile.bio }}</p>
             <div v-if="isOwner" class="pf-owner-row">
               <span v-if="profile.isPrivate" class="lib-badge lib-badge-private">◌ Private — only you see this</span>
-              <NuxtLink to="/profile" class="lp-btn lp-btn-paper" style="font-size:15px"><IconPencil class="icon-inline" aria-hidden="true" /> Edit profile</NuxtLink>
+              <NuxtLink to="/profile" class="lp-btn lp-btn-paper pf-edit-btn"><IconPencil class="icon-inline" aria-hidden="true" /> Edit profile</NuxtLink>
             </div>
           </div>
         </section>

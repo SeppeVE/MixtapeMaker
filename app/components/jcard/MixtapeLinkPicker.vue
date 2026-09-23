@@ -37,9 +37,9 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
 </script>
 
 <template>
-  <div class="settings-section">
+  <div class="jc-section">
     <select
-      class="settings-select"
+      class="jc-select"
       :value="mixtapeId ?? ''"
       @change="emit('linkChange', ($event.target as HTMLSelectElement).value || null)"
     >
@@ -47,19 +47,45 @@ const linked = computed(() => options.value.find((m) => m.id === props.mixtapeId
       <option v-for="m in options" :key="m.id" :value="m.id">{{ m.title }}</option>
     </select>
 
-    <div v-if="linked" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-      <label class="settings-checkbox-label">
+    <div v-if="linked" class="jc-link-actions">
+      <label class="jc-checkbox-label">
         <input v-model="showDuration" type="checkbox" />
         Include track duration
       </label>
-      <button class="btn" style="font-size:12px" @click="emit('contentChange', applyMixtapeToJCard(content, linked, { showDuration }))">
+      <button class="btn jc-link-btn" @click="emit('contentChange', applyMixtapeToJCard(content, linked, { showDuration }))">
         ↺ Pull tracks from mixtape
       </button>
-      <button class="btn" style="font-size:12px" @click="emit('linkChange', null)">Unlink</button>
+      <button class="btn jc-link-btn" @click="emit('linkChange', null)">Unlink</button>
     </div>
 
-    <p v-if="mixtapeId && !linked" style="font-size:11px;color:var(--color-warning);margin-top:4px">
+    <p v-if="mixtapeId && !linked" class="jc-link-warning">
       Linked mixtape no longer available
     </p>
   </div>
 </template>
+
+<style scoped>
+.jc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── MixtapeLinkPicker ── */
+.jc-link-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.jc-link-btn {
+  font-size: 12px;
+}
+
+.jc-link-warning {
+  font-size: 11px;
+  color: var(--color-warning);
+  margin-top: 4px;
+}
+</style>

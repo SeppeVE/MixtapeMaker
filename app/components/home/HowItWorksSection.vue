@@ -9,9 +9,9 @@ const STEPS = [
 <template>
   <section id="how-it-works" class="lp-how">
     <div class="lp-section-inner">
-      <div style="text-align:center;margin-bottom:52px">
-        <div class="lp-section-label" style="color:var(--color-mustard);letter-spacing:3px">Process</div>
-        <h2 class="lp-section-title" style="color:var(--color-paper);margin-top:8px">How it works.</h2>
+      <div class="lp-how-head">
+        <div class="lp-section-label lp-section-label--mustard">Process</div>
+        <h2 class="lp-section-title lp-section-title--on-dark">How it works.</h2>
       </div>
       <div class="lp-steps-grid">
         <div v-for="s in STEPS" :key="s.number" class="lp-step">
@@ -21,7 +21,7 @@ const STEPS = [
           <div class="lp-step-tag">{{ s.tag }}</div>
         </div>
       </div>
-      <div style="text-align:center;margin-top:40px">
+      <div class="lp-how-foot">
         <NuxtLink to="/how-to" class="lp-btn lp-btn-mustard">Read the full recording guide →</NuxtLink>
       </div>
     </div>

@@ -30,7 +30,7 @@ useSeoMeta({
       <NavBar library>
         <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Explore</span>
+        <span class="lp-nav-current">Explore</span>
       </NavBar>
 
       <div class="lib-header">

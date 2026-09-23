@@ -98,3 +98,70 @@ const flapStyle = { width: `${FLAPS_MM[0]}mm` };
     </ClientOnly>
   </div>
 </template>
+
+<style scoped>
+/* ═══════════════════════════════════════════════════════
+   Explore grid J-card preview — live spine + cover flap
+   ═══════════════════════════════════════════════════════ */
+
+/* Fixed aspect-ratio cell: the grid layout never reflows regardless of
+   scroll/load state. contain:strict + content-visibility:auto let the
+   browser skip layout/paint for off-screen cards; contain-intrinsic-size
+   gives it a placeholder size before it's ever been rendered. No
+   will-change — it blurs the scaled text in Chrome. Border/shadow live on
+   the wrapping .jce-grid-card, not here — this is the "header" of that card. */
+.jce-box {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-bottom: 2px solid var(--color-text);
+  contain: strict;
+}
+
+.jce-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+/* Natural mm-sized card (width/height set inline from dimensions.ts),
+   shrunk with a single transform driven by --jc-scale — set once per grid
+   by ExploreJCards.vue, never per card. Fonts are never resized and text is
+   never re-flowed here, so line breaks match the full-size card exactly. */
+.jce-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  transform: scale(var(--jc-scale, 1));
+  display: flex;
+  flex-direction: row;
+}
+
+.jce-card.reversed {
+  flex-direction: row-reverse;
+}
+
+.jce-panel {
+  height: 100%;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  /* Stacked above .jce-continuous so a transparent panel still shows the
+     continuous image through it, instead of painting in normal DOM order. */
+  z-index: 1;
+}
+
+.jce-continuous {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.jce-continuous-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>

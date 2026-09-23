@@ -49,7 +49,7 @@ function onTape(song: Song) {
 <template>
   <div class="search-bar">
     <div class="search-window">
-      <div class="search-window-title" style="display:flex;align-items:center;gap:5px"><IconMusicNote class="icon-inline" aria-hidden="true" /> Spotify</div>
+      <div class="search-window-title search-window-title--icon"><IconMusicNote class="icon-inline" aria-hidden="true" /> Spotify</div>
 
       <div class="search-form-area">
         <form class="search-form" @submit.prevent="runSearch(query)">
@@ -93,3 +93,86 @@ function onTape(song: Song) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.search-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.recent-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.recent-chip {
+  font-size: 10px;
+  background: var(--color-paper-dk);
+  border: 1px solid var(--color-text);
+  padding: 2px 6px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.recent-chip:hover { background: var(--color-secondary); }
+
+.btn-clear-results {
+  font-size: 11px;
+  padding: 2px 5px;
+}
+
+.search-error {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--color-warning);
+  font-family: var(--font-body);
+}
+
+/* Results list */
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 2px solid var(--color-text);
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--color-paper) 0px,
+    var(--color-paper) 2px,
+    var(--color-paper-dk) 2px,
+    var(--color-paper-dk) 4px
+  );
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-empty {
+  font-family: var(--font-display);
+  font-size: 16px;
+  opacity: 0.5;
+  line-height: 1;
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+/* Window title variant carrying a leading icon (the Spotify search panel).
+   The Explore panels reuse .search-window-title without an icon. */
+.search-window-title--icon {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media screen and (max-width: 768px) {
+  .search-results {
+      flex: none;
+      max-height: 320px;
+    }
+}
+</style>

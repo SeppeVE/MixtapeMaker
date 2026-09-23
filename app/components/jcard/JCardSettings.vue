@@ -176,7 +176,7 @@ const printChecklist = computed<string[]>(() => {
     items.push('Two-sided: off');
   }
   items.push('Cut on the crop marks, fold on the dashed guides');
-  if (content.value.bleed) items.push('The ghosted border is the bleed — it is cut away');
+  if (content.value.bleed) items.push('The extra border outside the crop marks is the bleed — it is cut away');
   return items;
 });
 
@@ -186,12 +186,12 @@ function blockAttrs(id: Section) {
 </script>
 
 <template>
-  <div class="jcard-settings">
+  <div class="jc-settings">
     <!-- 1. Card info -->
     <SettingsBlock v-bind="blockAttrs('info')" label="✎ Card info" @toggle="toggle">
-      <label class="settings-label">Title</label>
-      <input class="settings-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
-      <label class="settings-checkbox-label" style="margin-top:6px">
+      <label class="jc-label">Title</label>
+      <input class="jc-input" :value="card.title" placeholder="My J-Card" @input="emit('titleChange', ($event.target as HTMLInputElement).value)" />
+      <label class="jc-checkbox-label jc-mt-sm">
         <input
           type="checkbox"
           :checked="card.isPublic === true"
@@ -210,36 +210,35 @@ function blockAttrs(id: Section) {
     <!-- 1b. Presets -->
     <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Basic presets" @toggle="toggle">
       <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="jc-preset-list">
         <button
           v-for="preset in JCARD_PRESETS"
           :key="preset.id"
-          class="btn"
-          style="justify-content:flex-start;gap:8px;padding:5px 10px"
+          class="btn jc-preset-btn"
           @click="handleApplyPreset(preset.id)"
         >
-          <span style="font-family:var(--font-body);font-size:12px">{{ preset.label }}</span>
+          <span class="jc-preset-label">{{ preset.label }}</span>
         </button>
       </div>
     </SettingsBlock>
 
     <!-- 2. Layout -->
     <SettingsBlock v-bind="blockAttrs('layout')" label="▣ Panel layout" @toggle="toggle">
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="content.isReversed" @change="patch({ isReversed: ($event.target as HTMLInputElement).checked })" />
         Reverse card (flip left/right)
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="content.shortBack" @change="patch({ shortBack: ($event.target as HTMLInputElement).checked })" />
         Short back panel (10 mm)
       </label>
-      <label class="settings-label" style="margin-top:6px">Panels: {{ content.flaps }}</label>
+      <label class="jc-label jc-mt-sm">Panels: {{ content.flaps }}</label>
       <input
         type="range" :min="1" :max="6" :value="content.flaps"
-        class="settings-range"
+        class="jc-range"
         @input="patch({ flaps: parseInt(($event.target as HTMLInputElement).value, 10) as 1|2|3|4|5|6 })"
       />
-      <div class="settings-range-ticks">
+      <div class="jc-range-ticks">
         <span v-for="n in 6" :key="n">{{ n }}</span>
       </div>
       <p v-if="!pdfLayout.fitsRequested" class="small-info">
@@ -256,25 +255,24 @@ function blockAttrs(id: Section) {
         Upload up to 3 of your own <b>.woff2</b>, <b>.otf</b>, or <b>.ttf</b> files to add more.
       </p>
 
-      <div v-if="customFonts.length > 0" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">
+      <div v-if="customFonts.length > 0" class="jc-font-list">
         <div
           v-for="f in customFonts"
           :key="f.name"
-          style="display:flex;align-items:center;gap:6px;padding:3px 6px;border:1.5px solid var(--color-text);background:var(--color-paper)"
+          class="jc-font-row"
         >
           <span :style="{ fontFamily: f.name, fontSize: '1.25rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ f.name }}</span>
-          <span style="font-family:var(--font-body);font-size:10px;opacity:0.5;flex-shrink:0">custom</span>
+          <span class="jc-font-tag">custom</span>
           <button class="btn btn-small" :title="`Remove ${f.name}`" @click="removeFont(f.name)">x</button>
         </div>
       </div>
 
-      <p v-if="fontWarning" style="font-family:var(--font-body);font-size:11px;margin:0 0 6px;color:var(--color-accent)">{{ fontWarning }}</p>
+      <p v-if="fontWarning" class="jc-font-warning">{{ fontWarning }}</p>
 
       <!-- Upload custom fonts -->
-      <input ref="fontInputRef" type="file" accept=".woff2,.woff,.otf,.ttf" style="display:none" @change="handleFontUpload" />
+      <input ref="fontInputRef" type="file" accept=".woff2,.woff,.otf,.ttf" class="jc-file-input" @change="handleFontUpload" />
       <button
-        class="btn"
-        style="width:100%;justify-content:center"
+        class="btn jc-btn-full"
         :disabled="fontUploading || customFonts.length >= MAX_FONTS"
         @click="fontWarning = null; fontInputRef?.click()"
       >
@@ -284,37 +282,37 @@ function blockAttrs(id: Section) {
 
     <!-- 4. Background -> Set color or image for all panels (can be streched across all panels or per panel) -->
     <SettingsBlock v-bind="blockAttrs('background')" label="▧ Background color and image" @toggle="toggle">
-      <label class="settings-label">Color</label>
-      <div class="settings-swatch-row" style="margin-bottom:6px">
+      <label class="jc-label">Color</label>
+      <div class="jc-swatch-row jc-swatch-row--tight">
         <div
           v-for="c in COLOR_PRESETS"
           :key="c"
-          :class="`settings-swatch${content.backgroundColor === c ? ' selected' : ''}`"
+          :class="`jc-swatch${content.backgroundColor === c ? ' selected' : ''}`"
           :style="{ background: c }"
           :title="c"
           @click="patch({ backgroundColor: c })"
         />
         <button
           type="button"
-          :class="`settings-swatch settings-swatch-custom${isCustomBackground ? ' selected' : ''}`"
+          :class="`jc-swatch jc-swatch-custom${isCustomBackground ? ' selected' : ''}`"
           :style="isCustomBackground ? { background: content.backgroundColor } : undefined"
           title="Custom color"
           aria-label="Custom color"
           @click="backgroundColorInput?.click()"
         >
-          <span class="settings-swatch-plus">+</span>
+          <span class="jc-swatch-plus">+</span>
         </button>
-        <span class="settings-swatch-custom-label">Custom</span>
+        <span class="jc-swatch-custom-label">Custom</span>
         <input
           ref="backgroundColorInput"
           type="color"
-          class="settings-color-hidden"
+          class="jc-color-hidden"
           :value="content.backgroundColor"
           aria-label="Custom background color"
           @input="patch({ backgroundColor: ($event.target as HTMLInputElement).value })"
         />
       </div>
-      <div class="side-indicator-divider"><span class="side-indicator-label">Outside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Outside</span></div>
       <ImageUpload
         label="Background image outside"
         :current-url="content.backgroundImageUrl"
@@ -322,12 +320,12 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="handleBackgroundImageChange"
       />
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.continuousBackground" @change="patch({ continuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
       <ImageUpload
         label="Background image inside"
         :current-url="content.insideBackgroundImageUrl"
@@ -335,7 +333,7 @@ function blockAttrs(id: Section) {
         :card-id="card.id"
         @change="patch({ insideBackgroundImageUrl: $event.url ?? undefined })"
       />
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.insideContinuousBackground" @change="patch({ insideContinuousBackground: ($event.target as HTMLInputElement).checked })" />
         Stretch image across all panels
       </label>
@@ -344,7 +342,7 @@ function blockAttrs(id: Section) {
     <!-- 5. Panel content -->
     <SettingsBlock v-bind="blockAttrs('flaps')" label="◫ Panel content" @toggle="toggle">
       <!-- Outside panel ------------------------------------------------------------ -->
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
       <PanelImageSettings
         v-model:active-panel="activeFlap"
         side="outside"
@@ -353,7 +351,7 @@ function blockAttrs(id: Section) {
         @patch="patch"
       />
 
-      <label class="settings-label" style="margin-top:10px">Text (shift + enter for new line)</label>
+      <label class="jc-label jc-mt-lg">Text (shift + enter for new line)</label>
       <ContentEditor
         :key="activeFlap"
         :value="content.flapContents[activeFlap] ?? ''"
@@ -364,7 +362,7 @@ function blockAttrs(id: Section) {
       />
 
       <!-- Inside panel ------------------------------------------------------------ -->
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
       <PanelImageSettings
         v-model:active-panel="activeInsideFlap"
         side="inside"
@@ -384,31 +382,31 @@ function blockAttrs(id: Section) {
 
     <!-- 6. Spine -->
     <SettingsBlock v-bind="blockAttrs('spine')" label="▏Spine" @toggle="toggle">
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
 
-      <label class="settings-label">Top</label>
+      <label class="jc-label">Top</label>
       <ContentEditor :value="content.spineTopContent" placeholder="Mixtape title" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineTopContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Center</label>
+      <label class="jc-label jc-mt">Center</label>
       <ContentEditor :value="content.spineCenterContent" placeholder="Side A / Side B" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineCenterContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Bottom</label>
+      <label class="jc-label jc-mt">Bottom</label>
       <ContentEditor :value="content.spineBottomContent" placeholder="90 min" min-height="40px" :custom-font-names="customFontNames" @change="patch({ spineBottomContent: $event })" />
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
       
-      <label class="settings-label" style="margin-top:8px">Center</label>
+      <label class="jc-label jc-mt">Center</label>
       <ContentEditor :value="content.insideSpineContent ?? ''" placeholder="Spine inside..." min-height="40px" :custom-font-names="customFontNames" @change="patch({ insideSpineContent: $event })" />
     </SettingsBlock>
 
     <!-- 7. Back panel -->
     <SettingsBlock v-bind="blockAttrs('back')" label="◧ Back panel" @toggle="toggle">
-      <div class="side-indicator-divider-borderless"><span class="side-indicator-label">Outside</span></div>
-      <label class="settings-label">Left column (Side A)</label>
+      <div class="jc-side-divider-borderless"><span class="jc-side-label">Outside</span></div>
+      <label class="jc-label">Left column (Side A)</label>
       <ContentEditor :value="content.backLeftContent" placeholder="Side A tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backLeftContent: $event })" />
-      <label class="settings-label" style="margin-top:8px">Right column (Side B)</label>
+      <label class="jc-label jc-mt">Right column (Side B)</label>
       <ContentEditor :value="content.backRightContent" placeholder="Side B tracks..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ backRightContent: $event })" />
 
-      <div class="side-indicator-divider"><span class="side-indicator-label">Inside</span></div>
-      <label class="settings-label" style="margin-top:8px">Content</label>
+      <div class="jc-side-divider"><span class="jc-side-label">Inside</span></div>
+      <label class="jc-label jc-mt">Content</label>
       <ContentEditor :value="content.insideBackContent ?? ''" placeholder="Back panel inside..." min-height="80px" :custom-font-names="customFontNames" @change="patch({ insideBackContent: $event })" />
     </SettingsBlock>
 
@@ -425,9 +423,9 @@ function blockAttrs(id: Section) {
 
     <!-- 9. Export -->
     <SettingsBlock v-bind="blockAttrs('export')" label="⇪ Export" @toggle="toggle">
-      <label class="settings-label">Paper</label>
+      <label class="jc-label">Paper</label>
       <select
-        class="settings-select"
+        class="jc-select"
         :value="paperSize"
         @change="patch({ paperSize: ($event.target as HTMLSelectElement).value as JCardPaperSize })"
       >
@@ -439,15 +437,15 @@ function blockAttrs(id: Section) {
         The card is wider than this paper — the PDF will use a custom page instead.
       </p>
 
-      <label class="settings-checkbox-label" style="margin-top:8px">
+      <label class="jc-checkbox-label jc-mt">
         <input type="checkbox" :checked="!!content.showCutGuides" @change="patch({ showCutGuides: ($event.target as HTMLInputElement).checked })" />
         Show fold / cut guides
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="!!content.bleed" @change="patch({ bleed: ($event.target as HTMLInputElement).checked })" />
-        Add 3 mm bleed (mirrors the edges outward so an off cut shows no white)
+        Add 3 mm bleed (extends the edge colours outward so an off cut shows no white)
       </label>
-      <label class="settings-checkbox-label">
+      <label class="jc-checkbox-label">
         <input type="checkbox" :checked="exportInside" @change="patch({ exportInside: ($event.target as HTMLInputElement).checked })" />
         Include inside as page 2 (two-sided print)
       </label>
@@ -456,9 +454,9 @@ function blockAttrs(id: Section) {
       </p>
 
       <template v-if="exportInside">
-        <label class="settings-label" style="margin-top:6px">Printer flips the sheet on the</label>
+        <label class="jc-label jc-mt-sm">Printer flips the sheet on the</label>
         <select
-          class="settings-select"
+          class="jc-select"
           :value="duplexFlip"
           @change="patch({ duplexFlip: ($event.target as HTMLSelectElement).value as JCardDuplexFlip })"
         >
@@ -471,20 +469,292 @@ function blockAttrs(id: Section) {
         </p>
       </template>
 
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" :disabled="exporting" @click="handleExport">
+      <button class="btn btn-primary jc-btn-full jc-mt" :disabled="exporting" @click="handleExport">
         {{ exporting ? 'Generating...' : 'Export PDF' }}
       </button>
 
-      <p style="font-size:10px;color:var(--color-text-light);margin:8px 0 2px;font-family:var(--font-body);letter-spacing:0.5px">PRINT SETTINGS</p>
-      <ul style="font-size:10px;color:var(--color-text-light);margin:0;padding-left:14px;font-family:var(--font-body);line-height:1.5">
+      <p class="jc-print-note">PRINT SETTINGS</p>
+      <ul class="jc-print-list">
         <li>Paper: {{ paperLabel }}</li>
         <li>Scale: 100% / actual size — never "fit to page" or "shrink to printable area"</li>
         <li v-if="exportInside">Two-sided: on, flip on {{ duplexFlip }} edge (or feed page 1 back in by hand the same way)</li>
         <li v-else>Two-sided: off</li>
         <li>Print page 1 alone first and measure the 50 mm bar under the card before printing both sides</li>
         <li>Use card stock of 160–250 g/m² and cut on the crop marks, fold on the dashed guides</li>
-        <li v-if="content.bleed">The ghosted border around the card is the bleed; it is cut away</li>
+        <li v-if="content.bleed">The extra border outside the crop marks is the bleed; cut on the marks and it is trimmed off</li>
       </ul>
     </SettingsBlock>
   </div>
 </template>
+
+<style scoped>
+/* Settings panels — "punched plastic" SchWindow aesthetic */
+.jc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Text inputs */
+.jc-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 2px solid var(--color-text);
+  background: var(--color-white);
+  box-shadow: var(--bevel-in);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text);
+  box-sizing: border-box;
+  outline: none;
+  border-radius: 0;
+}
+
+.jc-input:focus {
+  background: rgba(212, 169, 53, 0.18);
+}
+
+/* Color swatch presets row */
+.jc-swatch-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.jc-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-text);
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+/* Range slider */
+.jc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  box-shadow: var(--bevel-in);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+}
+
+.jc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jc-range::-webkit-slider-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.jc-range::-moz-range-thumb {
+  width: 16px;
+  height: 20px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.jc-range::-moz-range-thumb:hover {
+  background: var(--color-mustard);
+}
+
+.jc-range::-moz-range-track {
+  background: var(--color-white);
+  border: none;
+}
+
+.jc-range-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--color-text);
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.jc-swatch.selected {
+  outline: 2px solid var(--color-mustard);
+  outline-offset: 1px;
+}
+
+/* Custom-colour swatch: a conic gradient behind a "+", with the real
+   <input type="color"> hidden next to it and opened by clicking the swatch. */
+.jc-swatch-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 0;
+  background: conic-gradient(#5b2838, #d4a935, #a8c4a2, #8fc9b7, #3d5a47, #b4a0c7, #5b2838);
+}
+
+.jc-swatch-plus {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 var(--color-text),
+    1px -1px 0 var(--color-text),
+    -1px 1px 0 var(--color-text),
+    1px 1px 0 var(--color-text);
+  pointer-events: none;
+}
+
+.jc-swatch-custom-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.jc-color-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.jc-side-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  padding: 0 2px;
+}
+
+.jc-side-divider {
+  border-top: 1.5px dashed rgba(0,0,0,0.15);
+  margin-top: 14px;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6;
+}
+
+.jc-side-divider-borderless {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6;
+}
+
+/* ═══════════════════════════════════════════════════════
+   JCardSettings — moved out of inline style attributes
+   ═══════════════════════════════════════════════════════ */
+
+/* Vertical rhythm between stacked controls inside a .jc-body. Three steps
+   cover every spacing the panel used inline. */
+.jc-mt-sm { margin-top: 6px; }
+
+.jc-mt    { margin-top: 8px; }
+
+.jc-mt-lg { margin-top: 10px; }
+
+/* ── Presets ── */
+.jc-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jc-preset-btn {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
+.jc-preset-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* ── Custom fonts ── */
+.jc-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.jc-font-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--color-text);
+  background: var(--color-paper);
+}
+
+.jc-font-tag {
+  font-family: var(--font-body);
+  font-size: 10px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.jc-font-warning {
+  font-family: var(--font-body);
+  font-size: 11px;
+  margin: 0 0 6px;
+  color: var(--color-accent);
+}
+
+/* Hidden <input type="file"> driven by a sibling button. */
+.jc-file-input {
+  display: none;
+}
+
+/* Full-width action button (font upload, export). */
+.jc-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Background ── */
+.jc-swatch-row--tight {
+  margin-bottom: 6px;
+}
+
+/* ── Export ── */
+.jc-print-note {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 8px 0 2px;
+  font-family: var(--font-body);
+  letter-spacing: 0.5px;
+}
+
+.jc-print-list {
+  font-size: 10px;
+  color: var(--color-text-light);
+  margin: 0;
+  padding-left: 14px;
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+</style>

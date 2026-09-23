@@ -186,7 +186,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
       <NavBar library>
         <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
         <span class="lp-nav-sep">/</span>
-        <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">Profile</span>
+        <span class="lp-nav-current">Profile</span>
       </NavBar>
 
       <div class="lib-header">
@@ -206,7 +206,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <button class="lp-btn lp-btn-plum" @click="ui.openAuth()">Sign In →</button>
       </div>
 
-      <p v-else-if="auth.loading || profileStore.loading" style="padding:40px;text-align:center">Loading…</p>
+      <p v-else-if="auth.loading || profileStore.loading" class="lib-page-loading">Loading…</p>
 
       <div v-else-if="profileStore.error || !profile" class="lib-error-state">
         <IconWarning class="lib-error-icon" aria-hidden="true" />
@@ -317,7 +317,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <!-- Content shortcuts -->
         <section class="lib-section">
           <div class="lib-section-head"><span>Your content</span></div>
-          <p class="pf-hint" style="margin-bottom:12px">
+          <p class="pf-hint pf-content-hint">
             Which mixtapes and J-cards appear on your profile is controlled per item with the Public / Private toggles in your library.
           </p>
           <div class="pf-links">
@@ -330,7 +330,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
         <section class="lib-section">
           <div class="lib-section-head"><span>Account</span></div>
           <div class="pf-privacy-row">
-            <p class="pf-hint" style="margin:0">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
+            <p class="pf-hint">Signed in as <strong>{{ auth.user?.email }}</strong>. Your mixtapes and J-cards stay saved in the cloud.</p>
             <button class="lp-btn lp-btn-plum" :disabled="signingOut" @click="signOut">
               <IconLogout v-if="!signingOut" class="icon-inline" aria-hidden="true" />
               {{ signingOut ? 'Signing out…' : 'Sign Out' }}

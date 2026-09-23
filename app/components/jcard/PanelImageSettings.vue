@@ -49,7 +49,7 @@ const fullLabel = computed(() =>
   props.side === 'inside' ? 'Fill panel with image' : 'Cover the full panel with the image',
 );
 
-const checkboxStyle = computed(() =>
+const checkboxClass = computed(() =>
   props.side === 'inside'
     ? 'panel-image-settings-checkbox-style inside'
     : 'panel-image-settings-checkbox-style',
@@ -114,13 +114,12 @@ function onBehindChange(checked: boolean) {
 </script>
 
 <template>
-  <div v-if="content.flaps > 1" class="settings-flap-tabs">
+  <div v-if="content.flaps > 1" class="jc-flap-tabs">
     <button
       v-for="i in content.flaps"
       :key="i - 1"
       type="button"
-      :class="`btn${activePanel === i - 1 ? ' active' : ''}`"
-      style="font-size:0.8rem;padding:4px 8px;min-width:0"
+      :class="`btn jc-flap-tab${activePanel === i - 1 ? ' active' : ''}`"
       @click="emit('update:activePanel', i - 1)"
     >
       {{ panelLabel(i - 1) }}
@@ -134,12 +133,12 @@ function onBehindChange(checked: boolean) {
     :card-id="cardId"
     @change="onImageChange"
   />
-  <div v-if="imageUrl" :style="checkboxStyle">
-    <label class="settings-checkbox-label">
+  <div v-if="imageUrl" :class="checkboxClass">
+    <label class="jc-checkbox-label">
       <input type="checkbox" :checked="imageFull" @change="onFullChange(($event.target as HTMLInputElement).checked)" />
       {{ fullLabel }}
     </label>
-    <label class="settings-checkbox-label">
+    <label class="jc-checkbox-label">
       <input type="checkbox" :checked="imageBehind" @change="onBehindChange(($event.target as HTMLInputElement).checked)" />
       Show text over image
     </label>
@@ -156,5 +155,19 @@ function onBehindChange(checked: boolean) {
   &.inside {
     margin-bottom: 8px;
   }
+}
+
+/* ── Panel content ── */
+.jc-flap-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.jc-flap-tab {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  min-width: 0;
 }
 </style>

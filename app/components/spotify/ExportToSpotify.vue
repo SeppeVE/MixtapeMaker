@@ -191,3 +191,81 @@ async function handleClick() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Spotify export ── */
+.export-spotify {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-spotify-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.export-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.export-status-label {
+  font-family: var(--font-display);
+  letter-spacing: 0.2px;
+}
+
+.export-disconnect {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-display);
+  opacity: 0.5;
+  text-decoration: underline;
+  margin-left: 2px;
+}
+
+.export-disconnect:hover { opacity: 0.9; }
+
+.export-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-skipped {
+  font-size: 10px;
+  opacity: 0.6;
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.export-error {
+  font-size: 11px;
+  color: #d4524a;
+  margin: 0;
+}
+
+.export-mode-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.export-mode-btn {
+  flex: 1;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.export-mode-btn--active {
+  opacity: 1;
+  background: var(--color-secondary);
+}
+</style>

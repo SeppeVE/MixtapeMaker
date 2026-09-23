@@ -75,21 +75,21 @@ async function handlePrint(card: JCard) {
     </div>
 
     <div v-if="!auth.user && library.allCards.length > 0" class="jcl-sync-banner">
-      <span style="display:inline-flex;align-items:center;gap:6px"><IconSave class="icon-inline" aria-hidden="true" /> Your cards are saved locally. Sign in to back them up to the cloud.</span>
+      <span class="jcl-banner-text"><IconSave class="icon-inline" aria-hidden="true" /> Your cards are saved locally. Sign in to back them up to the cloud.</span>
       <button class="btn" @click="ui.openAuth()">Sign In</button>
     </div>
 
     <p v-if="library.loading" class="jcard-library-empty">Loading…</p>
 
     <div v-if="!library.loading && library.error" class="jcl-error">
-      <span style="display:inline-flex;align-items:center;gap:6px"><IconWarning class="icon-inline" aria-hidden="true" /> {{ library.error }}</span>
+      <span class="jcl-banner-text"><IconWarning class="icon-inline" aria-hidden="true" /> {{ library.error }}</span>
       <button class="btn" @click="library.loadCards()">↻ Retry</button>
     </div>
 
     <div v-if="!library.loading && !library.error && library.allCards.length === 0" class="jcard-library-empty">
       <p>No J-cards yet.</p>
-      <button v-if="!auth.user" class="btn btn-primary" style="margin-top:12px" @click="ui.openAuth()">Sign in to save your work to the cloud</button>
-      <button class="btn btn-primary" style="margin-top:12px" @click="emit('newCard')">Create your first J-card</button>
+      <button v-if="!auth.user" class="btn btn-primary jcard-library-empty-btn" @click="ui.openAuth()">Sign in to save your work to the cloud</button>
+      <button class="btn btn-primary jcard-library-empty-btn" @click="emit('newCard')">Create your first J-card</button>
     </div>
 
     <div v-if="!library.loading && library.allCards.length > 0" class="jcl-grid">

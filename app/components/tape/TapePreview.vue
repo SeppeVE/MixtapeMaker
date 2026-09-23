@@ -215,3 +215,231 @@ function saveFor() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.tape-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Panel (SchWindow) ── */
+.preview-panel {
+  background: var(--color-sage);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+}
+
+.panel-titlebar {
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  padding: 5px 8px 4px;
+  border-bottom: 2px solid var(--color-text);
+}
+
+.panel-sage { background: var(--color-forest); }
+
+.panel-plum { background: var(--color-primary); }
+
+.panel-body {
+  padding: 10px;
+  background: var(--color-sage);
+}
+
+.panel-body-actions {
+  background: var(--color-paper);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Metadata ── */
+.cassette-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(42,30,40,.3);
+  font-size: 11px;
+}
+
+.meta-row:last-child { border-bottom: none; }
+
+.meta-key {
+  font-family: var(--font-display);
+  font-size: 14px;
+  opacity: 0.65;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text);
+}
+
+.meta-editable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.meta-editable:hover { color: var(--color-primary); }
+
+.meta-placeholder { opacity: 0.45; font-style: italic; }
+
+.meta-title-warning {
+  margin: -2px 0 4px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--color-warning);
+}
+
+.meta-input {
+  font-family: var(--font-body);
+  font-size: 10px;
+  background: var(--color-white);
+  border: 1.5px solid var(--color-text);
+  color: var(--color-text);
+  padding: 2px 5px;
+  box-shadow: var(--bevel-in);
+  flex: 1;
+  min-width: 0;
+}
+
+.meta-input:focus { outline: none; background: rgba(212,169,53,.12); }
+
+.meta-select {
+  font-family: var(--font-body);
+  font-size: 10px;
+  background: var(--color-white);
+  border: 1.5px solid var(--color-text);
+  color: var(--color-text);
+  padding: 2px 5px;
+  cursor: pointer;
+}
+
+.meta-select:focus { outline: none; }
+
+.action-btn-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.action-btn-secondary {
+  opacity: 0.75;
+}
+
+.action-btn-secondary:hover { opacity: 1; }
+
+.action-note {
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.3;
+  opacity: 0.7;
+  padding: 0 2px;
+  margin: -2px 0 2px;
+}
+
+.action-btn-divider {
+  border-top: 1px dashed rgba(42,30,40,.3);
+  margin: 2px 0;
+}
+
+/* ── Dubbing progress ── */
+.dubbing-panel {
+  background: var(--color-paper);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.dubbing-reel {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-forest);
+  border: 1.5px solid var(--color-text);
+  flex-shrink: 0;
+  animation: reel-spin 1.5s linear infinite;
+  position: relative;
+}
+
+.dubbing-reel::before {
+  content: '';
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: var(--color-paper);
+}
+
+.dubbing-info { flex: 1; }
+
+.dubbing-label { margin-bottom: 3px; }
+
+.dubbing-bar {
+  height: 5px;
+  background: var(--color-paper-dk);
+  border: 1px solid var(--color-text);
+}
+
+.dubbing-fill {
+  height: 100%;
+  width: 60%;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-forest) 0px, var(--color-forest) 3px,
+    var(--color-secondary) 3px, var(--color-secondary) 6px
+  );
+  animation: dub-progress 2s linear infinite;
+}
+
+/* ── Title meta row ── */
+.meta-untitled {
+  opacity: 0.75;
+}
+
+.meta-edit-hint {
+  opacity: 0;
+  font-size: 9px;
+  transition: opacity 0.15s;
+  margin-left: 2px;
+}
+
+.meta-editable:hover .meta-edit-hint { opacity: 0.5; }
+
+/* ── Side status (dot + label) ── */
+.side-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.side-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+  border: 1px solid rgba(42,30,40,.2);
+}
+</style>

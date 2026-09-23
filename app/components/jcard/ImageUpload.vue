@@ -67,7 +67,7 @@ const filename = computed(() =>
 
 <template>
   <div class="img-upload-root">
-    <span class="settings-label">{{ label }}</span>
+    <span class="jc-label">{{ label }}</span>
 
     <div
       :class="`img-upload-drop${dragOver ? ' drag-over' : ''}${currentUrl ? ' has-image' : ''}${uploading ? ' uploading' : ''}`"
@@ -84,7 +84,7 @@ const filename = computed(() =>
       <div class="img-upload-drop-text">
         <span v-if="uploading" class="img-upload-spinner">Uploading…</span>
         <template v-else-if="currentUrl">
-          <strong style="display:inline-flex;align-items:center;gap:4px"><IconCheck class="icon-inline" aria-hidden="true" /> {{ filename }}</strong>
+          <strong><IconCheck class="icon-inline" aria-hidden="true" /> {{ filename }}</strong>
           <span>Click or drag to replace</span>
         </template>
         <template v-else>
@@ -98,7 +98,7 @@ const filename = computed(() =>
         ref="inputRef"
         type="file"
         accept="image/*"
-        style="display:none"
+        class="img-upload-input"
         :disabled="uploading"
         @change="handleInput"
       />
@@ -116,3 +116,137 @@ const filename = computed(() =>
     <p v-if="error" class="img-upload-error">{{ error }}</p>
   </div>
 </template>
+
+<style scoped>
+/* Scoping also renames the generic `pulse` keyframe, so it stops being a
+   global identifier any other stylesheet could collide with. */
+.img-upload-root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Drop zone */
+.img-upload-drop {
+  aspect-ratio: 3 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px dashed var(--color-text);
+  padding: 12px;
+  cursor: pointer;
+  background-color: var(--color-paper-dk);
+  /* checkerboard dither pattern */
+  background-image:
+    url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect width='6' height='6' fill='%23DDD2B8'/%3E%3Crect width='3' height='3' fill='%23EFE8D6'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%23EFE8D6'/%3E%3C/svg%3E");
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+  transition: border-style 0.1s;
+}
+
+.img-upload-drop:hover {
+  border-style: solid;
+  background-color: rgba(212, 169, 53, 0.15);
+}
+
+.img-upload-drop.drag-over {
+  border-style: solid;
+  border-color: var(--color-mustard);
+  background-color: rgba(212, 169, 53, 0.2);
+}
+
+.img-upload-drop.has-image {
+  border-style: solid;
+  border-color: var(--color-accent);
+  aspect-ratio: unset;
+  min-height: 60px;
+  flex-direction: row;
+  padding: 8px 10px;
+  background-image: none;
+  background-color: var(--color-white);
+  gap: 10px;
+}
+
+.img-upload-drop.uploading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Thumbnail when image is set */
+.img-upload-thumb {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.img-upload-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-text-light);
+  min-width: 0;
+  flex: 1;
+}
+
+.img-upload-drop-text strong {
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.img-upload-hint {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+.img-upload-spinner {
+  font-style: italic;
+  color: var(--color-text-light);
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 0.5; }
+  to   { opacity: 1;   }
+}
+
+.img-upload-remove {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.img-upload-remove:hover {
+  background: var(--color-mustard);
+}
+
+.img-upload-error {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-warning);
+  background: rgba(91, 40, 56, 0.08);
+  border: 1.5px solid var(--color-warning);
+  padding: 4px 8px;
+}
+
+/* Hidden <input type="file"> driven by the drop zone. */
+.img-upload-input {
+  display: none;
+}
+</style>

@@ -160,97 +160,6 @@
   line-height: 1.5;
 }
 
-/* ── The whole chain ── */
-.gd-chain {
-  border: 2.5px solid var(--color-text);
-  box-shadow: var(--shadow);
-  background: var(--color-white);
-}
-
-.gd-chain-head {
-  background: var(--color-text);
-  color: var(--color-paper);
-  font-family: var(--font-display);
-  font-size: 14px;
-  letter-spacing: 1px;
-  padding: 6px 14px 4px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.gd-chain-count { opacity: 0.6; }
-
-.gd-chain-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.gd-chain-step {
-  padding: 16px 18px;
-  display: flex;
-  gap: 12px;
-  border-right: 1.5px solid rgba(42, 30, 40, 0.15);
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  line-height: 1.55;
-}
-.gd-chain-step:last-child { border-right: none; }
-.gd-chain-step strong { display: block; font-size: 13px; }
-
-.gd-chain-letter {
-  font-family: var(--font-display);
-  font-size: 18px;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--color-text);
-  box-shadow: 2px 2px 0 var(--color-text);
-}
-.gd-chain-letter--a { background: var(--color-seafoam); }
-.gd-chain-letter--b { background: var(--color-mustard); }
-.gd-chain-letter--c { background: var(--color-lavender); }
-
-/* ── In the app / In the room callouts ── */
-.gd-callouts {
-  display: flex;
-  gap: 20px;
-}
-
-.gd-callout {
-  flex: 1;
-  border: 2.5px solid var(--color-text);
-  box-shadow: var(--shadow-sm);
-  background: var(--color-white);
-}
-
-.gd-callout-head {
-  font-family: var(--font-display);
-  font-size: 15px;
-  letter-spacing: 1px;
-  padding: 6px 12px 4px;
-  color: var(--color-paper);
-}
-.gd-callout--forest .gd-callout-head { background: var(--color-forest); }
-.gd-callout--plum   .gd-callout-head { background: var(--color-plum); }
-
-.gd-callout-list {
-  list-style: none;
-  padding: 12px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.gd-callout-list li::before {
-  content: '· ';
-  opacity: 0.6;
-}
-
 /* ── Part dividers ── */
 .gd-part {
   display: flex;
@@ -365,53 +274,6 @@
 
 .gd-cta-btn { width: fit-content; }
 
-/* ── Rec level meter ── */
-.gd-rec-meter {
-  max-width: 420px;
-}
-
-.gd-rec-meter-label {
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: 2px;
-  opacity: 0.6;
-  margin-bottom: 6px;
-}
-
-.gd-rec-meter-track {
-  height: 18px;
-  background: var(--color-white);
-  border: 2px solid var(--color-text);
-  box-shadow: var(--bevel-in);
-  position: relative;
-  overflow: hidden;
-}
-
-.gd-rec-meter-fill {
-  position: absolute;
-  inset: 0;
-  width: 82%;
-  background: linear-gradient(to right, var(--color-forest) 0%, var(--color-forest) 70%, var(--color-mustard) 88%, var(--color-warning) 100%);
-}
-
-.gd-rec-meter-peak {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 82%;
-  width: 2px;
-  background: var(--color-text);
-}
-
-.gd-rec-meter-scale {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-display);
-  font-size: 12px;
-  opacity: 0.55;
-  margin-top: 4px;
-}
-
 /* ── Checklist ── */
 .gd-checklist {
   list-style: none;
@@ -436,28 +298,6 @@
   color: var(--color-primary);
   flex-shrink: 0;
   margin-top: 1px;
-}
-
-/* ── Warning callout ── */
-.gd-warning {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background: var(--color-white);
-  border: 2.5px solid var(--color-text);
-  border-left: 6px solid var(--color-mustard);
-  box-shadow: var(--shadow-sm);
-  padding: 14px 18px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.6;
-  opacity: 0.9;
-}
-
-.gd-warning-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-  color: var(--color-mustard);
 }
 
 /* ── FAQ accordion ── */
@@ -524,15 +364,6 @@
     align-items: center;
   }
   .gd-toc-label { width: 100%; }
-
-  .gd-chain-grid { grid-template-columns: 1fr; }
-  .gd-chain-step {
-    border-right: none;
-    border-bottom: 1.5px solid rgba(42, 30, 40, 0.15);
-  }
-  .gd-chain-step:last-child { border-bottom: none; }
-
-  .gd-callouts { flex-direction: column; }
 }
 
 /* ═══════════════════════════════════════════════════════

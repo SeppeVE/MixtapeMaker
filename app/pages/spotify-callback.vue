@@ -67,11 +67,24 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="error" style="padding:3rem;text-align:center;font-family:inherit">
-    <p style="margin-bottom:1rem;color:#d4524a">{{ error }}</p>
+  <div v-if="error" class="spotify-callback">
+    <p class="spotify-callback-error">{{ error }}</p>
     <button class="btn" @click="router.push('/mixtape')">Back to Editor</button>
   </div>
-  <div v-else style="padding:3rem;text-align:center;font-family:inherit">
+  <div v-else class="spotify-callback">
     <p>Connecting to Spotify...</p>
   </div>
 </template>
+
+<style scoped>
+.spotify-callback {
+  padding: 3rem;
+  text-align: center;
+  font-family: inherit;
+}
+
+.spotify-callback-error {
+  margin-bottom: 1rem;
+  color: #d4524a;
+}
+</style>

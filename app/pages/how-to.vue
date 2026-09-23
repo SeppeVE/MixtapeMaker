@@ -76,7 +76,7 @@ useHead({
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text)">How-to guide</span>
+      <span class="lp-nav-current">How-to guide</span>
     </NavBar>
 
     <header class="gd-header">

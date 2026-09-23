@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAsyncData } from '#app';
 import { useResizeObserver } from '@vueuse/core';
-import type { JCardPreviewRow, Profile } from '~/types';
-import { searchPublicJCards } from '~/utils/jcardDatabase';
+import type { CustomFont, JCardPreviewRow, Profile } from '~/types';
+import { loadPublicJCardFonts, searchPublicJCards } from '~/utils/jcardDatabase';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { SPINE_MM, FLAPS_MM } from '~/components/jcard/dimensions';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
@@ -67,6 +67,24 @@ const authorOf = (card: JCardPreviewRow) => (card.userId ? authors.value[card.us
 const loading = ref(false);
 const error = ref<string | null>(null);
 
+// Custom fonts per card id. The preview rows are trimmed of font payloads, so
+// they're fetched separately, client-side only, after the grid has painted.
+// Best-effort: a failed lookup just leaves the previews in the fallback font.
+// fontsRequest drops a response that lands after a newer page was requested.
+const fonts = ref<Record<string, CustomFont[]>>({});
+let fontsRequest = 0;
+async function fetchFonts(list: JCardPreviewRow[]) {
+  const request = ++fontsRequest;
+  fonts.value = {};
+  try {
+    const result = await loadPublicJCardFonts(list.map((c) => c.id));
+    if (request === fontsRequest) fonts.value = result;
+  } catch {
+    // keep the fallback font
+  }
+}
+onMounted(() => fetchFonts(cards.value));
+
 let debounce: ReturnType<typeof setTimeout> | null = null;
 
 function syncUrl() {
@@ -81,6 +99,7 @@ async function runSearch() {
     cards.value = rows;
     total.value = count;
     authors.value = await fetchAuthors(rows);
+    fetchFonts(rows);
   } catch {
     error.value = 'Failed to load public J-cards';
   } finally {
@@ -165,7 +184,7 @@ function onPageChange(p: number) {
             :to="`/jcard/${card.id}`"
             class="jce-grid-card"
           >
-            <JCardExplorePreview :content="card.content" />
+            <JCardExplorePreview :content="card.content" :fonts="fonts[card.id]" :font-scope="card.id" />
 
             <div class="jce-grid-info">
               <p class="jce-grid-title">{{ card.title || 'Untitled J-Card' }}</p>

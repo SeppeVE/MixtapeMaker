@@ -53,6 +53,38 @@ export async function registerCustomFonts(fonts: CustomFont[]): Promise<void> {
 }
 
 /**
+ * Family name a card's custom font is registered under on pages that show
+ * many cards at once (Explore). document.fonts is shared, so two cards that
+ * each uploaded a different "My Font" would otherwise collide.
+ */
+export function scopedFontFamily(name: string, scope: string): string {
+  return `jc-${scope}-${name}`;
+}
+
+/**
+ * Rewrite font-family references in (already sanitized) card HTML using
+ * `rename` (original family → scoped family). Client-only; returns the input
+ * untouched on the server or when there's nothing to rename.
+ */
+export function renameFontFamilies(html: string, rename: Map<string, string>): string {
+  if (!rename.size || typeof document === 'undefined' || !html.includes('font-family')) return html;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  tpl.content.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+    const families = el.style.fontFamily;
+    if (!families) return;
+    el.style.fontFamily = families
+      .split(',')
+      .map((part) => {
+        const renamed = rename.get(part.trim().replace(/^["']|["']$/g, ''));
+        return renamed ? `"${renamed.replace(/"/g, '\\"')}"` : part.trim();
+      })
+      .join(', ');
+  });
+  return tpl.innerHTML;
+}
+
+/**
  * Read a File as a base64 string (without the data-URL prefix).
  */
 export function readFileAsBase64(file: File): Promise<string> {

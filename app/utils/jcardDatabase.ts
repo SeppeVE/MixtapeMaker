@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { JCard, JCardContent, JCardPreviewRow } from '../types';
+import { CustomFont, JCard, JCardContent, JCardPreviewRow } from '../types';
 import { duplicateJCardImages } from './supabaseImages';
 
 interface DbJCard {
@@ -64,6 +64,23 @@ export async function listPublicJCardsForMixtape(mixtapeId: string): Promise<JCa
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return (data as DbJCard[]).map(dbToJCard);
+}
+
+/**
+ * Custom font payloads for a page of public cards, keyed by card id. The
+ * preview view strips these (they're large base64 blobs), so the Explore grid
+ * fetches them separately, client-side, after the page has painted. Cards
+ * without custom fonts are left out.
+ */
+export async function loadPublicJCardFonts(ids: string[]): Promise<Record<string, CustomFont[]>> {
+  if (!ids.length) return {};
+  const { data, error } = await supabase
+    .from('jcards').select('id, fonts:content->customFonts')
+    .in('id', ids).eq('is_public', true).eq('is_copy', false)
+    .not('content->customFonts', 'is', null);
+  if (error) throw error;
+  const rows = data as { id: string; fonts: CustomFont[] | null }[];
+  return Object.fromEntries(rows.filter((r) => r.fonts?.length).map((r) => [r.id, r.fonts!]));
 }
 
 /** Trimmed rows (no inside content, no custom fonts, no data: URLs) from the public_jcard_previews view. */

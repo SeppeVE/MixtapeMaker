@@ -130,13 +130,18 @@ Running locally without a Supabase project: start dev with dummy values, otherwi
 - [x] Navigating away and back doesn't leak. Over 3 cycles, dispose leaves 0 geometries and 0 canvases, and the re-mount matches the baseline (2 geometries, 4 textures). One texture always remains: three's module-level DFG lookup table, shared across renderers and never disposed by three. It's expected, and it goes away with the context.
 - [x] Other pages' bundles don't include three. In the production build, three sits in its own ~540 kB chunk that only the `/library/3d` page chunk imports, and only dynamically.
 
-**Human checkpoint.**
+**Human checkpoint.** ✅ Approved 2026-09-23.
 
 ## Stage 1: The physical objects
 
 Build the geometry procedurally in code, so every dimension stays editable in dimensions.ts.
 
-- [ ] **Reference photos.** Ask the human for 2–3 photos of a real Norelco case: closed, open, J-card in place.
+- [x] **Reference photos.** The human shared 6 photos in the Stage 0 session. They weren't committed (other people's product shots), so the notes below are the record:
+  - **Closed case (front / spine / back):** a thin clear-plastic border frames the J-card cover on the lid. The J-card spine shows through the case's hinge-side edge. On the back, the J-card back panel (tracklist) wraps behind the cassette over roughly the last third, and the cassette hubs and window show through the clear tray.
+  - **Open case:** the lid opens about 100–110°. The J-card sits in the lid, held by two small clips on the lid's inner face; the tray is the deep half.
+  - **Unfolded J-card + seated cassette:** fold order cover → spine → back → extra panel. The cassette sits flat in the tray, with small retaining ribs and guide tabs at the tray's open end.
+  - **Hinge (empty clear case, open ~90°):** the hinge is **two short round pins**, one at each end of the long hinge edge, not a full-length barrel. The lid's short end tabs sit on the *outside* of the tray's end walls, and the pins go through both. The pivot axis is the line between the two pins, about 3–4 mm in from the hinge edge (an estimate; the human checks it at the checkpoint), not the outer corner. A narrow upright strip along the hinge edge is the spine window. Inside the tray: two cross-shaped spindle posts that go into the cassette hubs, small cassette-retaining ribs, and snap nubs on the top edge that keep the case closed.
+  - **Look references:** a dark smoky cassette shell seen through a clear case. A studio render with crisp specular highlights on the plastic edges against a dark backdrop sets the lighting bar. One loose white cassette shows the label area, window, hubs and bottom edge.
 - [ ] **Case base.** Tray with walls, two spindle posts, ribs. RoundedBoxGeometry / ExtrudeGeometry with bevels.
 - [ ] **Case lid.** Separate group, pivot exactly on the hinge axis. Model the hinge knuckles.
 - [ ] **Cassette shell.** Screw holes, tape window, two toothed hubs, visible tape, label recess, write-protect tabs.
@@ -280,3 +285,4 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 ## Progress log
 
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
+- **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.

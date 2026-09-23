@@ -176,7 +176,7 @@ const printChecklist = computed<string[]>(() => {
     items.push('Two-sided: off');
   }
   items.push('Cut on the crop marks, fold on the dashed guides');
-  if (content.value.bleed) items.push('The ghosted border is the bleed — it is cut away');
+  if (content.value.bleed) items.push('The extra border outside the crop marks is the bleed — it is cut away');
   return items;
 });
 
@@ -443,7 +443,7 @@ function blockAttrs(id: Section) {
       </label>
       <label class="jc-checkbox-label">
         <input type="checkbox" :checked="!!content.bleed" @change="patch({ bleed: ($event.target as HTMLInputElement).checked })" />
-        Add 3 mm bleed (mirrors the edges outward so an off cut shows no white)
+        Add 3 mm bleed (extends the edge colours outward so an off cut shows no white)
       </label>
       <label class="jc-checkbox-label">
         <input type="checkbox" :checked="exportInside" @change="patch({ exportInside: ($event.target as HTMLInputElement).checked })" />
@@ -481,7 +481,7 @@ function blockAttrs(id: Section) {
         <li v-else>Two-sided: off</li>
         <li>Print page 1 alone first and measure the 50 mm bar under the card before printing both sides</li>
         <li>Use card stock of 160–250 g/m² and cut on the crop marks, fold on the dashed guides</li>
-        <li v-if="content.bleed">The ghosted border around the card is the bleed; it is cut away</li>
+        <li v-if="content.bleed">The extra border outside the crop marks is the bleed; cut on the marks and it is trimmed off</li>
       </ul>
     </SettingsBlock>
   </div>

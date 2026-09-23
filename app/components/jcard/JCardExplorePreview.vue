@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { JCardContent } from '~/types';
+import { computed, watch } from 'vue';
+import type { CustomFont, JCardContent } from '~/types';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { sanitizeJCardHtml } from '~/utils/jcardSanitize';
+import { registerCustomFonts, renameFontFamilies, scopedFontFamily } from '~/utils/fontManager';
 import { JCARD_HEIGHT_MM, SPINE_MM, FLAPS_MM } from './dimensions';
 
 // Live Explore-grid preview: the real Spine + CoverFlap parts at natural mm
@@ -10,11 +11,12 @@ import { JCARD_HEIGHT_MM, SPINE_MM, FLAPS_MM } from './dimensions';
 // once per grid by ExploreJCards.vue) so text is never re-flowed or resized —
 // line breaks match the full-size card exactly. Unlike JCardPreview, there is
 // no asset-gating spinner: background color and text paint immediately, and
-// images lazy-load in place. Custom fonts are intentionally NOT registered
-// here (registerCustomFonts writes to the shared document.fonts, and
-// same-named fonts from different cards would collide); text falls back to
-// the curated font stack.
-const props = defineProps<{ content: JCardContent }>();
+// images lazy-load in place. Custom fonts arrive separately (`fonts`, fetched
+// by ExploreJCards.vue after the page paints) and are registered under a
+// per-card family name (`fontScope`), because document.fonts is shared and
+// same-named fonts from different cards would otherwise collide. Until they
+// load, text paints in the fallback font.
+const props = defineProps<{ content: JCardContent; fonts?: CustomFont[]; fontScope?: string }>();
 
 const CARD_MM = SPINE_MM + FLAPS_MM[0];
 const PX_PER_MM = 96 / 25.4;
@@ -41,10 +43,24 @@ const isBlank = computed(() => {
   return !text && !c.coverImageUrl && !c.backgroundImageUrl;
 });
 
-const sanitizedCover = computed(() => sanitizeJCardHtml(content.value.flapContents[0] ?? ''));
-const sanitizedSpineTop = computed(() => sanitizeJCardHtml(content.value.spineTopContent));
-const sanitizedSpineCenter = computed(() => sanitizeJCardHtml(content.value.spineCenterContent));
-const sanitizedSpineBottom = computed(() => sanitizeJCardHtml(content.value.spineBottomContent));
+const scopedFonts = computed<CustomFont[]>(() =>
+  props.fonts?.length && props.fontScope
+    ? props.fonts.map((f) => ({ ...f, name: scopedFontFamily(f.name, props.fontScope!) }))
+    : [],
+);
+const fontRename = computed(() =>
+  new Map(props.fontScope ? (props.fonts ?? []).map((f) => [f.name, scopedFontFamily(f.name, props.fontScope!)]) : []),
+);
+
+watch(scopedFonts, (fonts) => {
+  if (import.meta.client && fonts.length) registerCustomFonts(fonts).catch(console.error);
+}, { immediate: true });
+
+const render = (html: string) => renameFontFamilies(sanitizeJCardHtml(html), fontRename.value);
+const sanitizedCover = computed(() => render(content.value.flapContents[0] ?? ''));
+const sanitizedSpineTop = computed(() => render(content.value.spineTopContent));
+const sanitizedSpineCenter = computed(() => render(content.value.spineCenterContent));
+const sanitizedSpineBottom = computed(() => render(content.value.spineBottomContent));
 
 const continuousBgUrl = computed(() =>
   previewContent.value.continuousBackground ? previewContent.value.backgroundImageUrl : undefined,

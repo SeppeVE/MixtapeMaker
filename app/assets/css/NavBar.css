@@ -220,7 +220,6 @@
 .lp-btn-mustard { background: var(--color-mustard); color: var(--color-text); }
 .lp-btn-paper   { background: var(--color-paper);   color: var(--color-text); }
 .lp-btn-forest  { background: var(--color-forest);  color: var(--color-paper); }
-.lp-btn-seafoam { background: var(--color-seafoam); color: var(--color-text); }
 
 /* Size modifiers. Scale: xs 14 → sm 16 → base 19 → md 22 → lg 26. */
 .lp-btn-xs {

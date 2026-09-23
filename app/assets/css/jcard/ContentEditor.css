@@ -188,4 +188,3 @@
 .ce-area ul,
 .ce-area ol               { padding-left: 16px; margin: 0 0 2px; }
 .ce-area li               { margin: 0; }
-.ProseMirror-selectednode             { outline: 2px solid var(--color-mustard); }

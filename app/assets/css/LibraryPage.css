@@ -199,12 +199,6 @@
   border-color: var(--color-text);
 }
 
-.lib-badge-synced {
-  background: var(--color-plum);
-  color: var(--color-paper);
-  border-color: var(--color-text);
-}
-
 .lib-badge-public {
   background: var(--color-sage);
   color: var(--color-text);
@@ -303,22 +297,6 @@
     align-items: flex-start;
     gap: 14px;
   }
-}
-
-/* ── Sync banner (signed-out with local cards) ── */
-.lib-sync-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 18px;
-  background: var(--color-seafoam);
-  border: 2px solid var(--color-text);
-  box-shadow: var(--shadow-sm);
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: var(--color-text);
-  flex-wrap: wrap;
 }
 
 /* ── Loading / empty states ── */
@@ -633,67 +611,6 @@
   opacity: 0.55;
 }
 
-/* ── J-Card cards ── */
-.lib-jcard-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--color-white);
-  border: 2px solid var(--color-text);
-  box-shadow: var(--shadow);
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: transform 0.07s, box-shadow 0.07s;
-  position: relative;
-}
-
-.lib-jcard-card:hover  { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
-.lib-jcard-card:active { transform: translate(2px, 2px); box-shadow: none; }
-
-.lib-jcard-swatch {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border: 2px solid var(--color-text);
-  box-shadow: var(--shadow-sm);
-}
-
-.lib-jcard-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.lib-jcard-name {
-  font-family: var(--font-display);
-  font-size: 17px;
-  color: var(--color-text);
-  letter-spacing: 0.5px;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lib-jcard-meta {
-  font-family: var(--font-body);
-  font-size: 10px;
-  color: var(--color-text-light);
-  margin-top: 3px;
-}
-
-.lib-jcard-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.lib-jcard-card:hover .lib-jcard-actions {
-  opacity: 1;
-}
-
 /* ── Shared action buttons ── */
 /* Bare ✕ — still used by the admin panel's notification and feedback rows. */
 .lib-delete-btn {
@@ -712,20 +629,6 @@
   flex-shrink: 0;
 }
 .lib-delete-btn:hover { color: var(--color-primary); }
-
-.lib-upload-btn {
-  font-family: var(--font-display);
-  font-size: 13px;
-  padding: 2px 8px 1px;
-  background: var(--color-forest);
-  color: var(--color-paper);
-  border: 1.5px solid var(--color-text);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.1s;
-}
-.lib-upload-btn:disabled { opacity: 0.5; cursor: default; }
-.lib-upload-btn:not(:disabled):hover { opacity: 0.85; }
 
 /* ── Skeleton loaders ── */
 @keyframes lib-shimmer {

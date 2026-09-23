@@ -47,11 +47,6 @@
   animation: lp-float-up 3.2s ease-in-out infinite;
 }
 
-.lp-cursor::after {
-  content: '_';
-  animation: lp-blink 1s step-end infinite;
-}
-
 /* ── tape strip decoration ── */
 .lp-tape-strip {
   position: relative;
@@ -98,18 +93,6 @@
   gap: 24px;
 }
 
-.lp-hero-eyebrow {
-  background: var(--color-mustard);
-  color: var(--color-text);
-  border: 2px solid var(--color-text);
-  box-shadow: 3px 3px 0 var(--color-text);
-  padding: 3px 14px 1px;
-  font-family: var(--font-display);
-  font-size: 18px;
-  letter-spacing: 2px;
-  width: fit-content;
-}
-
 .lp-hero-headline,
 .lp-section-title,
 .lp-step-title {
@@ -129,18 +112,6 @@
 .lp-hero-headline-accent {
   font-style: normal;
   color: var(--color-mustard);
-}
-
-.lp-hero-headline-kicker {
-  display: block;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--color-lavender);
-  text-shadow: none;
-  margin-bottom: 6px;
 }
 
 .lp-hero-sub {
@@ -318,31 +289,6 @@
 
 .lp-shadow-lg { box-shadow: 8px 8px 0 var(--color-text); }
 .lp-shadow     { box-shadow: 5px 5px 0 var(--color-text); }
-
-.lp-mock-titlebar {
-  color: var(--color-paper);
-  border-bottom: 2.5px solid var(--color-text);
-  padding: 5px 10px 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 0.5px;
-}
-
-.lp-mock-close {
-  width: 12px;
-  height: 12px;
-  background: var(--color-paper);
-  border: 1.5px solid var(--color-text);
-  font-size: 9px;
-  line-height: 12px;
-  text-align: center;
-  color: var(--color-text);
-  cursor: default;
-  flex-shrink: 0;
-}
 
 /* ── how it works ── */
 .lp-how {
@@ -804,9 +750,6 @@
   .lp-hero-headline {
     font-size: 52px;
     text-shadow: 4px 4px 0 var(--color-text);
-  }
-  .lp-hero-eyebrow {
-    font-size: 14px;
   }
   .lp-hero-sub {
     font-size: 14px;

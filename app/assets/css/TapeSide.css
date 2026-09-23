@@ -220,16 +220,6 @@
 }
 .tape-meter-tick-last { flex: 1; }
 
-.tape-meter-labels {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-display);
-  font-size: 11px;
-  opacity: 0.55;
-  line-height: 1;
-  margin-top: 3px;
-}
-
 .tape-sides-grid {
   display: grid;
   grid-template-columns: 1fr;

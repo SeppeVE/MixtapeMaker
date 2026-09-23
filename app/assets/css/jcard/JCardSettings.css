@@ -39,14 +39,6 @@
 }
 
 /* Alternate accent for variety */
-.jc-heading.accent-forest {
-  background: var(--color-accent);
-}
-.jc-heading.accent-mustard {
-  background: var(--color-mustard);
-  color: var(--color-text);
-}
-
 .jc-body {
   padding: 10px 12px;
   display: flex;
@@ -351,14 +343,6 @@
   margin-bottom: 6px;
 }
 
-.jc-color-input {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--color-text);
-  cursor: pointer;
-  padding: 0;
-}
-
 /* ── Panel content ── */
 .jc-flap-tabs {
   display: flex;
@@ -371,17 +355,6 @@
   font-size: 0.8rem;
   padding: 4px 8px;
   min-width: 0;
-}
-
-.jc-image-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.jc-image-actions--inside {
-  margin-bottom: 8px;
 }
 
 /* ── Export ── */

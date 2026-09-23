@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+// Screenshots and sanity checks for the 3D library (/library/3d).
+//
+// Needs the dev server running (`npm run dev`), because the window.__cassette3d
+// debug hooks only exist in dev. Screenshots go to .screenshots/ (git-ignored).
+//
+//   npm run screenshot:3d
+//   BASE_URL=http://localhost:3100 CYCLES=5 npm run screenshot:3d
+//   STATES=presented,lidOpen npm run screenshot:3d     (one shot per ?debugState)
+import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { chromium } from 'playwright-core';
+
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3100';
+const OUT_DIR = new URL('../.screenshots/', import.meta.url).pathname;
+const CYCLES = Number(process.env.CYCLES ?? 3);
+const STATES = (process.env.STATES ?? '').split(',').filter(Boolean);
+// Any Chromium works: CHROMIUM_PATH, a preinstalled one, or Playwright's own
+// (`npx playwright install chromium`).
+const EXECUTABLE = process.env.CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+
+// three.js keeps one module-level texture (the DFG lookup table for PBR
+// materials) that it never disposes; it's shared by every renderer and goes
+// away with the GL context, so it's allowed here.
+const SHARED_TEXTURES = 1;
+
+let failures = 0;
+function check(ok, label, detail = '') {
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? `  (${detail})` : ''}`);
+  if (!ok) failures++;
+}
+
+async function waitForScene(page) {
+  await page.waitForFunction(() => (window.__cassette3d?.info().render.calls ?? 0) > 0, null, { timeout: 30_000 });
+  // A few more frames so shadows and the environment have settled.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+}
+
+await mkdir(OUT_DIR, { recursive: true });
+const browser = await chromium.launch({
+  executablePath: EXECUTABLE,
+  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+page.on('pageerror', (err) => console.log(`page error: ${err.message}`));
+
+try {
+  // 1. Feature flag: without the override the route falls back to the 2D library
+  //    (unless NUXT_PUBLIC_LIBRARY3D=true on the server).
+  await page.goto(`${BASE_URL}/library/3d`, { waitUntil: 'networkidle' });
+  console.log(`info  /library/3d without ?3d=1 → ${new URL(page.url()).pathname}`);
+
+  // 2. The scene renders.
+  await page.goto(`${BASE_URL}/library/3d?3d=1`, { waitUntil: 'networkidle' });
+  await waitForScene(page);
+  const baseline = await page.evaluate(() => window.__cassette3d.info());
+  check(baseline.render.calls > 0, 'scene renders', JSON.stringify(baseline));
+  await page.screenshot({ path: `${OUT_DIR}stage0-scene.png` });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT_DIR}stage0-scene-mobile.png` });
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  // 3. Navigate away and back, client-side, and compare renderer memory.
+  for (let i = 0; i < CYCLES; i++) {
+    await page.getByRole('link', { name: 'Library', exact: true }).first().click();
+    await page.waitForURL((url) => url.pathname === '/library');
+    const afterLeave = await page.evaluate(() => ({
+      hooks: !!window.__cassette3d,
+      canvases: document.querySelectorAll('canvas').length,
+      lastDispose: window.__cassette3dLastDispose,
+    }));
+    check(
+      !afterLeave.hooks && afterLeave.canvases === 0 && afterLeave.lastDispose?.geometries === 0 && afterLeave.lastDispose?.textures <= SHARED_TEXTURES,
+      `cycle ${i + 1}: leaving frees everything`,
+      JSON.stringify(afterLeave),
+    );
+    await page.goBack();
+    await waitForScene(page);
+    const again = await page.evaluate(() => ({ ...window.__cassette3d.info(), canvases: document.querySelectorAll('canvas').length }));
+    check(
+      again.memory.geometries === baseline.memory.geometries && again.memory.textures === baseline.memory.textures && again.canvases === 1,
+      `cycle ${i + 1}: returning matches baseline`,
+      JSON.stringify(again),
+    );
+  }
+
+  // 4. Debug overlay.
+  await page.goto(`${BASE_URL}/library/3d?3d=1&debug=1`, { waitUntil: 'networkidle' });
+  await waitForScene(page);
+  check(await page.locator('.lil-gui').count() > 0, 'lil-gui shows with ?debug=1');
+  await page.screenshot({ path: `${OUT_DIR}stage0-debug.png` });
+
+  // 5. Optional per-state shots via ?debugState.
+  for (const state of STATES) {
+    await page.goto(`${BASE_URL}/library/3d?3d=1&debugState=${state}`, { waitUntil: 'networkidle' });
+    await waitForScene(page);
+    const got = await page.evaluate(() => window.__cassette3d.getState());
+    check(got === state, `debugState=${state}`, got);
+    await page.screenshot({ path: `${OUT_DIR}state-${state}.png` });
+  }
+} finally {
+  await browser.close();
+}
+
+console.log(`\nScreenshots in ${OUT_DIR}`);
+process.exit(failures ? 1 : 0);

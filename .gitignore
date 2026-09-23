@@ -40,3 +40,6 @@ dist-ssr
 .claude/settings.local.json
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Playwright screenshots for the 3D library (scripts/screenshot-3d.mjs)
+.screenshots/

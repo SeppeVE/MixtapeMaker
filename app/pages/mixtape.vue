@@ -170,3 +170,138 @@ function saveTitle() {
     <HomeFooter />
   </div>
 </template>
+
+<style scoped>
+/* Nav + workspace fill at least one screen (classic sticky-footer flex);
+   the footer is regular content after it, reachable by scrolling .editor. */
+.editor-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Workspace 3-column grid ── */
+.workspace {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 290px 1fr 270px;
+  gap: 13px;
+  padding: 13px 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.col-search,
+.col-deck,
+.col-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 0;
+}
+
+.col-preview {
+  overflow-y: auto;
+}
+
+/* ── Hello banners ── */
+.col-hello,
+.deck-side-label {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-mustard);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  box-shadow: var(--shadow);
+  padding: 4px 14px 2px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.deck-side-label {
+  background: var(--color-seafoam);
+  cursor: pointer;
+}
+
+.deck-side-label:hover { filter: brightness(1.06); }
+
+.deck-side-label:active { transform: translate(2px, 2px); box-shadow: none; }
+
+/* ── Deck toolbar ── */
+.deck-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.deck-toolbar-spacer { flex: 1; }
+
+.deck-tool-btn {
+  padding: 4px 14px 2px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.flipping .col-deck {
+  animation: tape-flip 0.48s cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+
+@media screen and (max-width: 1200px) {
+  .workspace {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+  .col-preview {
+      order: 1;
+    }
+
+  .col-deck {
+      grid-column: 1 / -1;
+      order: 2;
+    }
+}
+
+@media screen and (max-width: 768px) {
+  .editor-screen {
+      min-height: 0;
+    }
+
+  .workspace {
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      padding: 10px 10px 24px;
+    }
+
+  .col-search,
+    .col-deck,
+    .col-preview {
+      min-height: unset;
+    }
+
+  .col-preview {
+      order: 0;
+      /* natural height — TapePreview is not a scrollable container */
+    }
+
+  .col-search {
+      order: 1;
+      min-height: 0;
+    }
+
+  .col-deck {
+      order: 2;
+      /* fixed height so the internal song list can scroll */
+      height: 460px;
+      min-height: 0;
+    }
+}
+</style>

@@ -389,9 +389,9 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 - [ ] Overlay: title, side A/B track counts and durations.
 - [ ] Actions calling existing functions: Edit, Export PDF, Share, Copy (public tapes).
-- [ ] 2D/3D toggle; remember choice (**ASK FIRST**: localStorage or profile column).
+- [ ] 2D/3D toggle; remember choice. **Decided (human, 2026-09-24): localStorage** (no profile column).
 - [ ] Deep link `/library/3d?tape=<id>`.
-- [ ] Shelf takes mixtapes as a prop for later reuse on /user/{username} and Explore (only wire in if approved).
+- [ ] ~~Shelf takes mixtapes as a prop for later reuse on /user/{username} and Explore.~~ **Decided (human, 2026-09-24): no shelf on Explore or user pages**, so no need to prepare for it.
 
 **Acceptance:** everything doable in the 2D library is reachable from 3D.
 
@@ -453,6 +453,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 5 answers.** Remember the 2D/3D choice in localStorage; no shelf on Explore or /user pages.
 - **2026-09-24 · Stage 4 approved.** Stage 5 starts in a new session.
 - **2026-09-24 · Stage 4: stored spine thumbnails approved and built** (details under Stage 4, known issues). The shelf shows every saved card's real spine from a ~2 kB file. Render-cache test: 26/26. Stage 4 checkpoint still open for the rest (wood texture, timing/feel, 2D search/sort).
 - **2026-09-24 · Stage 4 built** (details under Stage 4): shelf, instanced cases with an atlas of spines, pull-out and fly-in in the tape machine, hover, search and sort in the 3D overlay, empty state, keyboard list, shelf tests in `npm run screenshot:3d`. **Waiting on the human checkpoint.** Open: CC0 wood texture (network), stored spine thumbnails (proposal, ASK FIRST), search/sort for the 2D library (not touched).

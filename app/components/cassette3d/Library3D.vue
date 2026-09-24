@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue';
 import { useCassetteScene } from '~/composables/useCassetteScene';
+import Overlay from './Overlay.vue';
 
 // Mounts the 3D canvas and the HTML overlay on top of it. Render it inside
 // <ClientOnly>: WebGL has nothing to render on the server. (Not a .client.vue:
 // Nuxt's client-only wrapper runs onMounted before template refs are bound.)
 const container = useTemplateRef<HTMLElement>('canvasHost');
-const { status, textureStatus } = useCassetteScene(container);
+const { status, textureStatus, tape, request, step, flip } = useCassetteScene(container);
 </script>
 
 <template>
   <div class="lib3d">
     <div ref="canvasHost" class="lib3d-canvas" />
+    <Overlay v-if="status === 'ready'" :tape="tape" @request="request" @step="step" @flip="flip" />
     <div v-if="status === 'ready' && textureStatus === 'loading'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">
       <template v-if="status === 'loading'">Loading 3D library…</template>
@@ -54,7 +56,7 @@ const { status, textureStatus } = useCassetteScene(container);
 .lib3d-hint {
   position: absolute;
   left: 50%;
-  bottom: 16px;
+  top: 16px;
   transform: translateX(-50%);
   font-family: var(--font-body);
   font-size: 13px;

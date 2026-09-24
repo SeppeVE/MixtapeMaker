@@ -80,7 +80,7 @@ Replace (optionally) the flat library with a 3D scene. Mixtapes stand as cassett
 ```
 app/pages/library/3d.vue                  # route, behind feature flag
 app/components/cassette3d/Library3D.vue   # mounts canvas + overlay (inside <ClientOnly>)
-app/components/cassette3d/Overlay.vue     # (Stage 3+) Vue UI on top of the canvas
+app/components/cassette3d/Overlay.vue     # buttons for every tape action + Back, live region, Escape
 app/composables/useCassetteScene.ts       # bridge: Vue <-> scene
 app/composables/useHeroTapeData.ts        # which tape to show (fixture / ?tape= / latest)
 app/utils/jcardRenders.ts                 # Supabase side of stored renders + render-after-save
@@ -88,7 +88,11 @@ scripts/test-render-cache.mjs             # render cache end to end against a mo
 app/utils/featureFlags.ts                 # isLibrary3DEnabled()
 app/lib/cassette3d/
   scene.ts            # renderer, camera, lights, env map, resize, render loop, dispose
-  states.ts           # TAPE_STATES (moves into tapeMachine.ts in Stage 3)
+  animation/
+    config.ts         # every duration, ease and pose of the tape machine (live-editable in ?debug=1)
+    tapeMachine.ts    # TAPE_STATES + the state machine (Stage 3)
+  interaction/
+    picking.ts        # hover glow + click actions on case / cassette / J-card
   debug.ts            # debug hooks
   dimensions.ts       # every physical dimension (cm) + where things sit in the case
   materials.ts        # case plastic (clear / smoke), shell, paper, label, …
@@ -124,7 +128,7 @@ scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 
 ### Debug hooks
 
-- `?debugState=<state>&tape=<id>` jumps straight to a state with no animation. *(Parsed and recorded. Nothing moves until Stage 3.)*
+- `?debugState=<state>&tape=<id>` jumps straight to a state with no animation. `?motion=reduce` forces the reduced-motion path.
 - `?debug=1` shows lil-gui and stats. Stage 1 added folders for the tape (view, turntable, lid angle, J-card fold, flap count, short back) and for the case plastic and shell materials.
 - Hero inspection (Stage 1): `?view=front|threeQuarter|spine|back|threeQuarterBack`, `?case=smoke`, `?flaps=1–6`, `?shortBack=1`, `?lid=<deg>`, `?fold=<0–1>`, `?turntable=0`.
 - In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. `window.__cassette3dLastDispose` records renderer memory after the last unmount.
@@ -243,18 +247,46 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Stage 3: Single-tape interaction
 
-- [ ] tapeMachine.ts: presented → lidOpen → cassetteOut → jcardOut → jcardUnfolded and back.
-- [ ] Lid opens ~100–110° with slight overshoot and settle.
-- [ ] Cassette lifts off spindles, slides out, rotates to face camera.
-- [ ] J-card slides from the lid to a reading position.
-- [ ] J-card unfolds panel by panel with staggered timing.
-- [ ] Raycast clicks on lid / cassette / J-card; hover cursor + subtle highlight.
-- [ ] Overlay buttons for the same actions plus Back (keyboard / screen readers).
-- [ ] Limited OrbitControls in jcardUnfolded (clamped, damped); reset on leave.
-- [ ] prefers-reduced-motion → short fades or instant cuts.
-- [ ] All durations/eases in one config object, tweakable in lil-gui.
+- [x] tapeMachine.ts: presented → lidOpen → cassetteOut → jcardOut → jcardUnfolded and back.
+  - **How it works:** a state is a set of numbers (turntable angle, lid angle, how far the cassette and the J-card are out, unfold progress, camera rig), and every frame each pose is worked out from those numbers. A transition is one GSAP timeline that tweens the numbers. Going back plays that same timeline in reverse, and a jump just sets the numbers, so nothing can be left half-way.
+  - **Parenting:** the cassette and J-card stay children of the lid; their "out" poses are computed in world space and converted into the lid's frame each frame.
+  - **Input:** a request while animating keeps going if it points further along, or turns the running timeline round if it points back. Requests further than one step walk there step by step.
+  - **Resting in `presented`**, the turntable (auto-spin, drag) and the Stage 1 debug hooks own the tape. Leaving, the machine takes over from wherever the turntable was.
+  - **Not yet:** `onShelf` / `pulledOut` come with the shelf (Stage 4), and count as `presented` until then.
+- [x] Lid opens ~100–110° with slight overshoot and settle: 105°, `back.out(1.6)`. At the same time the case turns −35°, so you see it like an open book with both halves visible.
+- [x] Cassette lifts off spindles, slides out, rotates to face camera. It lifts 2.2 cm straight out of the lid, then arcs to face the camera, side A towards you.
+- [x] J-card slides from the lid to a reading position. The cassette first moves aside to lie on the table, label up. The J-card then lifts out and arcs to the front, still folded as a J.
+- [x] J-card unfolds panel by panel with staggered timing. Each crease starts 45 % of its swing after the previous one (spine, back, then extra flaps). The card slides so it stays centred as it widens, and the camera pulls back to fit its full width.
+- [x] Raycast clicks on lid / cassette / J-card; hover cursor + subtle highlight. A press without a drag counts as a click. The hovered part gets a pointer cursor and a faint warm glow on its materials. What each part does depends on the state:
+  - closed case: opens it
+  - open: the cassette comes out, the J-card comes out (the cassette leaves first), the case closes
+  - …and so on back through the states.
+- [x] Overlay buttons for the same actions plus Back (keyboard / screen readers). Keyed on where the tape is *heading*, so they respond mid-animation. Escape = Back, and an `aria-live` line announces each state. Unfolded, there's also **Turn over**, which spins the card itself to show its inside.
+- [x] Limited OrbitControls in jcardUnfolded (clamped, damped); reset on leave. Polar 25°–110°, azimuth ±70° (never behind the card, into the case), zoom 0.45–1.4×, damping, no pan. On leave, the camera blends back to the rig (0.45 s) and a turned-over card turns back first.
+- [x] prefers-reduced-motion → short fades or instant cuts. The view fades out (140 ms), cuts to the target state and fades in; turning the card over is instant.
+- [x] All durations/eases in one config object, tweakable in lil-gui. That's `animation/config.ts`. `?debug=1` → **Tape machine** has buttons for each state, plus a Timing folder (turn, lid duration/delay/ease, cassette, J-card, unfold duration + stagger). Changes apply from the next transition.
 
-**Acceptance:** every state screenshotted; a Playwright test spams transitions and checks `getState()` + screenshot.
+**Acceptance:**
+
+- [x] Every state screenshotted, both jumped to (`state-*.png`) and animated to (`machine-*.png`). Also: mid-open, after the spam test, and the card turned over.
+- [x] Playwright (in `npm run screenshot:3d`). Each check waits until the tape is at rest, then confirms `getState()` is right and every animated number is exactly at that state's value (`poseError() === 0`). It covers:
+  - animated walk forward, then all the way back in one request
+  - reversal mid-animation
+  - **spam test**: 80 random requests / steps at random moments (`SPAM=80`); it must settle exactly on the last target
+  - overlay button, Escape, a real mouse click on the case
+  - turning the card over and folding everything away from there
+  - reduced motion
+  - The 3-cycle leak check still passes (8 textures per mount, all freed).
+- Bugs these tests caught and fixed:
+  - Starting a backward step fired `onComplete` immediately.
+  - Reversing before the first frame left the machine waiting forever: GSAP doesn't complete a zero-length move.
+  - Under automation, GSAP's lag smoothing slows timelines to a crawl on the software renderer. The debug hooks now switch it off when `navigator.webdriver` is set.
+
+**For the checkpoint (timing and feel):**
+- **Screenshots can't show motion:** please try it on desktop and phone (`/library/3d?3d=1&debug=1` for the timing sliders).
+- **Reversed ease:** the lid's overshoot ease also plays when closing, reversed: it opens a touch wider, then shuts. That comes from reusing one timeline both ways, as the plan asks. If it feels wrong, closing can get its own ease.
+- **Clicking the open case closes it.** Is that too easy to trigger by accident?
+- **Unfolded view:** the cassette lies on the table beside the card; the open case is hidden behind the card.
 
 **Human checkpoint:** timing and feel on desktop and phone.
 
@@ -344,6 +376,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
 - **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.
 - **2026-09-23 · Decision.** The 3D viewer only shows mixtapes that have a linked J-card (see Discovery).
+- **2026-09-24 · Step 3k run on the real project (human). Stage 3 built:** tape machine, picking, overlay, orbit, turn-over, reduced motion, tests (details under Stage 3). **Waiting on the human checkpoint** (timing and feel).
 - **2026-09-23 · Render cache approved + hinge change.**
   - Stored renders built as proposed (step 3k), with the hash-based version and viewer write-back described under Stage 2.
   - **Hinge (human request):** the cassette follows the hinge. Both halves hang off pivots on the pin axis. *First attempt (wrong):* the tray swung, carrying the cassette. *Corrected after the second photo set:* the cassette and the whole J-card ride in the **lid**, the lid swings by default, and the tray with the spindle posts stays behind empty. That also fixes the Stage 1 issue where the J-card spine and back flap swept through the cassette while opening (it's all one rigid unit now). `?moving=tray` (or the GUI) swings the tray instead.

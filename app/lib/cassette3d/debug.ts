@@ -4,7 +4,8 @@ import type { TapeData } from './tapeData';
 import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
 import type { CassetteScene } from './scene';
-import { isTapeState, type TapeState } from './states';
+import { ANIM } from './animation/config';
+import { HERO_STATES, isHeroState, isTapeState, type HeroState, type TapeState } from './animation/tapeMachine';
 
 /**
  * Debug hooks for tuning and for screenshot-based self-verification.
@@ -19,7 +20,8 @@ import { isTapeState, type TapeState } from './states';
  * Hero inspection params (Stage 1): ?view=front|threeQuarter|spine|back|threeQuarterBack,
  * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?moving=lid|tray, ?fold=<0–1>, ?turntable=0.
  *
- * State jumps are recorded but have nothing to move until Stage 3 adds the tape machine.
+ * States: onShelf and pulledOut arrive with the shelf (Stage 4); until then they
+ * count as 'presented'. ?motion=reduce forces the reduced-motion path.
  */
 
 export interface DebugParams {
@@ -69,9 +71,20 @@ function parseHeroParams(query: Record<string, QueryValue>): HeroOptions {
 }
 
 export interface Cassette3DDebugApi {
+  /** Jump straight to a state, no animation. */
   goTo: (state: TapeState) => void;
+  /** Animate to a state (queued / reversed like a click would be). */
+  request: (state: TapeState) => void;
+  /** One step forwards (+1) or back (−1). */
+  step: (dir: 1 | -1) => void;
   setTape: (id: string | null) => void;
-  getState: () => TapeState;
+  getState: () => HeroState;
+  getTarget: () => HeroState;
+  isAnimating: () => boolean;
+  /** 0 when every animated number is exactly at the resting state's value. */
+  poseError: () => number;
+  /** Swing the camera to the other face of the unfolded card. */
+  flip: () => Promise<void>;
   getTape: () => string | null;
   readonly renderer: CassetteScene['renderer'];
   /** Snapshot of renderer.info.memory / render, safe to JSON-serialise from Playwright. */
@@ -112,20 +125,37 @@ export async function installDebug(
 ): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
-  let state: TapeState = params.debugState ?? 'presented';
   let tape: string | null = params.tape;
+  const heroState = (s: TapeState): HeroState => (isHeroState(s) ? s : 'presented');
 
   if (isDev) {
     const { renderer } = handle;
+    // Under browser automation (headless, software GL) a frame can take over half a
+    // second, and GSAP's lag smoothing then crawls at ~33 ms per frame. Let the
+    // timelines follow the wall clock instead so tests finish in real time.
+    if (navigator.webdriver) {
+      const { gsap } = await import('gsap');
+      gsap.ticker.lagSmoothing(0);
+      cleanups.push(() => gsap.ticker.lagSmoothing(500, 33));
+    }
     window.__cassette3d = {
       goTo(next) {
         if (!isTapeState(next)) throw new Error(`Unknown tape state "${next}"`);
-        state = next;
+        hero.machine.jump(heroState(next));
       },
+      request(next) {
+        if (!isTapeState(next)) throw new Error(`Unknown tape state "${next}"`);
+        hero.machine.request(heroState(next));
+      },
+      step: (dir) => hero.machine.step(dir),
       setTape(id) {
         tape = id;
       },
-      getState: () => state,
+      getState: () => hero.machine.getState(),
+      getTarget: () => hero.machine.getTarget(),
+      isAnimating: () => hero.machine.isAnimating(),
+      poseError: () => hero.machine.poseError(),
+      flip: () => hero.machine.flip(),
       getTape: () => tape,
       renderer,
       info: () => ({
@@ -207,6 +237,20 @@ export async function installDebug(
     const relayout = () => hero.setJCardLayout({ flaps: settings.flaps, shortBack: settings.shortBack });
     tape.add(settings, 'flaps', 1, 6, 1).onChange(relayout);
     tape.add(settings, 'shortBack').onChange(relayout);
+
+    const states = gui.addFolder('Tape machine');
+    const actions = Object.fromEntries(HERO_STATES.map((st) => [st, () => hero.machine.request(st)]));
+    for (const st of HERO_STATES) states.add(actions, st).name(`→ ${st}`);
+    const timing = states.addFolder('Timing (next transition)').close();
+    timing.add(ANIM.open, 'turnDeg', -90, 90, 1).name('open: turn');
+    timing.add(ANIM.open, 'lidDuration', 0.1, 3, 0.05).name('open: lid s');
+    timing.add(ANIM.open, 'lidDelay', 0, 1.5, 0.05).name('open: lid delay');
+    timing.add(ANIM.open, 'lidEase', ['back.out(1.2)', 'back.out(1.6)', 'back.out(2.2)', 'power2.out', 'elastic.out(1,0.6)']).name('open: lid ease');
+    timing.add(ANIM.cassetteOut, 'duration', 0.1, 3, 0.05).name('cassette: s');
+    timing.add(ANIM.cassetteOut, 'lift', 0, 5, 0.1).name('cassette: lift cm');
+    timing.add(ANIM.jcardOut, 'duration', 0.1, 3, 0.05).name('J-card: s');
+    timing.add(ANIM.unfold, 'duration', 0.1, 4, 0.05).name('unfold: s');
+    timing.add(ANIM.unfold, 'stagger', 0, 1, 0.01).name('unfold: stagger');
 
     const plastic = hero.tape.materials.casePlastic;
     const mat = gui.addFolder('Case plastic');

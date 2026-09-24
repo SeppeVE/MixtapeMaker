@@ -1,6 +1,7 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
+import type { HeroState, TapeMachineStatus } from '~/lib/cassette3d/animation/tapeMachine';
 import { resolveHeroTape } from '~/composables/useHeroTapeData';
 import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
@@ -20,6 +21,8 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const status = ref<Cassette3DStatus>('loading');
   /** The J-card and label textures, which arrive after the scene is up. */
   const textureStatus = ref<TextureReport['status']>('idle');
+  /** Where the tape is in the tape machine, for the overlay. */
+  const tape = ref<TapeMachineStatus>({ state: 'presented', target: 'presented', animating: false });
 
   let handle: CassetteScene | null = null;
   let hero: Hero | null = null;
@@ -49,8 +52,13 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
         canWriteBack: (jcard) => !!auth.user && jcard.userId === auth.user.id && isCloudId(jcard.id),
         writeBack: (jcard, snapshot, version) => uploadJCardRender(jcard, snapshot, version),
       });
-      hero = createHero(handle, params.hero, snapshotSource);
+      hero = createHero(handle, params.hero, snapshotSource, {
+        reducedMotion: () => prefersReducedMotion(route.query.motion),
+        fade: (to, ms) => fadeCanvas(el, to, ms),
+      });
       hero.onTextureStatus((s) => { textureStatus.value = s; });
+      hero.machine.onChange((s) => { tape.value = s; });
+      if (params.debugState) hero.machine.jump(params.debugState === 'onShelf' || params.debugState === 'pulledOut' ? 'presented' : params.debugState);
       const cleanup = await debug.installDebug(handle, hero, params, import.meta.dev);
       if (unmounted) cleanup();
       else debugCleanup = cleanup;
@@ -76,7 +84,27 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
     debugCleanup = null;
   });
 
-  return { status, textureStatus };
+  return {
+    status,
+    textureStatus,
+    tape,
+    request: (state: HeroState) => hero?.machine.request(state),
+    step: (dir: 1 | -1) => hero?.machine.step(dir),
+    flip: () => hero?.machine.flip(),
+  };
+}
+
+function prefersReducedMotion(queryValue: unknown): boolean {
+  if (queryValue === 'reduce') return true;
+  if (queryValue === 'full') return false;
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Fade the canvas host (reduced motion: fade out, cut, fade in). */
+function fadeCanvas(el: HTMLElement, to: 'out' | 'in', ms: number): Promise<void> {
+  el.style.transition = `opacity ${ms}ms ease`;
+  el.style.opacity = to === 'out' ? '0' : '1';
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function hasWebGL2(): boolean {

@@ -1,4 +1,6 @@
+import { createTapeMachine, type HeroState, type TapeMachine, type TapeMachineOptions } from './animation/tapeMachine';
 import { CASE_LAYOUT } from './dimensions';
+import { createPicking, type Picking, type TapePart } from './interaction/picking';
 import { createHeroView, type HeroView, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
 import type { CaseHalf } from './objects/caseModel';
@@ -12,8 +14,9 @@ import { applyLabelTextures, labelStyleFor, type LabelTextureSet } from './textu
 import { createSnapshotSource, type SnapshotResult, type SnapshotSource, type WriteBackStatus } from './textures/snapshotSource';
 
 /**
- * Stage 1 content: one closed tape with a placeholder J-card on the hero turntable.
- * Stage 3 hands the tape to the tape machine; Stage 4 puts the shelf behind it.
+ * One tape on the hero turntable, driven by the tape machine (Stage 3): click
+ * or use the overlay to open it, take the cassette and the J-card out, and
+ * unfold the card. Stage 4 puts the shelf behind it.
  */
 export interface HeroOptions extends JCardOptions {
   tint: CaseTint;
@@ -62,6 +65,7 @@ export interface TextureReport {
 export interface Hero {
   tape: TapeModel;
   view: HeroView;
+  machine: TapeMachine;
   setLidAngle: (deg: number) => void;
   setMovingHalf: (half: CaseHalf) => void;
   setJCardFold: (amount: number) => void;
@@ -80,10 +84,31 @@ export function createHero(
   handle: CassetteScene,
   options: HeroOptions,
   snapshotSource: SnapshotSource = createSnapshotSource({ supabaseUrl: '' }),
+  machineOptions: TapeMachineOptions = {},
 ): Hero {
   const tape = createTape(options);
   const view = createHeroView(handle, { autoRotate: options.autoRotate && !options.view });
   view.turntable.add(tape.root);
+  const machine = createTapeMachine(handle, view, () => tape, machineOptions);
+
+  // What clicking each part does, by where the tape is (or is heading).
+  const CLICKS: Record<HeroState, Partial<Record<TapePart, HeroState>>> = {
+    presented: { case: 'lidOpen', cassette: 'lidOpen', jcard: 'lidOpen' },
+    lidOpen: { cassette: 'cassetteOut', jcard: 'jcardOut', case: 'presented' },
+    cassetteOut: { cassette: 'lidOpen', jcard: 'jcardOut' },
+    jcardOut: { jcard: 'jcardUnfolded', cassette: 'cassetteOut' },
+    jcardUnfolded: {},
+  };
+  const picking: Picking = createPicking({
+    canvas: handle.renderer.domElement,
+    camera: handle.camera,
+    targets: () => ({ case: [tape.case.tray, tape.case.lid], cassette: tape.cassette.root, jcard: tape.jcard.root }),
+    actionFor(part) {
+      const next = CLICKS[machine.getTarget()][part];
+      return next ? () => machine.request(next) : null;
+    },
+  });
+  machine.onChange(() => picking.refresh());
 
   let fold = options.fold;
   let jcardTextures: JCardTextureSet | null = null;
@@ -127,6 +152,7 @@ export function createHero(
   return {
     tape,
     view,
+    machine,
     setLidAngle(deg) {
       tape.case.setLidAngle(deg);
     },
@@ -204,6 +230,8 @@ export function createHero(
     dispose() {
       disposed = true;
       statusListener = null;
+      picking.dispose();
+      machine.dispose();
       clearTextures();
       view.dispose();
       tape.dispose();

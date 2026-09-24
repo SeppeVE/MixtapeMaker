@@ -6,7 +6,8 @@
 //
 //   npm run screenshot:3d
 //   BASE_URL=http://localhost:3100 CYCLES=5 npm run screenshot:3d
-//   STATES=presented,lidOpen npm run screenshot:3d     (one shot per ?debugState)
+//   STATES=presented,lidOpen npm run screenshot:3d     (which ?debugState shots; default: all)
+//   SPAM=80 npm run screenshot:3d                       (random requests in the spam test)
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
@@ -14,7 +15,9 @@ import { chromium } from 'playwright-core';
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3100';
 const OUT_DIR = new URL('../.screenshots/', import.meta.url).pathname;
 const CYCLES = Number(process.env.CYCLES ?? 3);
-const STATES = (process.env.STATES ?? '').split(',').filter(Boolean);
+const HERO_STATES = ['presented', 'lidOpen', 'cassetteOut', 'jcardOut', 'jcardUnfolded'];
+const STATES = (process.env.STATES ?? HERO_STATES.join(',')).split(',').filter(Boolean);
+const SPAM = Number(process.env.SPAM ?? 40);
 // Any Chromium works: CHROMIUM_PATH, a preinstalled one, or Playwright's own
 // (`npx playwright install chromium`).
 const EXECUTABLE = process.env.CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -141,6 +144,85 @@ try {
   const again = await page.evaluate(() => window.__cassette3d.loadFixture('1'));
   check(again.origin === 'memory', 'fixture 1 again: served from the snapshot cache', `${again.origin}, ${again.totalMs} ms`);
 
+  // Stage 3: the tape machine.
+  await page.evaluate(() => { window.__cassette3d.goTo('presented'); window.__cassette3d.setView('front'); });
+  const idle = (timeout = 30_000) => page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout });
+
+  // a) Walk forwards through every state, animated, then all the way back.
+  for (const state of HERO_STATES.slice(1)) {
+    await page.evaluate((s) => window.__cassette3d.request(s), state);
+    await idle();
+    const got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+    check(got.s === state && got.e < 1e-6, `animated to ${state}`, `state ${got.s}, pose error ${got.e}`);
+    await frames(page);
+    await page.screenshot({ path: `${OUT_DIR}machine-${state}.png` });
+  }
+  await page.evaluate(() => window.__cassette3d.request('presented'));
+  await idle();
+  let got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(got.s === 'presented' && got.e < 1e-6, 'all the way back to presented in one request', JSON.stringify(got));
+
+  // b) Mid-animation reversal: open, then close again 0.3 s in.
+  await page.evaluate(() => window.__cassette3d.request('lidOpen'));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT_DIR}machine-mid-open.png` });
+  await page.evaluate(() => window.__cassette3d.request('presented'));
+  await idle();
+  got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(got.s === 'presented' && got.e < 1e-6, 'reversed mid-animation, back at rest', JSON.stringify(got));
+
+  // c) Spam: random requests at random moments, then it must settle exactly on the last one.
+  const spam = await page.evaluate(async ({ states, n }) => {
+    const api = window.__cassette3d;
+    let last = 'presented';
+    for (let i = 0; i < n; i++) {
+      const r = Math.random();
+      if (r < 0.2) api.step(1);
+      else if (r < 0.35) api.step(-1);
+      else api.request(states[Math.floor(Math.random() * states.length)]);
+      last = api.getTarget();
+      await new Promise((res) => setTimeout(res, Math.random() * 250));
+    }
+    return last;
+  }, { states: HERO_STATES, n: SPAM });
+  await idle(60_000);
+  got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(got.s === spam && got.e < 1e-6, `spam test (${SPAM} random requests) settles on the last one`, `wanted ${spam}, ${JSON.stringify(got)}`);
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}machine-after-spam.png` });
+
+  // d) The overlay: its buttons drive the same machine.
+  await page.evaluate(() => window.__cassette3d.goTo('presented'));
+  await page.getByRole('button', { name: 'Open case' }).click();
+  await idle();
+  check(await page.evaluate(() => window.__cassette3d.getState()) === 'lidOpen', 'overlay button: Open case');
+  await page.keyboard.press('Escape');
+  await idle();
+  check(await page.evaluate(() => window.__cassette3d.getState()) === 'presented', 'Escape steps back');
+
+  // e) Clicking the case itself opens it; clicking the cassette takes it out.
+  await page.evaluate(() => { window.__cassette3d.goTo('presented'); window.__cassette3d.setView('front'); });
+  await frames(page);
+  const box = await page.locator('canvas').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await idle();
+  check(await page.evaluate(() => window.__cassette3d.getState()) === 'lidOpen', 'clicking the case opens it');
+
+  // f) The unfolded card (fixture 2 has an inside): turn it over, then fold everything away.
+  await page.evaluate(() => window.__cassette3d.loadFixture('2'));
+  await page.evaluate(() => window.__cassette3d.request('jcardUnfolded'));
+  await idle();
+  await page.evaluate(() => window.__cassette3d.flip());
+  await idle();
+  got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(got.s === 'jcardUnfolded' && got.e < 1e-6, 'turned the unfolded card over', JSON.stringify(got));
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}machine-jcardUnfolded-inside.png` });
+  await page.evaluate(() => window.__cassette3d.request('presented'));
+  await idle();
+  got = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(got.s === 'presented' && got.e < 1e-6, 'from the turned-over card back to presented', JSON.stringify(got));
+
   // Phone framing: the whole case must stay in view at every turntable angle.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -189,6 +271,15 @@ try {
     check(got === state, `debugState=${state}`, got);
     await page.screenshot({ path: `${OUT_DIR}state-${state}.png` });
   }
+
+  // 6. Reduced motion: a request becomes a quick fade and a cut.
+  await page.goto(`${BASE_URL}/library/3d?3d=1&motion=reduce&turntable=0`, { waitUntil: 'networkidle' });
+  await waitForScene(page);
+  const t0 = Date.now();
+  await page.evaluate(() => window.__cassette3d.request('jcardOut'));
+  await page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout: 10_000 });
+  const reduced = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(reduced.s === 'jcardOut' && reduced.e < 1e-6, 'reduced motion: straight to the state', `${Date.now() - t0} ms, ${JSON.stringify(reduced)}`);
 } finally {
   await browser.close();
 }

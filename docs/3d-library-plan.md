@@ -415,7 +415,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 **Checkpoint answers (human, 2026-09-24):** looks good; delete cutting back to the shelf is fine; ignore the dedication for now (the database doesn't store `dedicatedTo`, so cloud tapes never show it); add a public shelf (built on the user profile, above, which also gives Copy for public tapes its place).
 
-**Human checkpoint** for the public shelf.
+**Human checkpoint** for the public shelf. ✅ Approved 2026-09-24.
 
 ## Stage 6: Visual and audio polish
 
@@ -472,6 +472,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-24 · Stage 5 approved** (public shelf included). Stage 6 starts in a new session.
 
 - **2026-09-24 · Stage 5 checkpoint: approved, plus a public shelf.** Built `/user/{username}/3d` with copy / page / print on other people's tapes and a link from the profile page (details under Stage 5). `test:library3d` now 40 checks. **Waiting on the human checkpoint** for the public shelf.
 

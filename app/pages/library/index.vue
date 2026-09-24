@@ -11,6 +11,8 @@ import { formatDuration } from '~/utils/timeUtils';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { SUPPORT_URL } from '~/utils/supportPrompt';
 import { trackEvent } from '~/utils/analytics';
+import { isLibrary3DEnabled } from '~/utils/featureFlags';
+import { getLibraryView } from '~/utils/localStorage';
 import IconEye from '~icons/mdi/eye';
 import IconEyeOff from '~icons/mdi/eye-off';
 import IconCassette from '~icons/ph/cassette-tape';
@@ -24,12 +26,24 @@ import IconCoffee from '~icons/material-symbols/coffee-rounded';
 
 type Tab = 'mixtapes' | 'jcards';
 
+// With the 3D library on, /library opens whichever view was used last (localStorage).
+// Links to a tab (?tab=) and ?view=2d always get this page.
+definePageMeta({
+  middleware: (to) => {
+    if (import.meta.server || to.query.tab || to.query.view === '2d') return;
+    if (getLibraryView() !== '3d' || !isLibrary3DEnabled(useRuntimeConfig().public.library3d, to.query)) return;
+    return navigateTo({ path: '/library/3d', query: to.query['3d'] ? { '3d': to.query['3d'] } : {} }, { replace: true });
+  },
+});
+
 const auth = useAuthStore();
 const ui = useUiStore();
 const store = useMixtapeStore();
 const jcardLibrary = useJCardLibraryStore();
 const route = useRoute();
 const router = useRouter();
+
+const show3DToggle = computed(() => isLibrary3DEnabled(useRuntimeConfig().public.library3d, route.query));
 
 const activeTab = computed<Tab>(() => (route.query.tab === 'jcards' ? 'jcards' : 'mixtapes'));
 function setTab(tab: Tab) {
@@ -165,6 +179,7 @@ function newCard() {
             <div class="lib-page-eyebrow">◆ YOUR COLLECTION</div>
             <h1 class="lib-page-title">Library</h1>
           </div>
+          <LibraryViewToggle v-if="show3DToggle" current="2d" class="lib-view-toggle-2d" />
           <div class="lib-tabs">
             <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
               <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes

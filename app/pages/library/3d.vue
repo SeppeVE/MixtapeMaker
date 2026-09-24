@@ -11,6 +11,7 @@ definePageMeta({
 });
 
 useHead({ title: '3D Library · Mixtape Maker' });
+// The 2D/3D switch sits in the shelf's toolbar (see Overlay.vue).
 </script>
 
 <template>
@@ -18,9 +19,7 @@ useHead({ title: '3D Library · Mixtape Maker' });
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <NuxtLink to="/library" class="lp-nav-link">Library</NuxtLink>
-      <span class="lp-nav-sep">/</span>
-      <span class="lp-nav-current">3D</span>
+      <span class="lp-nav-current">Library</span>
     </NavBar>
     <div class="lib3d-stage">
       <ClientOnly>

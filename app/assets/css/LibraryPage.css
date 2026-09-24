@@ -68,6 +68,11 @@
 }
 
 /* ── Tabs ── */
+/* 2D ↔ 3D switch (only while the 3D library flag is on). */
+.lib-view-toggle-2d {
+  align-self: center;
+}
+
 .lib-tabs {
   display: flex;
   align-items: flex-end;

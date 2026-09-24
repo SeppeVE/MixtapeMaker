@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useEventListener } from '@vueuse/core';
 import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/tapeMachine';
 import type { ShelfSort } from '~/lib/cassette3d/library';
 import type { ShelfInfo } from '~/composables/useCassetteScene';
+import type { Mixtape } from '~/types';
+import type { TapeData } from '~/lib/cassette3d/tapeData';
+import { useAuthStore } from '~/stores/auth';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { useUiStore } from '~/stores/ui';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
+import LibraryViewToggle from './LibraryViewToggle.vue';
+import TapePanel from './TapePanel.vue';
 
 // Buttons for everything clicking the tape does, plus Back, so the 3D library
 // works from the keyboard and with a screen reader. Escape steps back. On the
 // shelf: search and sort, the hovered tape's title, and a list of the tapes for
-// keyboards and screen readers (it shows up when it gets focus).
+// keyboards and screen readers (it shows up when it gets focus), the 2D/3D switch,
+// a New menu, and the unsaved draft. Off the shelf: the tape's details and actions.
 const props = defineProps<{
   tape: TapeMachineStatus;
   shelf: ShelfInfo;
   hovered: number | null;
   selected: number | null;
+  selectedTape: TapeData | null;
 }>();
 const emit = defineEmits<{
   request: [state: TapeState];
@@ -24,10 +33,15 @@ const emit = defineEmits<{
   select: [index: number];
   highlight: [index: number | null];
   view: [search: string, sort: ShelfSort];
+  updated: [mixtape: Mixtape];
+  deleted: [mixtapeId: string];
+  saved: [mixtapeId: string];
 }>();
 
+const auth = useAuthStore();
 const store = useMixtapeStore();
 const ui = useUiStore();
+const router = useRouter();
 
 interface Action {
   label: string;
@@ -121,6 +135,29 @@ const countLabel = computed(() => {
   return shown === total ? `${total} ${word(total)}` : `${shown} of ${total} ${word(total)}`;
 });
 
+// --- The working draft, as the 2D library shows it: songs, but not in the cloud yet.
+const draft = computed(() => store.mixtape);
+const draftIsUnsaved = computed(() => {
+  const d = draft.value;
+  if (!props.shelf.source || props.shelf.source === 'seed') return false;
+  return (d.sideA.length > 0 || d.sideB.length > 0) && !props.shelf.mixtapeIds.includes(d.id);
+});
+async function saveDraft() {
+  if (!auth.user) {
+    ui.openAuth();
+    return;
+  }
+  const wasUntitled = isMixtapeUntitled(draft.value.title);
+  if (await store.save()) emit('saved', store.mixtape.id);
+  else if (wasUntitled) router.push('/mixtape');
+}
+
+// --- New menu ------------------------------------------------------------------------
+const menu = ref<HTMLDetailsElement | null>(null);
+function closeMenu() {
+  if (menu.value) menu.value.open = false;
+}
+
 useEventListener(window, 'keydown', (e: KeyboardEvent) => {
   if (e.key !== 'Escape' || props.tape.target === 'onShelf') return;
   const el = e.target as HTMLElement | null;
@@ -134,19 +171,40 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
     <p class="lib3d-sr" role="status" aria-live="polite">{{ announcement }}</p>
 
     <!-- Shelf toolbar -->
-    <div v-if="onShelf && shelf.status === 'ready' && hasTapes" class="lib3d-toolbar" role="search">
-      <input
-        v-model="search"
-        type="search"
-        class="lib3d-search"
-        placeholder="Search tapes, songs, artists"
-        aria-label="Search the shelf"
-      >
-      <select v-model="sort" class="lib3d-sort" aria-label="Sort the shelf">
-        <option v-for="s in SORTS" :key="s.value" :value="s.value">{{ s.label }}</option>
-      </select>
-      <span class="lib3d-count">{{ countLabel }}</span>
+    <div v-if="onShelf && shelf.status === 'ready'" class="lib3d-toolbar">
+      <LibraryViewToggle current="3d" dark />
+      <div v-if="hasTapes" class="lib3d-toolbar-search" role="search">
+        <input
+          v-model="search"
+          type="search"
+          class="lib3d-search"
+          placeholder="Search tapes, songs, artists"
+          aria-label="Search the shelf"
+        >
+        <select v-model="sort" class="lib3d-sort" aria-label="Sort the shelf">
+          <option v-for="s in SORTS" :key="s.value" :value="s.value">{{ s.label }}</option>
+        </select>
+        <span class="lib3d-count">{{ countLabel }}</span>
+      </div>
+      <details ref="menu" class="lib3d-menu">
+        <summary class="lib3d-menu-button">＋ New</summary>
+        <div class="lib3d-menu-items" @click="closeMenu">
+          <button type="button" @click="store.newMixtape()">New mixtape</button>
+          <button type="button" @click="store.openDesigner(null)">New J-card</button>
+          <NuxtLink :to="{ path: '/library', query: { tab: 'jcards' } }">All J-cards (2D)</NuxtLink>
+        </div>
+      </details>
     </div>
+
+    <!-- The tape off the shelf: details and actions -->
+    <TapePanel
+      v-if="selectedTape && shelf.status === 'ready'"
+      :key="selectedTape.mixtape.id"
+      :tape="selectedTape"
+      :source="shelf.source"
+      @updated="emit('updated', $event)"
+      @deleted="emit('deleted', $event)"
+    />
 
     <!-- Empty states -->
     <div v-if="shelf.status === 'ready' && !hasTapes" class="lib3d-empty" role="status">
@@ -187,9 +245,20 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
 
     <div class="lib3d-bottom">
       <!-- Signed out: the samples -->
+      <div v-if="onShelf && shelf.status === 'ready' && shelf.missingTape" class="lib3d-note" role="status">
+        <template v-if="shelf.signedIn">That tape isn't on your shelf. The shelf shows your mixtapes that have a J-card.</template>
+        <template v-else>Sign in to open that tape.</template>
+      </div>
       <div v-if="onShelf && shelf.status === 'ready' && shelf.source === 'samples' && !shelf.signedIn" class="lib3d-note">
         These are sample tapes. Sign in to see your own.
         <button type="button" class="btn" @click="ui.openAuth()">Sign in</button>
+      </div>
+      <div v-if="onShelf && draftIsUnsaved" class="lib3d-note lib3d-draft">
+        <span>Unsaved draft: <strong>{{ draft.title }}</strong></span>
+        <button type="button" class="btn" @click="store.loadMixtape(draft)">Open</button>
+        <button type="button" class="btn" :disabled="store.isSaving" @click="saveDraft">
+          {{ store.isSaving ? 'Saving…' : 'Save to cloud' }}
+        </button>
       </div>
       <p v-if="onShelf && caption" class="lib3d-caption" aria-hidden="true">
         <strong>{{ caption.title }}</strong> <span>{{ caption.meta }}</span>
@@ -231,7 +300,10 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
 }
 .lib3d-overlay button,
 .lib3d-overlay input,
-.lib3d-overlay select {
+.lib3d-overlay select,
+.lib3d-overlay a,
+.lib3d-overlay summary,
+.lib3d-menu-items {
   pointer-events: auto;
 }
 .lib3d-toolbar {
@@ -245,6 +317,20 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
   justify-content: center;
   gap: 8px;
 }
+.lib3d-toolbar-search {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+  min-width: 0;
+}
+.lib3d-menu {
+  position: relative;
+}
+.lib3d-menu-button,
 .lib3d-search,
 .lib3d-sort {
   font: inherit;
@@ -254,6 +340,47 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
   border: 1px solid rgba(242, 235, 217, 0.3);
   border-radius: 4px;
   padding: 6px 10px;
+}
+.lib3d-menu-button {
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lib3d-menu-button::-webkit-details-marker {
+  display: none;
+}
+.lib3d-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 4px 0;
+  background: rgba(20, 16, 13, 0.94);
+  border: 1px solid rgba(242, 235, 217, 0.3);
+  border-radius: 4px;
+}
+.lib3d-menu-items button,
+.lib3d-menu-items a {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.lib3d-menu-items button:hover,
+.lib3d-menu-items a:hover {
+  background: rgba(242, 235, 217, 0.12);
+}
+.lib3d-draft strong {
+  font-weight: normal;
+  text-decoration: underline;
 }
 .lib3d-search {
   flex: 1 1 200px;

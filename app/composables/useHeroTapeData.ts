@@ -23,6 +23,10 @@ export interface ShelfData {
   initial: { index: number; state: TapeState } | null;
   /** Loading your tapes failed. */
   error?: boolean;
+  /** Every mixtape id you have in the cloud, J-card or not (to spot an unsaved draft). */
+  mixtapeIds?: string[];
+  /** ?tape= asked for a tape that isn't on this shelf. */
+  missingTape?: boolean;
 }
 
 /**
@@ -31,7 +35,7 @@ export interface ShelfData {
  *   ?fixture=1|2|3   the samples, with that one presented
  *   signed in        your mixtapes that have a J-card, newest first; ?tape=<mixtape id>
  *                    presents that one
- *   signed out       the samples
+ *   signed out       the samples (?tape=fixture-<n> presents one)
  * ?debugState=<state> starts the picked tape (or the first one) in that state.
  */
 export async function resolveShelfTapes(query: LocationQuery, isDev: boolean): Promise<ShelfData> {
@@ -69,20 +73,34 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean): P
       const jcards = useJCardLibraryStore();
       const [mixtapes] = await Promise.all([loadMixtapes(auth.user.id), jcards.loadCards()]);
       const tapes = pairTapes(mixtapes, jcards.allCards);
-      const wanted = firstParam(query.tape);
-      let index: number | null = null;
-      if (wanted) {
-        index = tapes.findIndex((t) => t.mixtape.id === wanted);
-        if (index < 0) console.warn(`[cassette3d] Mixtape ${wanted} not found, or it has no J-card`);
-      }
-      return { tapes, source: 'cloud', signedIn: true, hasMixtapes: mixtapes.length > 0, initial: initialFor(index) };
+      const { index, missingTape } = findWanted(tapes, query);
+      return {
+        tapes,
+        source: 'cloud',
+        signedIn: true,
+        hasMixtapes: mixtapes.length > 0,
+        initial: initialFor(index),
+        mixtapeIds: mixtapes.map((m) => m.id),
+        missingTape,
+      };
     } catch (err) {
       console.error('[cassette3d] Could not load your mixtapes', err);
       return { tapes: [], source: 'cloud', signedIn: true, hasMixtapes: false, initial: null, error: true };
     }
   }
   const { sampleTapes } = await import('~/lib/cassette3d/fixtures');
-  return { tapes: sampleTapes(), source: 'samples', signedIn: false, hasMixtapes: false, initial: initialFor(null) };
+  const tapes = sampleTapes();
+  const { index, missingTape } = findWanted(tapes, query);
+  return { tapes, source: 'samples', signedIn: false, hasMixtapes: false, initial: initialFor(index), mixtapeIds: [], missingTape };
+}
+
+/** The tape ?tape=<mixtape id> asks for, if it's on the shelf. */
+function findWanted(tapes: TapeData[], query: LocationQuery): { index: number | null; missingTape: boolean } {
+  const wanted = firstParam(query.tape);
+  if (!wanted) return { index: null, missingTape: false };
+  const index = tapes.findIndex((t) => t.mixtape.id === wanted);
+  if (index < 0) console.warn(`[cassette3d] Mixtape ${wanted} not found, or it has no J-card`);
+  return { index: index < 0 ? null : index, missingTape: index < 0 };
 }
 
 export async function loadFixture(name: string): Promise<TapeData | null> {

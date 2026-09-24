@@ -1,5 +1,7 @@
-import { onBeforeUnmount, onMounted, ref, shallowRef, type Ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, triggerRef, watch, type Ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import type { Mixtape } from '~/types';
+import type { TapeData } from '~/lib/cassette3d/tapeData';
 import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
 import type { Library, ShelfSort } from '~/lib/cassette3d/library';
 import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/tapeMachine';
@@ -29,6 +31,10 @@ export interface ShelfInfo {
   entries: ShelfEntry[];
   /** Tapes on the shelf right now (search / sort), as indices into `entries`. */
   order: number[];
+  /** Every mixtape id you have in the cloud, J-card or not. */
+  mixtapeIds: string[];
+  /** The URL asked for a tape (?tape=) that isn't on this shelf. */
+  missingTape: boolean;
 }
 
 /**
@@ -37,6 +43,7 @@ export interface ShelfInfo {
  */
 export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const route = useRoute();
+  const router = useRouter();
   const auth = useAuthStore();
   const supabaseUrl = String(useRuntimeConfig().public.supabaseUrl ?? '');
   const status = ref<Cassette3DStatus>('loading');
@@ -46,9 +53,25 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const tape = ref<TapeMachineStatus>({ state: 'presented', target: 'presented', animating: false });
   const shelf = shallowRef<ShelfInfo>({
     status: 'loading', source: null, signedIn: false, hasMixtapes: false, error: false, entries: [], order: [],
+    mixtapeIds: [], missingTape: false,
   });
   const hovered = ref<number | null>(null);
   const selected = ref<number | null>(null);
+  /** The tapes on the shelf, shared with the library (edited in place, then triggered). */
+  const tapes = shallowRef<TapeData[]>([]);
+  /** The tape off the shelf (or on its way off), for the overlay's details and actions. */
+  const selectedTape = computed(() => {
+    void tapes.value;
+    return selected.value !== null && tape.value.target !== 'onShelf' ? tapes.value[selected.value] ?? null : null;
+  });
+  let view: { search: string; sort: ShelfSort } = { search: '', sort: 'updated' };
+
+  const toEntries = (list: TapeData[]): ShelfEntry[] => list.map((t, index) => ({
+    index,
+    id: t.mixtape.id,
+    title: t.mixtape.title,
+    meta: `C-${t.mixtape.cassetteLength} · ${t.mixtape.sideA.length + t.mixtape.sideB.length} tracks`,
+  }));
 
   let handle: CassetteScene | null = null;
   let hero: Hero | null = null;
@@ -93,7 +116,10 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       library = createLibrary(handle, hero, {
         supabaseUrl,
         onHover: (i) => { hovered.value = i; },
-        onSelect: (i) => { selected.value = i; },
+        onSelect: (i) => {
+          selected.value = i;
+          if (i !== null && shelf.value.missingTape) shelf.value = { ...shelf.value, missingTape: false };
+        },
         onOrder: (order) => { shelf.value = { ...shelf.value, order }; },
       });
       // Look at the shelf while the tapes load.
@@ -105,26 +131,61 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
 
       const data = await resolveShelfTapes(route.query, import.meta.dev);
       if (unmounted || !library) return;
+      tapes.value = data.tapes;
+      // Synchronously up to the tape it takes off the shelf; the spines load after.
+      const loading = library.setTapes(data.tapes, data.initial);
       shelf.value = {
         status: 'ready',
         source: data.source,
         signedIn: data.signedIn,
         hasMixtapes: data.hasMixtapes,
         error: !!data.error,
-        entries: data.tapes.map((t, index) => ({
-          index,
-          id: t.mixtape.id,
-          title: t.mixtape.title,
-          meta: `C-${t.mixtape.cassetteLength} · ${t.mixtape.sideA.length + t.mixtape.sideB.length} tracks`,
-        })),
+        entries: toEntries(data.tapes),
         order: shelf.value.order,
+        mixtapeIds: data.mixtapeIds ?? [],
+        missingTape: !!data.missingTape,
       };
-      await library.setTapes(data.tapes, data.initial);
+      await loading;
     } catch (err) {
       console.error('[cassette3d] Failed to start the 3D scene', err);
       status.value = 'error';
     }
   });
+
+  // The URL names the tape that's off the shelf (?tape=<mixtape id>), so a reload or a
+  // shared link comes back to it. Replaced, not pushed: Back leaves the library.
+  watch([selectedTape, () => shelf.value.status], ([t, s]) => {
+    if (s !== 'ready' || unmounted) return;
+    const id = t?.mixtape.id;
+    if ((route.query.tape ?? undefined) === id) return;
+    void router.replace({ query: { ...route.query, tape: id } });
+  });
+
+  /** A tape's mixtape changed (made public, shared): update it everywhere it's shown. */
+  function updateMixtape(mixtape: Mixtape) {
+    const i = tapes.value.findIndex((t) => t.mixtape.id === mixtape.id);
+    if (i < 0) return;
+    // In place: the library holds the same array.
+    tapes.value[i] = { ...tapes.value[i]!, mixtape };
+    triggerRef(tapes);
+    shelf.value = { ...shelf.value, entries: toEntries(tapes.value) };
+  }
+
+  /** A tape was deleted: it leaves the shelf (a cut back to the shelf if it was out). */
+  async function removeTape(mixtapeId: string) {
+    if (!library) return;
+    const next = tapes.value.filter((t) => t.mixtape.id !== mixtapeId);
+    tapes.value = next;
+    shelf.value = {
+      ...shelf.value,
+      entries: toEntries(next),
+      mixtapeIds: shelf.value.mixtapeIds.filter((id) => id !== mixtapeId),
+      hasMixtapes: shelf.value.hasMixtapes && shelf.value.mixtapeIds.length > 1,
+    };
+    const loading = library.setTapes(next);
+    library.setView(view.search, view.sort);
+    await loading;
+  }
 
   onBeforeUnmount(() => {
     unmounted = true;
@@ -147,12 +208,22 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
     shelf,
     hovered,
     selected,
+    selectedTape,
+    updateMixtape,
+    removeTape,
+    /** A mixtape saved from here (the draft): it's in the cloud now. */
+    addMixtapeId: (id: string) => {
+      if (!shelf.value.mixtapeIds.includes(id)) shelf.value = { ...shelf.value, mixtapeIds: [...shelf.value.mixtapeIds, id], hasMixtapes: true };
+    },
     request: (state: TapeState) => hero?.machine.request(state),
     step: (dir: 1 | -1) => hero?.machine.step(dir),
     flip: () => hero?.machine.flip(),
     select: (index: number) => library?.select(index),
     highlight: (index: number | null) => library?.highlight(index),
-    setShelfView: (search: string, sort: ShelfSort) => library?.setView(search, sort),
+    setShelfView: (search: string, sort: ShelfSort) => {
+      view = { search, sort };
+      library?.setView(search, sort);
+    },
   };
 }
 

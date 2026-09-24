@@ -154,6 +154,27 @@ export const setSpotifyExportMode = (mode: SpotifyExportMode): void => {
   } catch { /* ignore */ }
 };
 
+// ── Library view preference (2D list or 3D shelf) ───────────────────────────
+const LIBRARY_VIEW_KEY = 'library-view';
+
+export type LibraryView = '2d' | '3d';
+
+export const getLibraryView = (): LibraryView => {
+  if (!isClient) return '2d';
+  try {
+    return localStorage.getItem(LIBRARY_VIEW_KEY) === '3d' ? '3d' : '2d';
+  } catch {
+    return '2d';
+  }
+};
+
+export const setLibraryView = (view: LibraryView): void => {
+  if (!isClient) return;
+  try {
+    localStorage.setItem(LIBRARY_VIEW_KEY, view);
+  } catch { /* ignore */ }
+};
+
 // ── JCard local storage ──────────────────────────────────────────────────────
 const JCARDS_KEY = 'jcards';
 

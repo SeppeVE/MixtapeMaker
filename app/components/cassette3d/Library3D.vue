@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { useTemplateRef } from 'vue';
+import { useTemplateRef, watch } from 'vue';
 import { useCassetteScene } from '~/composables/useCassetteScene';
+import { setLibraryView } from '~/utils/localStorage';
 import Overlay from './Overlay.vue';
 
 // Mounts the 3D canvas and the HTML overlay on top of it. Render it inside
@@ -8,9 +9,14 @@ import Overlay from './Overlay.vue';
 // Nuxt's client-only wrapper runs onMounted before template refs are bound.)
 const container = useTemplateRef<HTMLElement>('canvasHost');
 const {
-  status, textureStatus, tape, shelf, hovered, selected,
-  request, step, flip, select, highlight, setShelfView,
+  status, textureStatus, tape, shelf, hovered, selected, selectedTape,
+  request, step, flip, select, highlight, setShelfView, updateMixtape, removeTape, addMixtapeId,
 } = useCassetteScene(container);
+
+// No WebGL 2 here: /library shouldn't keep sending this browser to the 3D view.
+watch(status, (s) => {
+  if (s === 'unsupported') setLibraryView('2d');
+});
 </script>
 
 <template>
@@ -22,12 +28,16 @@ const {
       :shelf="shelf"
       :hovered="hovered"
       :selected="selected"
+      :selected-tape="selectedTape"
       @request="request"
       @step="step"
       @flip="flip"
       @select="select"
       @highlight="highlight"
       @view="setShelfView"
+      @updated="updateMixtape"
+      @deleted="removeTape"
+      @saved="addMixtapeId"
     />
     <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">Fetching your tapes…</div>
     <div v-else-if="status === 'ready' && textureStatus === 'loading' && tape.target !== 'onShelf'" class="lib3d-hint" role="status">Printing the J-card…</div>
@@ -36,11 +46,11 @@ const {
       <template v-else-if="status === 'contextLost'">The 3D view lost its graphics context. It will resume when the browser restores it.</template>
       <template v-else-if="status === 'unsupported'">
         Your browser doesn't support WebGL 2, so the 3D library can't run here.
-        <NuxtLink to="/library">Open the regular library</NuxtLink>
+        <NuxtLink :to="{ path: '/library', query: { view: '2d' } }">Open the regular library</NuxtLink>
       </template>
       <template v-else>
         Something went wrong starting the 3D library.
-        <NuxtLink to="/library">Open the regular library</NuxtLink>
+        <NuxtLink :to="{ path: '/library', query: { view: '2d' } }">Open the regular library</NuxtLink>
       </template>
     </div>
   </div>
@@ -79,6 +89,12 @@ const {
   color: var(--color-paper);
   opacity: 0.7;
   pointer-events: none;
+}
+@media (max-width: 719px) {
+  /* Below the folded tape panel. */
+  .lib3d-hint {
+    top: 64px;
+  }
 }
 .lib3d-notice a {
   display: block;

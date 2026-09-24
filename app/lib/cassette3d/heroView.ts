@@ -249,7 +249,9 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
     startOrbit(azimuthDeg) {
       if (orbit) return;
       blend = null;
-      rigPose();
+      // Start from the rig's pose: after a jump (reduced motion, ?debugState) the camera
+      // hasn't followed the rig yet, it only does that on the next frame.
+      placeCamera();
       orbit = new OrbitControls(camera, canvas);
       orbit.target.copy(target);
       orbit.enableDamping = true;

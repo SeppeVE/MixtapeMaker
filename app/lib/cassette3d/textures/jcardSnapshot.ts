@@ -175,10 +175,12 @@ export function collectFontFamilies(content: JCardContent): string[] {
     content.backRightContent,
     content.insideSpineContent ?? '',
     content.insideBackContent ?? '',
-  ].join('\n');
+  ].join('\n')
+    // The editor stores quoted names as &quot;Lady Starlight&quot;: decode first, or the ';' ends the match.
+    .replace(/&quot;/g, "'");
   const families = new Set<string>();
   for (const m of html.matchAll(/font-family:\s*([^;"]+)/gi)) {
-    for (const part of m[1]!.replace(/&quot;/g, '"').split(',')) {
+    for (const part of m[1]!.split(',')) {
       const name = part.trim().replace(/^["']|["']$/g, '');
       if (name && !/^(serif|sans-serif|monospace|cursive|fantasy|system-ui|inherit|initial)$/i.test(name)) families.add(name);
     }

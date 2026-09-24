@@ -235,11 +235,17 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 **Acceptance:** for 3 real mixtapes, correct J-card on the lid, readable spine, correct label; sharp text at hero distance.
 
 - [x] With the 3 **fixtures** (`.screenshots/tape{1,2,3}-*.png`): the J-card is on the lid, the spine reads, the back flap shows through the tray, and labels A/B are correct. The cover close-up is sharp. Flat outside/inside shots check panel mapping, including a continuous background running across panels and the mirrored inside face. The script checks each fixture: textures ready, every font loaded, every image fetched with CORS, and the cache hit.
-- [ ] With **3 real mixtapes**: waiting on real rows from the human (or a signed-in run).
+- [ ] With **3 real mixtapes**: 1 of 3 checked (below); still needs two more cards, and the real background images.
+  - **Real card 1** ("Yell along songs", 2 flaps, bleed, two uploaded fonts, background photos outside and inside). The human pasted its content JSON; it's kept out of git and rendered locally through `showTape`. Results:
+    - Both uploaded fonts (TTF and OTF) load and render: cover, spine, track list.
+    - The panels map correctly outside and inside. The inside is blank as expected: its only text sits in flap 3, left over from when the card had more flaps, and the 2D print doesn't show it either.
+    - The two background photos could not be checked, because this sandbox's proxy blocks the Supabase host (403). With them missing, the white text sits on the cream background, as it would in the PDF. With a dark stand-in image in their place, everything reads.
+    - **Cut guides** (`showCutGuides`) show up as red dashed lines on the 3D card. Open question to the human (see the log).
 
 **Known issues:**
 
 - **Reversed cards** (`isReversed`) put every panel's own artwork on the right panel, but the 3D card still folds the normal way. A background that runs across panels therefore won't line up at the creases on a reversed card.
+- **Cut guides** are drawn on the 3D card when the card has them switched on (they belong to the printable).
 - A faint light line can show along some creases when the card lies flat (panel edge faces).
 - A snapshot takes 0.5–4 s in headless Chromium without a GPU, with the most time going to font embedding. The stored-render cache removes that for any card that has been saved since step 3k was run.
 
@@ -373,6 +379,11 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 2 real-data check, card 1 of 3.** Results under Stage 2. Two fixes came out of it:
+  - The font report turned `font-family: &quot;Lady Starlight&quot;` into a family called `&quot`. The name is now decoded before parsing (the font itself was fine).
+  - After a *jump* to the unfolded card (reduced motion, `?debugState`), the orbit started from the stale camera position, so the card could be framed wrong or cropped. The camera is now placed on the rig first.
+
+  All screenshot, machine, leak and cache tests pass. **Asked the human:** hide cut guides in 3D? May real cards be committed as fixtures?
 - **2026-09-23 · Stage D + Stage 0.** Discovery written up above. Stage 0 built: deps, feature flag (runtime config + `?3d=1`, approved), `/library/3d` route (moved `library.vue` → `library/index.vue`), `scene.ts`, debug hooks, `scripts/screenshot-3d.mjs`. Verified with headless screenshots, a 3-cycle leak check and a production build. **Open questions:** which J-card a tape shows (several/none linked); CORS still untested against the real CDNs; there is no library search/sort for Stage 4 to hook into.
 - **2026-09-23 · Stage 0 approved.** Human shared reference photos (notes under Stage 1). Stage 1 starts in a new session.
 - **2026-09-23 · Decision.** The 3D viewer only shows mixtapes that have a linked J-card (see Discovery).

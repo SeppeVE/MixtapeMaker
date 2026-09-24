@@ -8,6 +8,7 @@ import { loadProfileByUsername } from '~/utils/profileDatabase';
 import { loadPublicMixtapesByUser } from '~/utils/database';
 import { listPublicJCardsByUser } from '~/utils/jcardDatabase';
 import { formatDuration } from '~/utils/timeUtils';
+import { isLibrary3DEnabled } from '~/utils/featureFlags';
 import IconCassette from '~icons/ph/cassette-tape';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconPencil from '~icons/material-symbols/edit-sharp';
@@ -77,6 +78,11 @@ if (import.meta.server && notFound.value) {
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const totalDuration = (m: Mixtape) => [...m.sideA, ...m.sideB].reduce((s, t) => s + t.duration, 0);
+// The 3D shelf of these tapes (while the library3d flag is on; ?3d=1 rides along).
+const shelfLink = computed(() => {
+  if (!isLibrary3DEnabled(useRuntimeConfig().public.library3d, route.query) || mixtapes.value.length === 0) return null;
+  return { path: `/user/${username.value}/3d`, query: route.query['3d'] ? { '3d': route.query['3d'] } : {} };
+});
 const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUpperCase());
 </script>
 
@@ -128,6 +134,7 @@ const initial = computed(() => (profile.value?.username ?? '?').slice(0, 1).toUp
             <div class="lib-section-head">
               <span>Public Mixtapes</span>
               <span class="lib-section-sub">{{ mixtapes.length }} tape{{ mixtapes.length === 1 ? '' : 's' }}</span>
+              <NuxtLink v-if="shelfLink" :to="shelfLink" class="lp-btn lp-btn-paper lp-btn-sm">View on a 3D shelf</NuxtLink>
             </div>
             <div v-if="mixtapes.length === 0" class="lib-empty">
               <IconCassette class="lib-empty-icon" aria-hidden="true" />

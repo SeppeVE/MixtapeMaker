@@ -2,7 +2,9 @@ import { watch } from 'vue';
 import type { LocationQuery } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useJCardLibraryStore } from '~/stores/jcardLibrary';
-import { loadMixtapes } from '~/utils/database';
+import { loadMixtapes, loadPublicMixtapesByUser } from '~/utils/database';
+import { listPublicJCardsByUser } from '~/utils/jcardDatabase';
+import { loadProfileByUsername } from '~/utils/profileDatabase';
 import { pairTapes, type TapeData } from '~/lib/cassette3d/tapeData';
 import { isTapeState, type TapeState } from '~/lib/cassette3d/animation/tapeMachine';
 
@@ -13,9 +15,10 @@ export interface ShelfData {
   tapes: TapeData[];
   /**
    * cloud: your mixtapes that have a J-card; samples: the built-in samples (signed
-   * out, or ?fixture=); seed: generated tapes (dev, ?seed=<n>).
+   * out, or ?fixture=); seed: generated tapes (dev, ?seed=<n>); public: one
+   * user's public mixtapes that have a public J-card (their profile's shelf).
    */
-  source: 'cloud' | 'samples' | 'seed';
+  source: 'cloud' | 'samples' | 'seed' | 'public';
   signedIn: boolean;
   /** Signed in with mixtapes, none of which has a J-card yet (for the empty state). */
   hasMixtapes: boolean;
@@ -27,6 +30,21 @@ export interface ShelfData {
   mixtapeIds?: string[];
   /** ?tape= asked for a tape that isn't on this shelf. */
   missingTape?: boolean;
+  /** The public shelf's owner. */
+  owner?: PublicShelfOwner;
+}
+
+export interface PublicShelfOwner {
+  username: string;
+  /** No such user, or their profile is private (and it isn't yours). */
+  status: 'ok' | 'notFound' | 'private';
+  /** It's your own profile. */
+  isYou: boolean;
+}
+
+/** Which shelf to show: your library, or a user's public tapes (/user/{username}/3d). */
+export interface ShelfScope {
+  username?: string;
 }
 
 /**
@@ -38,7 +56,7 @@ export interface ShelfData {
  *   signed out       the samples (?tape=fixture-<n> presents one)
  * ?debugState=<state> starts the picked tape (or the first one) in that state.
  */
-export async function resolveShelfTapes(query: LocationQuery, isDev: boolean): Promise<ShelfData> {
+export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, scope: ShelfScope = {}): Promise<ShelfData> {
   const debugState = firstParam(query.debugState);
   const state: TapeState | null = isTapeState(debugState) ? debugState : null;
   const initialFor = (index: number | null): ShelfData['initial'] => {
@@ -68,6 +86,7 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean): P
 
   const auth = useAuthStore();
   await waitFor(() => !auth.loading, AUTH_TIMEOUT_MS);
+  if (scope.username) return resolvePublicShelf(scope.username, query, initialFor, auth.user?.id ?? null);
   if (auth.user) {
     try {
       const jcards = useJCardLibraryStore();
@@ -92,6 +111,39 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean): P
   const tapes = sampleTapes();
   const { index, missingTape } = findWanted(tapes, query);
   return { tapes, source: 'samples', signedIn: false, hasMixtapes: false, initial: initialFor(index), mixtapeIds: [], missingTape };
+}
+
+/**
+ * A user's public shelf, as their profile page lists it: public, non-copy mixtapes
+ * paired with their public J-cards. A private profile is empty unless it's yours
+ * (the profile page shows its owner their own public items the same way).
+ */
+async function resolvePublicShelf(
+  username: string,
+  query: LocationQuery,
+  initialFor: (index: number | null) => ShelfData['initial'],
+  viewerId: string | null,
+): Promise<ShelfData> {
+  const empty = (owner: PublicShelfOwner, error = false): ShelfData => ({
+    tapes: [], source: 'public', signedIn: !!viewerId, hasMixtapes: false, initial: null, owner, error,
+  });
+  const name = username.toLowerCase();
+  try {
+    const profile = await loadProfileByUsername(name);
+    if (!profile) return empty({ username: name, status: 'notFound', isYou: false });
+    const isYou = profile.id === viewerId;
+    const owner: PublicShelfOwner = { username: profile.username, status: 'ok', isYou };
+    if (profile.isPrivate && !isYou) return empty({ ...owner, status: 'private' });
+    const [mixtapes, jcards] = await Promise.all([loadPublicMixtapesByUser(profile.id), listPublicJCardsByUser(profile.id)]);
+    const tapes = pairTapes(mixtapes, jcards);
+    const { index, missingTape } = findWanted(tapes, query);
+    return {
+      tapes, source: 'public', signedIn: !!viewerId, hasMixtapes: mixtapes.length > 0, initial: initialFor(index), missingTape, owner,
+    };
+  } catch (err) {
+    console.error(`[cassette3d] Could not load @${name}'s public tapes`, err);
+    return empty({ username: name, status: 'ok', isYou: false }, true);
+  }
 }
 
 /** The tape ?tape=<mixtape id> asks for, if it's on the shelf. */

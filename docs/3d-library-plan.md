@@ -79,6 +79,7 @@ Replace (optionally) the flat library with a 3D scene. Mixtapes stand as cassett
 
 ```
 app/pages/library/3d.vue                  # route, behind feature flag
+app/pages/user/[username]/3d.vue          # a user's public shelf (Stage 5), same flag
 app/components/cassette3d/Library3D.vue   # mounts canvas + overlay (inside <ClientOnly>)
 app/components/cassette3d/Overlay.vue     # buttons for every tape action + Back, live region, Escape
 app/composables/useCassetteScene.ts       # bridge: Vue <-> scene
@@ -395,26 +396,26 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Edit tape** (`store.loadMixtape`), **Edit J-card** (`store.openDesigner` with the tape's card), **Print J-card (PDF)** (as the J-card library's Print: migrate, register uploaded fonts, `exportJCardToPDF`).
   - **Copy link** (`store.enableShare` + share modal), **Make public / private** (`store.togglePublic`; disabled on unedited copies), **Delete** (confirm, `deleteMixtape`). A deleted tape leaves the shelf straight away (cut back to the shelf).
   - Sample tapes (signed out) only get Print.
-  - **Copy (public tapes): not built.** "Copy to my library" is for other people's public tapes, and after the Stage 5 decision (no shelf on Explore or user pages) the shelf only ever holds your own tapes or the samples. The 2D library has no copy action for your own tapes either.
+  - **Copy (public tapes):** on the public shelf (below), where other people's tapes are.
   - The rest of the 2D library, reachable from the shelf: a **＋ New** menu in the toolbar (New mixtape, New J-card, All J-cards → the 2D J-cards tab, which stays the place to manage cards without a tape), and the **unsaved draft** note ("Unsaved draft: … · Open · Save to cloud"), as the 2D Working Draft section.
 - [x] 2D/3D toggle; remember choice. **Decided (human, 2026-09-24): localStorage** (no profile column). `LibraryViewToggle.vue`: a 2D | 3D switch in the 2D library header and in the shelf toolbar, shown only while the flag is on. The choice is `library-view` in localStorage (`getLibraryView` / `setLibraryView` in `utils/localStorage.ts`). With the flag on and 3D remembered, `/library` redirects to `/library/3d`, except for `?tab=` links (e.g. the J-cards tab) and `?view=2d` (the 3D page's "Open the regular library" fallback). A browser without WebGL 2 resets the choice to 2D. The 3D page's breadcrumb is now Home / Library.
 - [x] Deep link `/library/3d?tape=<id>`. It already opened a tape on load (Stage 4); now the URL also **follows the selection**: taking a tape out puts its id in `?tape=` (replace, not push, so Back still leaves the library), and putting it back removes it, so a reload or a copied URL comes back to the same tape. Signed out, `?tape=fixture-<n>` works for the samples. A `?tape=` that isn't on the shelf (no J-card, deleted, or signed out) gets a note.
-- [ ] ~~Shelf takes mixtapes as a prop for later reuse on /user/{username} and Explore.~~ **Decided (human, 2026-09-24): no shelf on Explore or user pages**, so no need to prepare for it.
+- [x] ~~Shelf takes mixtapes as a prop for later reuse on /user/{username} and Explore.~~ First decided against (2026-09-24), then **changed at the checkpoint (human, 2026-09-24): add a public shelf on the user profile** (not Explore). Built:
+  - **Route** `/user/{username}/3d` (client-only, behind the same flag; flag off → the profile page). The profile page moved from `pages/user/[username].vue` to `pages/user/[username]/index.vue` so the route can sit beside it (same URL and route name, behaviour unchanged).
+  - **What's on it:** the same data the profile page lists, `loadPublicMixtapesByUser` + `listPublicJCardsByUser`, paired with `pairTapes`: public, non-copy mixtapes that have a public J-card linked. A private profile shows "private" unless it's yours; an unknown username says so. `Library3D` takes a `username` prop, and `resolveShelfTapes` a scope, with the new source `public`.
+  - **Tape panel on someone else's tape:** Copy tape to my library, Copy J-card to my library (the existing `useCopyToLibrary`, sign-in gate included), Tape page (`/explore/{id}`), Print J-card. On your own public shelf: Edit tape / Edit J-card instead of the copies. The owner-only actions (share, public, delete) stay in your library.
+  - **Shelf toolbar:** "◀ @username" back to the profile instead of the 2D/3D switch and the New menu; no draft note. `?tape=` follows the selection as in the library.
+  - **Profile page:** a "View on a 3D shelf" button next to Public Mixtapes, while the flag is on and there's at least one public mixtape. A per-visit `?3d=1` rides along on the links both ways.
+  - Stored renders and spines of other people's cards are read like your own (public bucket, hash-checked); nothing is ever uploaded for a card you don't own.
 
 **Acceptance:** everything doable in the 2D library is reachable from 3D.
 
-- [x] `npm run test:library3d` (new, `scripts/test-library3d-app.mjs`, 29 checks) against a mocked Supabase, like the render-cache test. It covers the panel's numbers, Make public/private (row updated, modal, still public after a reload), Copy link (token saved, link on the clipboard), Print (a PDF downloads), Delete (row deleted, the case leaves the shelf), Edit tape / Edit J-card (the editors open with that tape / card), the URL following the selection and a reload returning to it, the missing-tape note, the 2D/3D switch (remembered both ways, `?tab=` exempt, ignored with the flag off), the New menu, the draft note, and the folded panel on a phone. Screenshots: `.screenshots/app-*.png`.
+- [x] `npm run test:library3d` (new, `scripts/test-library3d-app.mjs`, 40 checks) against a mocked Supabase, like the render-cache test. It covers the panel's numbers, Make public/private (row updated, modal, still public after a reload), Copy link (token saved, link on the clipboard), Print (a PDF downloads), Delete (row deleted, the case leaves the shelf), Edit tape / Edit J-card (the editors open with that tape / card), the URL following the selection and a reload returning to it, the missing-tape note, the 2D/3D switch (remembered both ways, `?tab=` exempt, ignored with the flag off), the New menu, the draft note, and the folded panel on a phone. The public shelf: only public tapes with a public card, the toolbar, the panel's copy / page / print actions and no owner actions, Copy tape opening a private copy, unknown and private users, your own public shelf offering Edit, the profile's link, and the flag-off redirect. Screenshots: `.screenshots/app-*.png`.
 - One bug found on the way: the shelf toolbar's 2D link couldn't be clicked, because the overlay lets clicks through to the canvas and its scoped CSS didn't reach the child component. Fixed in the toggle itself.
 
-**For the checkpoint:**
+**Checkpoint answers (human, 2026-09-24):** looks good; delete cutting back to the shelf is fine; ignore the dedication for now (the database doesn't store `dedicatedTo`, so cloud tapes never show it); add a public shelf (built on the user profile, above, which also gives Copy for public tapes its place).
 
-- **Copy for public tapes** is left out (see above). Say if you want something there, e.g. "Duplicate" for your own tapes (that would be new in 2D too).
-- **Delete cuts** straight back to the shelf rather than animating the tape back first. It comes right after a confirm dialog, so a cut felt fine; an animated put-back is possible.
-- **The dedication** ("For …") only shows for tapes that carry one, and the database doesn't store `dedicatedTo` (a gap in the existing save path, not new). Cloud tapes therefore never show it.
-- **J-card-only actions** (cards with no tape, a card's own public switch, deleting a card) stay in the 2D J-cards tab, one click away through ＋ New → All J-cards.
-- The panel's placement (top left, folded on phones) and wording are first drafts.
-
-**Human checkpoint.**
+**Human checkpoint** for the public shelf.
 
 ## Stage 6: Visual and audio polish
 
@@ -472,7 +473,9 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
-- **2026-09-24 · Stage 5 built** (details under Stage 5): tape panel with details and every 2D action, ＋ New menu and draft note on the shelf, 2D/3D switch remembered in localStorage, `?tape=` following the selection. New `npm run test:library3d` (29 checks). **Waiting on the human checkpoint.** Open: Copy for public tapes (nothing on the shelf to copy).
+- **2026-09-24 · Stage 5 checkpoint: approved, plus a public shelf.** Built `/user/{username}/3d` with copy / page / print on other people's tapes and a link from the profile page (details under Stage 5). `test:library3d` now 40 checks. **Waiting on the human checkpoint** for the public shelf.
+
+- **2026-09-24 · Stage 5 built** (details under Stage 5): tape panel with details and every 2D action, ＋ New menu and draft note on the shelf, 2D/3D switch remembered in localStorage, `?tape=` following the selection. New `npm run test:library3d` (29 checks). **Waiting on the human checkpoint.** Open: Copy for public tapes (nothing on the shelf to copy) — resolved by the public shelf.
 
 - **2026-09-24 · Stage 5 answers.** Remember the 2D/3D choice in localStorage; no shelf on Explore or /user pages.
 - **2026-09-24 · Stage 4 approved.** Stage 5 starts in a new session.

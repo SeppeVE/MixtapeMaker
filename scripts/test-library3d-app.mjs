@@ -2,7 +2,8 @@
 // Stage 5 (app integration) of the 3D library, end to end against a mocked
 // Supabase: the tape panel's details and actions (edit, J-card, PDF, share,
 // public, delete), the 2D/3D switch and its remembered choice, the ?tape= deep
-// link following the selection, and the unsaved-draft note.
+// link following the selection, the unsaved-draft note, and a user's public
+// shelf (/user/{username}/3d).
 //
 // Needs the dev server started with the dummy project URL the mock listens on:
 //   NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NUXT_PUBLIC_SUPABASE_ANON_KEY=dummy npm run dev
@@ -22,6 +23,15 @@ const TAPE_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const TAPE_C = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; // no J-card: never on the shelf
 const CARD_A = 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1';
 const CARD_B = 'b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1';
+// Someone else's profile (@maker): one public tape with a public card, one public
+// tape without a card, one private tape whose card is public.
+const OTHER_USER = '22222222-2222-4222-8222-222222222222';
+const PRIVATE_USER = '33333333-3333-4333-8333-333333333333';
+const TAPE_D = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const TAPE_E = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const TAPE_F = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const CARD_D = 'd1d1d1d1-d1d1-4d1d-8d1d-d1d1d1d1d1d1';
+const CARD_F = 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1';
 
 let failures = 0;
 function check(ok, label, detail = '') {
@@ -61,6 +71,29 @@ const card = (id, mixtapeId, title, color) => ({
   created_at: '2026-09-20T12:00:00.000Z', updated_at: '2026-09-20T12:00:00.000Z', is_public: false, is_copy: false, copied_from_id: null, render: null,
 });
 const jcards = [card(CARD_A, TAPE_A, 'Summer Drive card', '#d9c9a3'), card(CARD_B, TAPE_B, 'Rainy Sunday card', '#9fb7c9')];
+const otherTape = (id, title, isPublic) => ({
+  id, user_id: OTHER_USER, title, cassette_length: 90, side_a: [song(`${id}-1`, 'Teardrop', 'Massive Attack', 330)], side_b: [],
+  created_at: '2026-09-10T12:00:00.000Z', updated_at: '2026-09-11T12:00:00.000Z', is_public: isPublic, share_token: null, is_copy: false,
+});
+for (const t of [otherTape(TAPE_D, 'Night Bus', true), otherTape(TAPE_E, 'No Card Public', true), otherTape(TAPE_F, 'Secret Tape', false)]) mixtapes.set(t.id, t);
+jcards.push(
+  { ...card(CARD_D, TAPE_D, 'Night Bus card', '#2b2d42'), user_id: OTHER_USER, is_public: true },
+  { ...card(CARD_F, TAPE_F, 'Secret card', '#8d99ae'), user_id: OTHER_USER, is_public: true },
+);
+// Tester's own public profile: Summer Drive once it's public, with its card made public.
+const profileRow = (id, username, isPrivate = false) => ({
+  id, username, avatar_url: null, bio: null, is_private: isPrivate, is_admin: false, seen_notification_id: null, created_at: '2026-09-01T00:00:00.000Z',
+});
+const profiles = [profileRow(USER_ID, 'tester'), profileRow(OTHER_USER, 'maker'), profileRow(PRIVATE_USER, 'hidden', true)];
+
+/** PostgREST `col=eq.value` filters, as the app sends them. */
+function matches(row, params) {
+  for (const [key, value] of params) {
+    if (!value.startsWith('eq.') || !(key in row)) continue;
+    if (String(row[key]) !== value.slice(3)) return false;
+  }
+  return true;
+}
 const log = { patches: [], deletes: [] };
 
 // --- Mock Supabase ------------------------------------------------------------------
@@ -106,13 +139,18 @@ async function handle(route) {
         mixtapes.delete(id);
         return route.fulfill({ status: 204, headers: cors });
       }
-      const rows = [...mixtapes.values()].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      const rows = [...mixtapes.values()].filter((r) => matches(r, url.searchParams)).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
       return json(route, single ? rows[0] : rows);
     }
     if (table === 'jcards') {
       if (method === 'PATCH') return route.fulfill({ status: 204, headers: cors });
-      const rows = jcards.filter((c) => !id || c.id === id);
+      const rows = jcards.filter((c) => matches(c, url.searchParams));
       if (url.searchParams.get('select') === 'render') return json(route, { render: rows[0]?.render ?? null });
+      return json(route, single ? rows[0] : rows);
+    }
+    if (table === 'profiles') {
+      const rows = profiles.filter((r) => matches(r, url.searchParams));
+      if (single && !rows.length) return json(route, { code: 'PGRST116', details: 'The result contains 0 rows', hint: null, message: 'JSON object requested, multiple (or no) rows returned' }, 406);
       return json(route, single ? rows[0] : rows);
     }
     return json(route, single ? {} : []);
@@ -272,7 +310,55 @@ try {
   check(/New mixtape/.test(items) && /New J-card/.test(items) && /All J-cards/.test(items), 'New menu: mixtape, J-card, all J-cards', items.replace(/\n/g, ' | '));
   await page.screenshot({ path: `${OUT_DIR}app-menu.png` });
 
-  // 11. Phone: the panel starts folded.
+  // 11. A user's public shelf: their public tapes that have a public J-card.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${BASE_URL}/user/maker/3d?3d=1`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.lib3d-toolbar', { timeout: 60_000 });
+  info = await page.evaluate(() => window.__cassette3d.getShelfInfo());
+  check(info.count === 1 && info.ids[0] === TAPE_D, 'public shelf: only public tapes with a public J-card', JSON.stringify(info.ids));
+  check(await page.locator('.lib3d-owner').innerText() === '◀ @maker' && !(await page.locator('.lib3d-menu').count()) && !(await page.locator('.lib3d-toolbar .lib-view-toggle').count()),
+    'public shelf: toolbar links back to the profile, no New menu or 2D/3D switch');
+  await page.screenshot({ path: `${OUT_DIR}app-public-shelf.png` });
+  await takeOut(0);
+  const pub = await panelText();
+  check(/Night Bus/.test(pub) && /By @maker/.test(pub) && /Copy tape to my library/.test(pub) && /Copy J-card to my library/.test(pub) && /Tape page/.test(pub) && /Print J-card/.test(pub),
+    'public shelf: the panel offers copy, tape page and print', pub.replace(/\n/g, ' | '));
+  check(!/Delete|Make p|Copy link|Edit tape/.test(pub), 'public shelf: none of the owner actions on someone else\'s tape');
+  check(query().get('tape') === TAPE_D, 'public shelf: ?tape= follows the selection too');
+  await page.screenshot({ path: `${OUT_DIR}app-public-panel.png` });
+  await page.getByRole('button', { name: 'Copy tape to my library' }).click();
+  await page.waitForURL('**/mixtape', { timeout: 30_000 });
+  const copied = await page.evaluate(() => JSON.parse(localStorage.getItem('mixtape-current') ?? 'null'));
+  check(copied?.title === 'Night Bus' && copied.isCopy === true && copied.id !== TAPE_D, 'public shelf: Copy tape opens a private copy in the editor', `${copied?.title}, isCopy ${copied?.isCopy}`);
+
+  await page.goto(`${BASE_URL}/user/nobody/3d?3d=1`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.lib3d-empty', { timeout: 60_000 });
+  check(/No user named @nobody/.test(await page.locator('.lib3d-empty').innerText()), 'public shelf: unknown user');
+  await page.goto(`${BASE_URL}/user/hidden/3d?3d=1`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.lib3d-empty', { timeout: 60_000 });
+  check(/set their profile to private/.test(await page.locator('.lib3d-empty').innerText()), 'public shelf: private profile');
+
+  // Your own public shelf: Summer Drive is public (its card too) → Edit instead of Copy.
+  mixtapes.get(TAPE_A).is_public = true;
+  jcards.find((c) => c.id === CARD_A).is_public = true;
+  await page.goto(`${BASE_URL}/user/tester/3d?3d=1&tape=${TAPE_A}`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.lib3d-panel', { timeout: 60_000 });
+  const mine = await panelText();
+  check(/Edit tape/.test(mine) && /Edit J-card/.test(mine) && !/Copy tape/.test(mine), 'public shelf: your own tapes can be edited, not copied', mine.replace(/\n/g, ' | '));
+
+  // The profile page links to the shelf (client-side navigation: the mock only answers the browser).
+  await page.getByRole('button', { name: 'Back to the shelf' }).click();
+  await idle();
+  await page.locator('.lp-nav-links a', { hasText: '@tester' }).click();
+  await page.waitForURL((u) => u.pathname === '/user/tester', { timeout: 30_000 });
+  const shelfLink = page.getByRole('link', { name: 'View on a 3D shelf' });
+  await shelfLink.waitFor({ timeout: 30_000 });
+  check((await shelfLink.getAttribute('href')) === '/user/tester/3d?3d=1', 'profile: links to its 3D shelf', await shelfLink.getAttribute('href'));
+  await page.goto(`${BASE_URL}/user/maker/3d`, { waitUntil: 'commit' });
+  await page.waitForURL((u) => u.pathname === '/user/maker', { timeout: 30_000 }).catch(() => undefined);
+  check(new URL(page.url()).pathname === '/user/maker', 'public shelf: flag off → the profile page', page.url());
+
+  // 12. Phone: the panel starts folded.
   await page.setViewportSize({ width: 390, height: 844 });
   await openShelf(`&tape=${TAPE_A}`);
   await page.waitForSelector('.lib3d-panel', { timeout: 60_000 });

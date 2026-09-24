@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { Mixtape } from '~/types';
 import type { TapeData } from '~/lib/cassette3d/tapeData';
 import type { ShelfInfo } from '~/composables/useCassetteScene';
+import { useCopyToLibrary } from '~/composables/useCopyToLibrary';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { useUiStore } from '~/stores/ui';
 import { deleteMixtape } from '~/utils/database';
@@ -12,10 +13,13 @@ import { registerCustomFonts } from '~/utils/fontManager';
 
 // The tape that's off the shelf: what's on it, and everything the 2D library's
 // tape card can do (the same store / database calls), plus editing and printing
-// its J-card. Sample tapes (signed out) can only be printed.
+// its J-card. On a user's public shelf: copy the tape or the card to your library
+// (as Explore does), open its public page, print; your own public tapes can also be
+// edited from there. Sample tapes (signed out) can only be printed.
 const props = defineProps<{
   tape: TapeData;
   source: ShelfInfo['source'];
+  owner?: ShelfInfo['owner'];
 }>();
 const emit = defineEmits<{
   updated: [mixtape: Mixtape];
@@ -26,8 +30,12 @@ const store = useMixtapeStore();
 const ui = useUiStore();
 
 const mixtape = computed(() => props.tape.mixtape);
-/** Your own tape (dev: the seeded shelf pretends to be yours). */
+/** Your own library (dev: the seeded shelf pretends to be yours). */
 const owned = computed(() => props.source === 'cloud' || props.source === 'seed');
+const isPublic = computed(() => props.source === 'public');
+/** Your own tape on your own public shelf. */
+const editable = computed(() => owned.value || (isPublic.value && !!props.owner?.isYou));
+const { copying, requestCopyJCard, requestCopyMixtape } = useCopyToLibrary();
 const sides = computed(() => (
   [['Side A', mixtape.value.sideA], ['Side B', mixtape.value.sideB]] as const
 ).map(([label, songs]) => ({
@@ -154,16 +162,24 @@ const remove = () => run('delete', async () => {
           </span>
           · updated {{ updated }}
         </template>
+        <template v-else-if="isPublic && owner">By @{{ owner.username }} · updated {{ updated }}</template>
         <template v-else>A sample tape</template>
       </p>
       <p v-if="mixtape.isCopy" class="lib3d-panel-note">
         An unedited copy of another mixtape. It won't show up on the explore page.
       </p>
       <div class="lib3d-panel-actions" role="toolbar" aria-label="Tape actions">
-        <template v-if="owned">
+        <template v-if="editable">
           <button type="button" class="btn" @click="editTape">Edit tape</button>
           <button type="button" class="btn" @click="editCard">Edit J-card</button>
         </template>
+        <template v-if="isPublic && !owner?.isYou">
+          <button type="button" class="btn" @click="requestCopyMixtape(mixtape)">Copy tape to my library</button>
+          <button type="button" class="btn" :disabled="copying" @click="requestCopyJCard(tape.jcard.id)">
+            {{ copying ? 'Copying…' : 'Copy J-card to my library' }}
+          </button>
+        </template>
+        <NuxtLink v-if="isPublic" :to="`/explore/${mixtape.id}`" class="btn">Tape page</NuxtLink>
         <button type="button" class="btn" :disabled="busy === 'pdf'" @click="printCard">
           {{ busy === 'pdf' ? 'Exporting…' : 'Print J-card (PDF)' }}
         </button>
@@ -265,6 +281,7 @@ const remove = () => run('delete', async () => {
 }
 .lib3d-panel-actions .btn {
   padding: 5px 10px;
+  text-decoration: none;
   font-size: 12px;
 }
 .lib3d-panel-delete {

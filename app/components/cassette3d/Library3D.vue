@@ -7,11 +7,20 @@ import Overlay from './Overlay.vue';
 // Mounts the 3D canvas and the HTML overlay on top of it. Render it inside
 // <ClientOnly>: WebGL has nothing to render on the server. (Not a .client.vue:
 // Nuxt's client-only wrapper runs onMounted before template refs are bound.)
+const props = defineProps<{
+  /** Show this user's public shelf instead of your library. */
+  username?: string;
+}>();
 const container = useTemplateRef<HTMLElement>('canvasHost');
 const {
   status, textureStatus, tape, shelf, hovered, selected, selectedTape,
   request, step, flip, select, highlight, setShelfView, updateMixtape, removeTape, addMixtapeId,
-} = useCassetteScene(container);
+} = useCassetteScene(container, { username: props.username });
+
+// Where to go when the 3D view can't run.
+const fallback = props.username
+  ? { to: `/user/${props.username}`, label: 'Open the profile page' }
+  : { to: { path: '/library', query: { view: '2d' } }, label: 'Open the regular library' };
 
 // No WebGL 2 here: /library shouldn't keep sending this browser to the 3D view.
 watch(status, (s) => {
@@ -39,18 +48,20 @@ watch(status, (s) => {
       @deleted="removeTape"
       @saved="addMixtapeId"
     />
-    <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">Fetching your tapes…</div>
+    <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">
+      {{ props.username ? `Fetching @${props.username}'s tapes…` : 'Fetching your tapes…' }}
+    </div>
     <div v-else-if="status === 'ready' && textureStatus === 'loading' && tape.target !== 'onShelf'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">
       <template v-if="status === 'loading'">Loading 3D library…</template>
       <template v-else-if="status === 'contextLost'">The 3D view lost its graphics context. It will resume when the browser restores it.</template>
       <template v-else-if="status === 'unsupported'">
         Your browser doesn't support WebGL 2, so the 3D library can't run here.
-        <NuxtLink :to="{ path: '/library', query: { view: '2d' } }">Open the regular library</NuxtLink>
+        <NuxtLink :to="fallback.to">{{ fallback.label }}</NuxtLink>
       </template>
       <template v-else>
         Something went wrong starting the 3D library.
-        <NuxtLink :to="{ path: '/library', query: { view: '2d' } }">Open the regular library</NuxtLink>
+        <NuxtLink :to="fallback.to">{{ fallback.label }}</NuxtLink>
       </template>
     </div>
   </div>

@@ -5,7 +5,7 @@ import type { TapeData } from '~/lib/cassette3d/tapeData';
 import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
 import type { Library, ShelfSort } from '~/lib/cassette3d/library';
 import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/tapeMachine';
-import { resolveShelfTapes, type ShelfData } from '~/composables/useHeroTapeData';
+import { resolveShelfTapes, type PublicShelfOwner, type ShelfData, type ShelfScope } from '~/composables/useHeroTapeData';
 import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
 import { uploadJCardRender, uploadJCardSpine } from '~/utils/jcardRenders';
@@ -35,13 +35,15 @@ export interface ShelfInfo {
   mixtapeIds: string[];
   /** The URL asked for a tape (?tape=) that isn't on this shelf. */
   missingTape: boolean;
+  /** A user's public shelf: whose it is. */
+  owner: PublicShelfOwner | null;
 }
 
 /**
  * Bridge between Vue and the framework-free 3D scene. three.js is imported
  * inside onMounted so it lands in its own chunk and never in other pages' bundles.
  */
-export function useCassetteScene(container: Ref<HTMLElement | null>) {
+export function useCassetteScene(container: Ref<HTMLElement | null>, scope: ShelfScope = {}) {
   const route = useRoute();
   const router = useRouter();
   const auth = useAuthStore();
@@ -53,7 +55,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const tape = ref<TapeMachineStatus>({ state: 'presented', target: 'presented', animating: false });
   const shelf = shallowRef<ShelfInfo>({
     status: 'loading', source: null, signedIn: false, hasMixtapes: false, error: false, entries: [], order: [],
-    mixtapeIds: [], missingTape: false,
+    mixtapeIds: [], missingTape: false, owner: null,
   });
   const hovered = ref<number | null>(null);
   const selected = ref<number | null>(null);
@@ -129,7 +131,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       else debugCleanup = cleanup;
       status.value = 'ready';
 
-      const data = await resolveShelfTapes(route.query, import.meta.dev);
+      const data = await resolveShelfTapes(route.query, import.meta.dev, scope);
       if (unmounted || !library) return;
       tapes.value = data.tapes;
       // Synchronously up to the tape it takes off the shelf; the spines load after.
@@ -144,6 +146,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
         order: shelf.value.order,
         mixtapeIds: data.mixtapeIds ?? [],
         missingTape: !!data.missingTape,
+        owner: data.owner ?? null,
       };
       await loading;
     } catch (err) {

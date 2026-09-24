@@ -27,6 +27,7 @@ export default defineNuxtConfig({
     '/explore/**': { ssr: true },
     '/share/**': { ssr: true },
     '/user/**': { ssr: true },
+    '/user/*/3d': { ssr: false },
     '/jcard/**': { ssr: true },
     '/mixtape': { ssr: false },
     '/library': { ssr: false },

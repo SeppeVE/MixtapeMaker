@@ -14,7 +14,7 @@ const props = defineProps<{
 const container = useTemplateRef<HTMLElement>('canvasHost');
 const {
   status, textureStatus, tape, shelf, hovered, selected, selectedTape,
-  request, step, flip, select, highlight, setShelfView, updateMixtape, removeTape, addMixtapeId,
+  request, step, flip, select, highlight, setShelfView, updateMixtape, removeTape, addMixtapeId, muted, setMuted,
 } = useCassetteScene(container, { username: props.username });
 
 // Where to go when the 3D view can't run.
@@ -38,6 +38,7 @@ watch(status, (s) => {
       :hovered="hovered"
       :selected="selected"
       :selected-tape="selectedTape"
+      :muted="muted"
       @request="request"
       @step="step"
       @flip="flip"
@@ -47,6 +48,7 @@ watch(status, (s) => {
       @updated="updateMixtape"
       @deleted="removeTape"
       @saved="addMixtapeId"
+      @mute="setMuted"
     />
     <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">
       {{ props.username ? `Fetching @${props.username}'s tapes…` : 'Fetching your tapes…' }}

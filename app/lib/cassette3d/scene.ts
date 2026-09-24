@@ -1,6 +1,8 @@
 import {
   ACESFilmicToneMapping,
   Color,
+  type DataTexture,
+  EquirectangularReflectionMapping,
   DirectionalLight,
   HemisphereLight,
   Mesh,
@@ -18,7 +20,9 @@ import {
   type WebGLRenderTarget,
   Vector3,
 } from 'three';
+import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createContactShadows, type ContactShadows } from './contactShadows';
 
 /**
  * Renderer, camera, lights, environment, resize handling and the render loop
@@ -29,6 +33,12 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
  */
 
 export type SceneStatus = 'ready' | 'contextLost';
+
+/**
+ * Studio HDRI for the image-based lighting: a CC0 Poly Haven studio, 512 × 256
+ * EXR (DWAB), taken from @pmndrs/assets (see public/3d/CREDITS.md). ~110 kB.
+ */
+export const HDRI_URL = '/3d/hdri/studio.exr';
 
 export interface CassetteSceneOptions {
   onStatus?: (status: SceneStatus) => void;
@@ -41,6 +51,13 @@ export interface CassetteScene {
   keyLight: DirectionalLight;
   /** Where the key light shines from, relative to its focus (debug GUI edits this). */
   keyOffset: Vector3;
+  /** Soft contact shadows under the hero tape (its turntable is handed over with setSubject). */
+  contactShadows: ContactShadows;
+  /**
+   * Resolves once the environment map is in: 'hdri' when the studio HDRI loaded,
+   * 'room' when it couldn't and RoomEnvironment stands in.
+   */
+  environmentReady: Promise<'hdri' | 'room'>;
   /**
    * Centre the key light's shadow on a point, covering a square of `halfSize` cm
    * either way: tight round the hero tape, wide over the shelf.
@@ -55,6 +72,9 @@ export interface CassetteScene {
 
 const MAX_PIXEL_RATIO = 2;
 const BACKGROUND = '#1b1714';
+const DEG = Math.PI / 180;
+/** Environment tuning (the debug GUI edits scene.environmentIntensity / environmentRotation live). */
+export const ENVIRONMENT = { intensity: 0.6, rotationDeg: 0 };
 
 /** Throws when WebGL2 isn't available, since three.js no longer supports WebGL1. */
 export function createCassetteScene(container: HTMLElement, options: CassetteSceneOptions = {}): CassetteScene {
@@ -74,6 +94,7 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   canvas.style.touchAction = 'none';
   container.appendChild(canvas);
 
+  let disposed = false;
   const scene = new Scene();
   scene.background = new Color(BACKGROUND);
 
@@ -82,19 +103,43 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   camera.position.set(0, 14, 34);
   camera.lookAt(0, 2, 0);
 
-  // Image-based lighting. RoomEnvironment is a stand-in until Stage 6 swaps in an HDRI.
+  // Image-based lighting from a studio HDRI (Stage 6), prefiltered with PMREM.
+  // RoomEnvironment only stands in if the file can't be loaded.
   let envTarget: WebGLRenderTarget | null = null;
+  let hdri: DataTexture | null = null;
   function buildEnvironment() {
     envTarget?.dispose();
     const pmrem = new PMREMGenerator(renderer);
-    const room = new RoomEnvironment();
-    envTarget = pmrem.fromScene(room, 0.04);
+    if (hdri) {
+      envTarget = pmrem.fromEquirectangular(hdri);
+    } else {
+      const room = new RoomEnvironment();
+      envTarget = pmrem.fromScene(room, 0.04);
+      room.dispose();
+    }
     scene.environment = envTarget.texture;
-    room.dispose();
     pmrem.dispose();
   }
-  buildEnvironment();
-  scene.environmentIntensity = 0.6;
+  const environmentReady = new EXRLoader().loadAsync(HDRI_URL).then(
+    (texture) => {
+      if (disposed) {
+        texture.dispose();
+        return 'hdri' as const;
+      }
+      texture.mapping = EquirectangularReflectionMapping;
+      hdri = texture;
+      buildEnvironment();
+      return 'hdri' as const;
+    },
+    (err) => {
+      console.warn('[cassette3d] Studio HDRI failed to load, using RoomEnvironment', err);
+      if (!disposed) buildEnvironment();
+      return 'room' as const;
+    },
+  );
+  scene.environmentIntensity = ENVIRONMENT.intensity;
+  // Turn the studio so its big softbox sits up and to the left of the camera.
+  scene.environmentRotation.set(0, ENVIRONMENT.rotationDeg * DEG, 0);
 
   const hemi = new HemisphereLight('#fff4e6', '#2a2019', 0.35);
   scene.add(hemi);
@@ -133,6 +178,9 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   floor.name = 'floor';
   scene.add(floor);
 
+  const contactShadows = createContactShadows(renderer);
+  scene.add(contactShadows.root);
+
   // --- Resize ---------------------------------------------------------------
   const resizeCallbacks = new Set<() => void>();
   function resize() {
@@ -158,6 +206,7 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
     for (const fn of frameCallbacks) fn(dt);
+    contactShadows.update(scene);
     renderer.render(scene, camera);
   }
   function syncLoop() {
@@ -172,7 +221,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
 
   // --- Context loss -----------------------------------------------------------
   // three.js re-uploads geometries and textures itself after a restore; render
-  // targets lose their contents, so the environment map is rebuilt. Stage 7
+  // targets lose their contents, so the environment map is rebuilt (from the
+  // HDRI still held on the CPU). Stage 7
   // replaces this with a full scene rebuild.
   function onContextLost(e: Event) {
     e.preventDefault();
@@ -190,7 +240,6 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   canvas.addEventListener('webglcontextrestored', onContextRestored);
 
   // --- Dispose ----------------------------------------------------------------
-  let disposed = false;
   function dispose() {
     if (disposed) return;
     disposed = true;
@@ -203,10 +252,13 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     resizeCallbacks.clear();
 
     disposeTransmissionTargets(renderer, scene);
+    contactShadows.dispose();
     disposeObjectTree(scene);
     scene.environment = null;
     envTarget?.dispose();
     envTarget = null;
+    hdri?.dispose();
+    hdri = null;
     // LightShadow.dispose() frees the shadow render target but not its depth texture.
     keyLight.shadow.map?.depthTexture?.dispose();
     keyLight.shadow.dispose();
@@ -222,6 +274,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     camera,
     keyLight,
     keyOffset,
+    contactShadows,
+    environmentReady,
     setShadowFocus,
     onFrame(fn) {
       frameCallbacks.add(fn);
@@ -254,9 +308,14 @@ function disposeTransmissionTargets(renderer: WebGLRenderer, root: Object3D) {
   targets.forEach((t) => t.dispose());
 }
 
-/** Dispose every geometry, material and material texture under `root`, and detach its children. */
+/**
+ * Dispose every geometry, material and material texture under `root`, and detach
+ * its children. Materials listed in an object's `userData.ownedMaterials` go too,
+ * whether or not a mesh is wearing them right now.
+ */
 export function disposeObjectTree(root: Object3D) {
   root.traverse((obj) => {
+    for (const m of (obj.userData.ownedMaterials as Material[] | undefined) ?? []) disposeMaterial(m);
     const mesh = obj as Mesh;
     mesh.geometry?.dispose();
     const material = mesh.material as Material | Material[] | undefined;

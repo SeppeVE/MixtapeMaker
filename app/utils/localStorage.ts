@@ -175,6 +175,25 @@ export const setLibraryView = (view: LibraryView): void => {
   } catch { /* ignore */ }
 };
 
+// ── 3D library sound (on unless muted) ───────────────────────────────────────
+const LIBRARY_SOUND_KEY = 'library3d-sound';
+
+export const getLibrarySoundMuted = (): boolean => {
+  if (!isClient) return false;
+  try {
+    return localStorage.getItem(LIBRARY_SOUND_KEY) === 'off';
+  } catch {
+    return false;
+  }
+};
+
+export const setLibrarySoundMuted = (muted: boolean): void => {
+  if (!isClient) return;
+  try {
+    localStorage.setItem(LIBRARY_SOUND_KEY, muted ? 'off' : 'on');
+  } catch { /* ignore */ }
+};
+
 // ── JCard local storage ──────────────────────────────────────────────────────
 const JCARDS_KEY = 'jcards';
 

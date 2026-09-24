@@ -8,7 +8,9 @@ import {
   type Texture,
   type WebGLRenderer,
 } from 'three';
-import type { JCardModel, JCardPanelName } from '../objects/jcard';
+import { JCARD } from '../dimensions';
+import { applyPaperGrain, cloneGrain } from '../materials';
+import type { JCardModel, JCardPanel } from '../objects/jcard';
 import type { FaceSnapshot, JCardSnapshot } from './jcardSnapshot';
 import { spineFromSnapshot } from './jcardRender';
 
@@ -61,7 +63,8 @@ export function applyJCardTextures(
   };
   const faces = { outside: makeFace(snapshot.outside), inside: makeFace(snapshot.inside) };
 
-  const faceMaterial = (face: ReturnType<typeof makeFace>, name: JCardPanelName): Material => {
+  const faceMaterial = (face: ReturnType<typeof makeFace>, panel: JCardPanel): Material => {
+    const { name } = panel;
     const rect = face?.panels[name];
     if (!face || !rect || rect.width <= 0) return paper;
     const map = face.base.clone();
@@ -69,14 +72,20 @@ export function applyJCardTextures(
     map.offset.set(rect.x / face.width, 0);
     textures.push(map);
     const material = new MeshStandardMaterial({ name: `jcard-${name}`, map, roughness: 0.82, metalness: 0 });
+    // The plain paper's grain, at this panel's size.
+    const grain = cloneGrain(paper);
+    if (grain) {
+      applyPaperGrain(material, grain, panel.width, JCARD.height, false);
+      textures.push(grain.normal, grain.roughness);
+    }
     owned.push(material);
     return material;
   };
 
   for (const panel of jcard.panels) {
     const materials: Material[] = [paper, paper, paper, paper, paper, paper];
-    materials[OUTSIDE] = faceMaterial(faces.outside, panel.name);
-    materials[INSIDE] = faceMaterial(faces.inside, panel.name);
+    materials[OUTSIDE] = faceMaterial(faces.outside, panel);
+    materials[INSIDE] = faceMaterial(faces.inside, panel);
     (panel.mesh as Mesh).material = materials;
   }
 

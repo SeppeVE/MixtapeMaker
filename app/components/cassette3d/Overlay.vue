@@ -19,12 +19,15 @@ import TapePanel from './TapePanel.vue';
 // shelf: search and sort, the hovered tape's title, and a list of the tapes for
 // keyboards and screen readers (it shows up when it gets focus), the 2D/3D switch,
 // a New menu, and the unsaved draft. Off the shelf: the tape's details and actions.
+// The sound switch sits in the shelf toolbar, and at the end of the actions off it.
 const props = defineProps<{
   tape: TapeMachineStatus;
   shelf: ShelfInfo;
   hovered: number | null;
   selected: number | null;
   selectedTape: TapeData | null;
+  /** Sound effects off. */
+  muted: boolean;
 }>();
 const emit = defineEmits<{
   request: [state: TapeState];
@@ -36,6 +39,7 @@ const emit = defineEmits<{
   updated: [mixtape: Mixtape];
   deleted: [mixtapeId: string];
   saved: [mixtapeId: string];
+  mute: [muted: boolean];
 }>();
 
 const auth = useAuthStore();
@@ -207,6 +211,16 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
           <NuxtLink :to="{ path: '/library', query: { tab: 'jcards' } }">All J-cards (2D)</NuxtLink>
         </div>
       </details>
+      <button
+        type="button"
+        class="lib3d-sound"
+        :aria-pressed="!muted"
+        :title="muted ? 'Sound off' : 'Sound on'"
+        @click="emit('mute', !muted)"
+      >
+        <span aria-hidden="true">{{ muted ? '🔇' : '🔊' }}</span>
+        <span class="lib3d-sr">Sound effects</span>
+      </button>
     </div>
 
     <!-- The tape off the shelf: details and actions -->
@@ -311,6 +325,16 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
           @click="a.run"
         >
           {{ a.label }}
+        </button>
+        <button
+          type="button"
+          class="lib3d-sound"
+          :aria-pressed="!muted"
+          :title="muted ? 'Sound off' : 'Sound on'"
+          @click="emit('mute', !muted)"
+        >
+          <span aria-hidden="true">{{ muted ? '🔇' : '🔊' }}</span>
+          <span class="lib3d-sr">Sound effects</span>
         </button>
       </div>
     </div>
@@ -423,6 +447,24 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
   flex: 1 1 200px;
   max-width: 320px;
   min-width: 0;
+}
+.lib3d-sound {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--color-paper);
+  background: rgba(20, 16, 13, 0.78);
+  border: 1px solid rgba(242, 235, 217, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.lib3d-sound[aria-pressed='false'] {
+  opacity: 0.7;
 }
 .lib3d-count {
   font-size: 13px;

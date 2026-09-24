@@ -9,6 +9,7 @@ import {
 } from 'three';
 import type { JCardContent, Mixtape } from '~/types';
 import { CASSETTE } from '../dimensions';
+import { applyPaperGrain, cloneGrain } from '../materials';
 import type { CassetteModel } from '../objects/cassette';
 import { collectFontFamilies } from './jcardSnapshot';
 
@@ -142,6 +143,10 @@ export async function applyLabelTextures(
     texture.anisotropy = anisotropy;
     texture.minFilter = LinearMipmapLinearFilter;
     const material = new MeshStandardMaterial({ name: `label${side}`, map: texture, roughness: 0.8, metalness: 0 });
+    // The plain label's paper grain, if it has one (the label area is 0–1 in UV already).
+    const plain = mesh.material as Material;
+    const grain = cloneGrain(plain);
+    if (grain) applyPaperGrain(material, grain, CASSETTE.label.width, CASSETTE.label.top - CASSETTE.label.bottom, false);
     originals.set(mesh, mesh.material);
     mesh.material = material;
     owned.push(material);
@@ -151,6 +156,8 @@ export async function applyLabelTextures(
       for (const [mesh, material] of originals) mesh.material = material;
       for (const m of owned) {
         m.map?.dispose();
+        m.normalMap?.dispose();
+        m.roughnessMap?.dispose();
         m.dispose();
       }
     },

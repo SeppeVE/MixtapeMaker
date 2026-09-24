@@ -1,6 +1,6 @@
 import { Group } from 'three';
 import { CASE_LAYOUT } from '../dimensions';
-import { applyCaseTint, createTapeMaterials, type CaseTint, type TapeMaterials } from '../materials';
+import { applyCaseTint, createTapeMaterials, type CaseTint, type SurfaceMaps, type TapeMaterials } from '../materials';
 import { disposeObjectTree } from '../scene';
 import { createCase, type CaseModel } from './caseModel';
 import { createCassette, type CassetteModel } from './cassette';
@@ -23,13 +23,18 @@ export interface TapeModel {
 
 export interface TapeOptions extends JCardOptions {
   tint?: CaseTint;
+  /** Scuffs and paper grain (Stage 6); the tape owns them from here on. */
+  surfaces?: SurfaceMaps;
 }
 
 export function createTape(options: TapeOptions): TapeModel {
-  const materials = createTapeMaterials(options.tint ?? 'clear');
+  const materials = createTapeMaterials(options.tint ?? 'clear', options.surfaces);
 
   const root = new Group();
   root.name = 'tape';
+  // Some of these are off the meshes at times (the label while a texture covers it),
+  // so disposeObjectTree is told about them.
+  root.userData.ownedMaterials = Object.values(materials);
 
   const caseModel = createCase(materials.casePlastic);
   root.add(caseModel.root);

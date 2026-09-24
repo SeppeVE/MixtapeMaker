@@ -10,6 +10,7 @@
 //   SPAM=80 npm run screenshot:3d                       (random requests in the spam test)
 //   SEED=300 npm run screenshot:3d                      (tapes on the seeded shelf; default 150)
 //   MAX_CALLS=12 npm run screenshot:3d                  (draw-call budget for the whole shelf)
+//   ONLY=polish npm run screenshot:3d                   (only the Stage 6 checks and shots)
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
@@ -109,6 +110,10 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 page.on('pageerror', (err) => console.log(`page error: ${err.message}`));
 
 try {
+  if (process.env.ONLY === 'polish') {
+    await polishTests(page);
+    process.exit(failures ? 1 : 0);
+  }
   // 1. Feature flag: without the override the route falls back to the 2D library
   //    (unless NUXT_PUBLIC_LIBRARY3D=true on the server).
   await page.goto(`${BASE_URL}/library/3d`, { waitUntil: 'networkidle' });
@@ -298,8 +303,89 @@ try {
 
   // 7. Stage 4: the shelf, seeded with SEED tapes.
   await shelfTests(page);
+
+  // 8. Stage 6: lighting, surfaces, contact shadows, sound.
+  await polishTests(page);
 } finally {
   await browser.close();
+}
+
+async function polishTests(page) {
+  await page.goto(`${BASE_URL}/library/3d?3d=1&fixture=1&turntable=0`, { waitUntil: 'networkidle' });
+  await waitForScene(page);
+  const idle = () => page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout: 30_000 });
+  check(await page.evaluate(() => window.__cassette3d.environment()) === 'hdri', 'lit by the studio HDRI (not the RoomEnvironment fallback)');
+
+  const contactVisible = () => page.evaluate(() => window.__cassette3d.scene.getObjectByName('contactShadows').visible);
+  await frames(page);
+  check(await contactVisible(), 'contact shadows under the hero tape');
+
+  // Screenshots for judging the look (compare with the Stage 5 ones, or vhs.texs.org).
+  const POLISH_SHOTS = [
+    ['threeQuarter', (api) => api.setView('threeQuarter')],
+    ['scuffs', (api) => { api.setView('threeQuarter'); api.setElevation(28); api.setDistanceScale(0.55); }],
+    ['scuffs-empty', (api) => api.setPartsVisible({ jcard: false, cassette: false })],
+    ['paper-closeup', (api) => { api.setPartsVisible({ case: false, jcard: true, cassette: false }); api.setView('front'); api.setElevation(5); api.setDistanceScale(0.3); }],
+    ['label-closeup', (api) => { api.setPartsVisible({ case: false, jcard: false, cassette: true }); api.setView('front'); api.setElevation(10); api.setDistanceScale(0.5); }],
+  ];
+  for (const [name, setup] of POLISH_SHOTS) {
+    await page.evaluate(`(${setup.toString()})(window.__cassette3d)`);
+    await frames(page, 5);
+    await page.screenshot({ path: `${OUT_DIR}polish-${name}.png` });
+  }
+  await page.evaluate(() => {
+    const api = window.__cassette3d;
+    api.setPartsVisible({ case: true, cassette: true, jcard: true });
+    api.setView('front');
+    api.setElevation(10);
+    api.setDistanceScale(1);
+  });
+
+  // Sound: walk the tape with the overlay's buttons (real clicks, so the audio can start)
+  // and check every step was heard. With no files in public/3d/sounds/ the stand-ins play.
+  const clickAndWait = async (name) => {
+    await page.getByRole('button', { name }).click();
+    await idle();
+  };
+  for (const name of ['Open case', 'Take out cassette', 'Take out J-card', 'Unfold J-card']) await clickAndWait(name);
+  await frames(page, 5);
+  await page.screenshot({ path: `${OUT_DIR}polish-unfolded.png` });
+  await clickAndWait('Fold up');
+  await frames(page, 5);
+  await page.screenshot({ path: `${OUT_DIR}polish-cassette-on-table.png` });
+  await page.evaluate(() => window.__cassette3d.request('presented'));
+  await idle();
+  await page.waitForTimeout(300);
+  const heard = await page.evaluate(() => window.__cassette3d.sounds());
+  const cues = heard.map((h) => h.cue);
+  // In order (other cues may sit in between: several creases, the card turning back).
+  const expected = ['caseOpen', 'cassetteOut', 'paperSlide', 'cassetteDown', 'crease', 'crease', 'paperSlide', 'cassetteIn', 'caseClose'];
+  let matched = 0;
+  for (const c of cues) if (c === expected[matched]) matched++;
+  const inOrder = matched === expected.length;
+  check(inOrder && heard.every((h) => h.source !== 'silent'), 'sound cues on every step, audible', cues.join(' '));
+  check(heard.some((h) => h.source === 'synth' || h.source === 'file'), 'sounds come from files or the stand-ins', [...new Set(heard.map((h) => h.source))].join(', '));
+
+  // The mute switch: silences the cues and survives a reload.
+  await page.getByRole('button', { name: 'Sound effects' }).first().click();
+  const muted = await page.evaluate(() => ({ muted: window.__cassette3d.isMuted(), saved: localStorage.getItem('library3d-sound') }));
+  check(muted.muted && muted.saved === 'off', 'mute switch mutes and is remembered', JSON.stringify(muted));
+  await page.reload({ waitUntil: 'networkidle' });
+  await waitForScene(page);
+  await clickAndWait('Open case');
+  const afterReload = await page.evaluate(() => ({ muted: window.__cassette3d.isMuted(), last: window.__cassette3d.sounds().at(-1) }));
+  check(afterReload.muted && afterReload.last?.source === 'silent', 'still muted after a reload', JSON.stringify(afterReload));
+  await page.getByRole('button', { name: 'Sound effects' }).first().click();
+  check(await page.evaluate(() => !window.__cassette3d.isMuted() && localStorage.getItem('library3d-sound') === 'on'), 'unmuting is remembered too');
+
+  // Back on the shelf: no contact shadows (the hero tape isn't out).
+  await page.evaluate(() => window.__cassette3d.goTo('onShelf'));
+  await frames(page);
+  check(!(await contactVisible()), 'no contact shadows while the tape is on the shelf');
+  await page.goto(`${BASE_URL}/library/3d?3d=1&seed=60`, { waitUntil: 'networkidle' });
+  await waitForScene(page);
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: `${OUT_DIR}polish-shelf.png` });
 }
 
 async function shelfTests(page) {

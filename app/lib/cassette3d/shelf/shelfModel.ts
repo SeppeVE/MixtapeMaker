@@ -88,13 +88,15 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
 
   // --- Wood ------------------------------------------------------------------------
   const woodMap = createWoodTexture(renderer);
-  const wood = new Mesh(buildWoodGeometry(layout), new MeshStandardMaterial({
+  const woodMaterial = new MeshStandardMaterial({
     name: 'shelfWood',
     map: woodMap,
     vertexColors: true,
     roughness: 0.62,
     metalness: 0,
-  }));
+  });
+  addWoodOcclusion(woodMaterial, layout);
+  const wood = new Mesh(buildWoodGeometry(layout), woodMaterial);
   wood.name = 'shelfWood';
   wood.castShadow = true;
   wood.receiveShadow = true;
@@ -149,6 +151,19 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
       .replace('#include <common>', '#include <common>\nvarying float vSpineMask;\nvarying float vHover;')
       .replace('#include <map_fragment>', 'diffuseColor *= mix(vec4(1.0), texture2D(map, vMapUv), vSpineMask);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, 0.95, 0.85) * (0.32 * vHover) * diffuseColor.rgb;');
+    // Faked occlusion (Stage 6): darker where the case stands on the board, a little under
+    // the board above, and deeper into the shelf. Hovered cases slide out into the light.
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vCaseLocal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCaseLocal = position.xy;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vCaseLocal;')
+      .replace('#include <aomap_fragment>', occlusionChunk(`
+        float ao = mix(0.45, 1.0, smoothstep(${f(-inner.y)}, ${f(-inner.y + 1.6)}, vCaseLocal.y));
+        ao *= mix(0.8, 1.0, smoothstep(${f(inner.y)}, ${f(inner.y - 1.2)}, vCaseLocal.y));
+        ao *= mix(0.55, 1.0, smoothstep(${f(inner.x1)}, ${f(inner.x0)}, vCaseLocal.x));
+        ao = mix(ao, 1.0, vHover * 0.6);
+      `));
   };
   contentsMaterial.customProgramCacheKey = () => 'shelfContents';
 
@@ -278,7 +293,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     dispose() {
       root.removeFromParent();
       wood.geometry.dispose();
-      (wood.material as MeshStandardMaterial).dispose();
+      woodMaterial.dispose();
       woodMap.dispose();
       contentsGeometry.dispose();
       contentsMaterial.dispose();
@@ -289,6 +304,84 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
       atlas.dispose();
     },
   };
+}
+
+// --- Faked ambient occlusion (Stage 6) ---------------------------------------------------
+
+const f = (n: number) => n.toFixed(4);
+/** Share of its reflections the wood keeps. */
+const WOOD_SPECULAR = 0.3;
+
+/**
+ * Apply `ao` (computed by `body`) to the light: all of the environment light, and
+ * part of the key light, whose shadow map is too coarse over the shelf to darken corners.
+ * `specular` scales every reflection on top.
+ */
+function occlusionChunk(body: string, specular = 1): string {
+  return `
+    #include <aomap_fragment>
+    {
+      ${body}
+      reflectedLight.indirectDiffuse *= ao;
+      reflectedLight.indirectSpecular *= ao * ${f(specular)};
+      reflectedLight.directDiffuse *= mix(1.0, ao, 0.5);
+      reflectedLight.directSpecular *= mix(1.0, ao, 0.5) * ${f(specular)};
+    }
+  `;
+}
+
+/**
+ * Darken the inside of every cubby towards its corners and its back, where a real
+ * bookcase gets less light: no SSAO pass, just distances to the cubby's walls
+ * worked out from the layout (the wood mesh is built in world cm). A term is
+ * skipped on the wall it belongs to (by the surface normal), so walls darken
+ * towards their edges, not all over.
+ */
+function addWoodOcclusion(material: MeshStandardMaterial, layout: ShelfLayout) {
+  const floors = layout.rowFloors.map(f).join(', ');
+  const rows = layout.rowFloors.length;
+  const backZ = SHELF.frontZ - SHELF.depth;
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vShelfPos;\nvarying vec3 vShelfNormal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShelfPos = position;\nvShelfNormal = normal;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vShelfPos;
+        varying vec3 vShelfNormal;
+        const float ROW_FLOORS[${rows}] = float[${rows}](${floors});
+        float shelfOcclusion(vec3 p, vec3 n) {
+          // Bay boundaries run through the middle of the side panels, so a cubby's inner side
+          // faces (exactly on its edges) never flicker between two bays.
+          float bay = floor((p.x - ${f(bayLeft(0) - SHELF.side / 2)}) / ${f(SHELF.bayWidth + SHELF.side)});
+          if (bay < 0.0 || bay > ${f(layout.bays - 1)}) return 1.0;
+          float lx = p.x - (${f(bayLeft(0))} + bay * ${f(SHELF.bayWidth + SHELF.side)});
+          if (lx < -0.01 || lx > ${f(SHELF.bayWidth + 0.01)}) return 1.0;
+          if (p.z > ${f(SHELF.frontZ + 0.01)} || p.z < ${f(backZ - 0.01)}) return 1.0;
+          float below = -1.0;
+          for (int r = 0; r < ${rows}; r++) {
+            float d = p.y - ROW_FLOORS[r];
+            if (d >= -0.01 && d <= ${f(SHELF.rowClearance + 0.01)}) below = max(d, 0.0);
+          }
+          if (below < 0.0) return 1.0;
+          float above = ${f(SHELF.rowClearance)} - below;
+          vec3 a = abs(n);
+          float dz = p.z - ${f(backZ)};
+          float ao = 1.0;
+          ao *= 1.0 - 0.5 * (1.0 - smoothstep(0.0, 4.0, dz)) * (1.0 - a.z);
+          ao *= 1.0 - 0.4 * (1.0 - smoothstep(0.0, 3.0, below)) * (1.0 - a.y);
+          ao *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, 2.5, above)) * (1.0 - a.y);
+          ao *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, lx)) * (1.0 - a.x);
+          ao *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, ${f(SHELF.bayWidth)} - lx)) * (1.0 - a.x);
+          // Less of the room reaches the back of a cubby.
+          ao *= mix(0.7, 1.0, smoothstep(0.0, ${f(SHELF.depth)}, dz));
+          return ao;
+        }`)
+      // The studio HDRI's overhead lights and the key light turned the board tops white at
+      // a glancing angle; the wood (oiled, not lacquered) keeps a fraction of its reflections.
+      .replace('#include <aomap_fragment>', occlusionChunk('float ao = shelfOcclusion(vShelfPos, normalize(vShelfNormal));', WOOD_SPECULAR));
+  };
+  material.customProgramCacheKey = () => `shelfWood-${layout.bays}-${rows}`;
 }
 
 // --- Wood geometry --------------------------------------------------------------------

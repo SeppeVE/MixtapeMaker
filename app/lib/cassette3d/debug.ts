@@ -3,8 +3,10 @@ import { DEFAULT_HERO_OPTIONS, type Hero, type HeroOptions, type TextureReport }
 import type { TapeData } from './tapeData';
 import type { Library, ShelfSort } from './library';
 import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
-import type { CaseTint } from './materials';
-import type { CassetteScene } from './scene';
+import { SURFACE, type CaseTint } from './materials';
+import { ENVIRONMENT, type CassetteScene } from './scene';
+import { CONTACT_SHADOWS } from './contactShadows';
+import type { TapeSounds } from './audio';
 import { ANIM } from './animation/config';
 import { isTapeState, TAPE_STATES, type TapeState } from './animation/tapeMachine';
 
@@ -130,6 +132,14 @@ export interface Cassette3DDebugApi {
   setShelfZoom: (zoom: number) => void;
   /** Screen position (CSS px, relative to the canvas) of a tape's spine, or null if it isn't on the shelf. */
   spineScreenPosition: (index: number) => { x: number; y: number } | null;
+  // Stage 6 polish.
+  /** Which environment map lit the scene: the studio HDRI, or RoomEnvironment if it failed to load. */
+  environment: () => Promise<'hdri' | 'room'>;
+  /** Sound cues so far (newest last) and the mute switch. */
+  sounds: () => ReturnType<TapeSounds['log']>;
+  isMuted: () => boolean;
+  /** The Stage 6 tuning objects, live (as the GUI edits them). */
+  tuning: { surface: typeof SURFACE; contactShadows: typeof CONTACT_SHADOWS; environment: typeof ENVIRONMENT };
 }
 
 declare global {
@@ -147,6 +157,7 @@ export async function installDebug(
   library: Library,
   params: DebugParams,
   isDev: boolean,
+  sounds: TapeSounds | null = null,
 ): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
@@ -238,6 +249,10 @@ export async function installDebug(
         const canvas = handle.renderer.domElement;
         return { x: ((p.x + 1) / 2) * canvas.clientWidth, y: ((1 - p.y) / 2) * canvas.clientHeight };
       },
+      environment: () => handle.environmentReady,
+      sounds: () => sounds?.log() ?? [],
+      isMuted: () => sounds?.isMuted() ?? true,
+      tuning: { surface: SURFACE, contactShadows: CONTACT_SHADOWS, environment: ENVIRONMENT },
     };
     cleanups.push(() => {
       window.__cassette3dLastDispose = { ...renderer.info.memory };
@@ -262,6 +277,15 @@ export async function installDebug(
     const r = gui.addFolder('Renderer');
     r.add(handle.renderer, 'toneMappingExposure', 0, 3, 0.01).name('exposure');
     r.add(handle.scene, 'environmentIntensity', 0, 3, 0.01).name('env intensity');
+    r.add(ENVIRONMENT, 'rotationDeg', -180, 180, 1).name('env rotation').onChange((deg: number) => {
+      handle.scene.environmentRotation.y = (deg * Math.PI) / 180;
+    });
+    const contact = r.addFolder('Contact shadows').close();
+    const redraw = () => handle.contactShadows.invalidate();
+    contact.add(CONTACT_SHADOWS, 'opacity', 0, 1, 0.01);
+    contact.add(CONTACT_SHADOWS, 'darkness', 0, 4, 0.05).onChange(redraw);
+    contact.add(CONTACT_SHADOWS, 'far', 0.2, 8, 0.1).name('reach cm').onChange(redraw);
+    contact.add(CONTACT_SHADOWS, 'blur', 0, 8, 0.1).onChange(redraw);
     const key = gui.addFolder('Key light');
     key.add(handle.keyLight, 'intensity', 0, 10, 0.05);
     // Direction the light comes from (its distance follows the shadow focus).
@@ -321,6 +345,16 @@ export async function installDebug(
     mat.add(plastic, 'ior', 1, 2, 0.01);
     mat.add(plastic, 'attenuationDistance', 0.05, 10, 0.05);
     mat.add(plastic, 'envMapIntensity', 0, 3, 0.05);
+    mat.add(SURFACE, 'scuffRoughness', 0, 1, 0.01).name('scuff roughness');
+    const paper = gui.addFolder('Paper');
+    paper.add(SURFACE, 'paperNormal', 0, 2, 0.01).name('grain strength').onChange((v: number) => {
+      hero.tape.root.traverse((obj) => {
+        const m = (obj as { material?: unknown }).material;
+        for (const x of (Array.isArray(m) ? m : [m]) as { normalScale?: { set: (a: number, b: number) => void } }[]) {
+          x?.normalScale?.set(v, v);
+        }
+      });
+    });
 
     const shell = hero.tape.materials.shell;
     const shellFolder = gui.addFolder('Cassette shell');

@@ -4,6 +4,7 @@ import { CASE_LAYOUT, JCARD, SHELF } from '../dimensions';
 import { defaultRig, HERO_CENTRE_Y, type HeroView } from '../heroView';
 import type { CassetteScene } from '../scene';
 import type { TapeModel } from '../objects/tape';
+import type { SoundCue } from '../audio';
 import { ANIM } from './config';
 
 /**
@@ -77,6 +78,11 @@ export interface TapeMachineOptions {
   hasShelf?: () => boolean;
   /** World matrix of the current tape's slot on the shelf (case frame), or null if it has none. */
   getSlot?: (out: Matrix4) => Matrix4 | null;
+  /**
+   * Something audible happened (Stage 6): called at the moment on the timeline,
+   * whichever way it plays (closing the lid gives 'caseClose' as it shuts).
+   */
+  cue?: (cue: SoundCue) => void;
 }
 
 export interface TapeMachineStatus {
@@ -208,11 +214,27 @@ export function createTapeMachine(
       tl.fromTo(params, f, { ...t, duration, ease, immediateRender: false }, at);
     };
     const camera: (keyof Params)[] = ['elevation', 'distanceScale', 'targetX', 'targetY', 'targetZ'];
+    /**
+     * A sound at `at` s: `forward` when the playhead passes going forwards, `backward`
+     * going back. GSAP fires a timeline callback both ways; a backward cue sits just
+     * after the moment it marks, since the playhead reaches it from later on.
+     */
+    const sound = (at: number, forward: SoundCue | null, backward: SoundCue | null) => {
+      if (!options.cue) return;
+      tl.call(() => {
+        const c = tl.reversed() ? backward : forward;
+        if (c) options.cue!(c);
+      }, undefined, at);
+    };
+    const BACK = 0.02;
 
     switch (TAPE_STATES[a]) {
       case 'onShelf': { // → pulledOut
         const s = ANIM.shelf;
         tween(['pull'], s.pullDuration, s.pullEase);
+        sound(0, 'shelfOut', null);
+        // Pushed back in: the case knocks home at the end.
+        sound(BACK, null, 'shelfIn');
         break;
       }
       case 'pulledOut': { // → presented
@@ -226,12 +248,18 @@ export function createTapeMachine(
         tween(['turn'], o.turnDuration, o.turnEase);
         tween(['lid'], o.lidDuration, o.lidEase, o.lidDelay);
         tween(camera, Math.max(o.turnDuration, o.lidDelay + o.lidDuration), ANIM.camera.ease);
+        // The lid unlatches as it starts to move, and snaps shut when it gets back.
+        sound(o.lidDelay, 'caseOpen', null);
+        sound(o.lidDelay + BACK, null, 'caseClose');
         break;
       }
       case 'lidOpen': { // → cassetteOut
         const c = ANIM.cassetteOut;
         tween(['cassette'], c.duration, c.ease);
         tween(camera, c.duration, ANIM.camera.ease);
+        // Off the spindles as it lifts; back on them as it seats.
+        sound(0.04, 'cassetteOut', null);
+        sound(BACK, null, 'cassetteIn');
         break;
       }
       case 'cassetteOut': { // → jcardOut
@@ -239,12 +267,24 @@ export function createTapeMachine(
         tween(['cassetteAside'], j.cassetteDuration, j.ease);
         tween(['jcard'], j.duration, j.ease, j.delay);
         tween(camera, j.delay + j.duration, ANIM.camera.ease);
+        // The cassette lands on the table; the card slides out of the lid (or back in).
+        sound(j.cassetteDuration * 0.92, 'cassetteDown', null);
+        sound(j.delay, 'paperSlide', null);
+        sound(j.delay + j.duration * 0.75, null, 'paperSlide');
         break;
       }
       case 'jcardOut': { // → jcardUnfolded
         const u = ANIM.unfold;
         tween(['unfold'], u.duration, u.ease);
         tween(camera, u.duration, ANIM.camera.ease);
+        // Each crease as it starts to open (unfolding), or as it starts to close (folding up).
+        // Crease k swings over unfold ∈ [s·k, s·k + 1] / span; the ease is close enough to linear here.
+        const creases = getTape().jcard.hinges.length;
+        const span = 1 + u.stagger * Math.max(creases - 1, 0);
+        for (let k = 0; k < creases; k++) {
+          sound((u.duration * (u.stagger * k + 0.05)) / span, 'crease', null);
+          sound((u.duration * (u.stagger * k + 0.95)) / span, null, 'crease');
+        }
         break;
       }
     }
@@ -366,6 +406,7 @@ export function createTapeMachine(
       flipTween = null;
       return Promise.resolve();
     }
+    if (!options.reducedMotion?.()) options.cue?.('flip');
     return new Promise((resolve) => {
       flipTween = gsap.to(params, {
         flip: to,

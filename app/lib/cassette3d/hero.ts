@@ -12,6 +12,7 @@ import type { TapeData } from './tapeData';
 import { applyJCardTextures, type JCardTextureSet } from './textures/jcardTexture';
 import type { ImageCheck } from './textures/jcardSnapshot';
 import { applyLabelTextures, labelStyleFor, type LabelTextureSet } from './textures/labelTexture';
+import { createCaseScuffs, createPaperGrain } from './textures/surfaceTextures';
 import { createSnapshotSource, type SnapshotResult, type SnapshotSource, type WriteBackStatus } from './textures/snapshotSource';
 
 /**
@@ -94,9 +95,13 @@ export function createHero(
   snapshotSource: SnapshotSource = createSnapshotSource({ supabaseUrl: '' }),
   machineOptions: TapeMachineOptions = {},
 ): Hero {
-  const tape = createTape(options);
+  const tape = createTape({
+    ...options,
+    surfaces: { scuffs: createCaseScuffs(handle.renderer), grain: createPaperGrain(handle.renderer) },
+  });
   const view = createHeroView(handle, { autoRotate: options.autoRotate && !options.view });
   view.turntable.add(tape.root);
+  handle.contactShadows.setSubject(view.turntable);
   const machine = createTapeMachine(handle, view, () => tape, machineOptions);
 
   // What clicking each part does, by where the tape is (or is heading).
@@ -268,6 +273,7 @@ export function createHero(
     dispose() {
       disposed = true;
       statusListener = null;
+      handle.contactShadows.setSubject(null);
       picking.dispose();
       machine.dispose();
       clearTextures();

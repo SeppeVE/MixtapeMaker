@@ -90,8 +90,12 @@ app/utils/featureFlags.ts                 # isLibrary3DEnabled()
 app/components/cassette3d/TapePanel.vue   # the selected tape's details + actions (Stage 5)
 app/components/cassette3d/LibraryViewToggle.vue  # 2D | 3D switch, remembered in localStorage
 scripts/test-library3d-app.mjs            # Stage 5 end to end against a mocked Supabase
+public/3d/hdri/studio.exr                 # CC0 studio HDRI, 512 × 256 EXR (Stage 6); public/3d/CREDITS.md
+public/3d/sounds/                         # the CC0 sound files, once chosen (Stage 6; see CREDITS.md)
 app/lib/cassette3d/
-  scene.ts            # renderer, camera, lights, env map, shadow focus, resize, render loop, dispose
+  scene.ts            # renderer, camera, lights, HDRI env map, shadow focus, resize, render loop, dispose
+  contactShadows.ts   # soft contact shadows under the hero tape (Stage 6)
+  audio.ts            # sound cues on Web Audio: files from public/3d/sounds/, synthesised stand-ins (Stage 6)
   library.ts          # shelf + hero: selection, search/sort, hover, camera blend, spines (Stage 4)
   shelf/
     layout.ts         # where every case stands: bays of 4 rows, filled top-left first
@@ -119,6 +123,7 @@ app/lib/cassette3d/
     snapshotCache.ts  # in-memory LRU of snapshots, keyed by card id + content hash
     spineTexture.ts   # shelf spines drawn from the card's spine text / colours / fonts
     woodTexture.ts    # procedural wood grain (stand-in for a CC0 photo texture)
+    surfaceTextures.ts # procedural case scuffs + fingerprints, paper grain normal/roughness (Stage 6)
   objects/
     geometry.ts       # extrusion helpers (profiles along Y, shapes along Z)
     caseModel.ts      # tray + lid on the hinge axis
@@ -143,7 +148,8 @@ scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 - `?debug=1` shows lil-gui and stats. Stage 1 added folders for the tape (view, turntable, lid angle, J-card fold, flap count, short back) and for the case plastic and shell materials.
 - Hero inspection (Stage 1): `?view=front|threeQuarter|spine|back|threeQuarterBack`, `?case=smoke`, `?flaps=1–6`, `?shortBack=1`, `?lid=<deg>`, `?fold=<0–1>`, `?turntable=0`.
 - Shelf (Stage 4): `?seed=<n>` fills the shelf with n generated tapes (dev only; `?seed=0` = the empty shelf). `?debugState=onShelf|pulledOut|…` works with any tape source; with no `?tape=`, the first tape is the one taken off the shelf.
-- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. Stage 4 added `selectTape(i)`, `highlightTape(i)`, `setShelfView(search, sort)`, `getShelfInfo()`, `setShelfPan(x, y)`, `setShelfZoom(z)`, `spineScreenPosition(i)` and `scene`. `window.__cassette3dLastDispose` records renderer memory after the last unmount.
+- Stage 6: `?debug=1` → Renderer has env rotation and a Contact shadows folder; Case plastic has scuff roughness; Paper has grain strength.
+- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. Stage 4 added `selectTape(i)`, `highlightTape(i)`, `setShelfView(search, sort)`, `getShelfInfo()`, `setShelfPan(x, y)`, `setShelfZoom(z)`, `spineScreenPosition(i)` and `scene`. Stage 6 added `environment()` ('hdri' or 'room'), `sounds()` (the cue log), `isMuted()` and `tuning` (the live `SURFACE`, `CONTACT_SHADOWS` and `ENVIRONMENT` objects). `window.__cassette3dLastDispose` records renderer memory after the last unmount.
 
 ### Self-verification with screenshots
 
@@ -383,7 +389,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
     - the editor's save stores it
     - old versions' spines are deleted
 - The **drawn spine** leaves out images: a spine with a photo background shows its background colour. It uses a card's uploaded font only if that font is on the spine.
-- **The shelf plastic** is dimmer than the hero's because of RoomEnvironment's hot ceiling light. Stage 6's HDRI is the place to bring its reflections back.
+- **The shelf plastic** is dimmer than the hero's because of RoomEnvironment's hot ceiling light. Stage 6's HDRI is the place to bring its reflections back. *(Stage 6: brought back up, 0.04 → 0.15.)*
 - **Timing / feel to judge:** pull-out 0.5 s, fly-in 1.4 s (3 cm arc), landing angle −20°, hover slide 12 mm + glow, shelf dimmed to 30 % behind the hero. They're all in `ANIM.shelf` / `SHELF`, and in `?debug=1` → Tape machine → Shelf timing.
 - After the fly-in, the case doesn't auto-spin (it did before, when it was the only tape on the page). Dragging still turns it.
 
@@ -419,15 +425,58 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Stage 6: Visual and audio polish
 
-- [ ] CC0 HDRI (≤ 1k) replaces RoomEnvironment.
-- [ ] Scratches/fingerprint roughness map on the case.
-- [ ] Paper grain (normal + roughness) on the J-card.
-- [ ] Contact shadows; faked AO on the shelf (no SSAO on mobile).
-- [ ] Optional: paper-curl vertex bend, if hinged folds feel too stiff.
-- [ ] Optional: subtle DOF, desktop high tier only.
-- [ ] Sound hooks (case click, cassette clack, paper unfold) via Web Audio; mute toggle with saved preference. Human supplies CC0 audio.
+- [x] CC0 HDRI (≤ 1k) replaces RoomEnvironment.
+  - The sandbox can't reach Poly Haven, but npm works: **@pmndrs/assets** (CC0) packs a set of Poly Haven HDRIs as 512 × 256 EXRs (DWAB). Its `studio` one is in `public/3d/hdri/studio.exr` (110 kB), taken out of the package's base64 module unchanged. It's not a dependency. Source and licence: `public/3d/CREDITS.md`.
+  - `scene.ts` loads it with EXRLoader and prefilters it with PMREM. The page waits for it before showing the scene. If it fails to load, RoomEnvironment stands in (`__cassette3d.environment()` says which). A context restore rebuilds it from the copy kept in memory.
+  - Retuned for it:
+    - the shelf plastic's reflections come back up, 0.04 → 0.15 (the Stage 4 note)
+    - the wood keeps 30 % of its reflections: the studio's overhead lights turned the board tops white at a glancing angle
+- [x] Scratches/fingerprint roughness map on the case. `surfaceTextures.ts` draws a 1024² mask on a canvas covering 12 cm: hairline scratches (most along the case's length, as from sliding in and out of a shelf), tiny scuffs, and two fingerprints near the open edge.
+  - The case parts' UVs don't agree with each other, so the shader projects the mask along each face's main axis in object space instead.
+  - Where the mask is on, roughness goes up to 0.5. Roughness alone left the scratches invisible on clear plastic, so they also scatter back a little light (2.5 % of a matte white surface). So they catch the light and show against dark backgrounds, and barely show elsewhere.
+  - Tunable in `SURFACE` (materials.ts) and in `?debug=1`.
+- [x] Paper grain (normal + roughness) on the J-card. A tileable 512² height field (noise plus ~2600 short fibres), as a normal map and a roughness map (0.74–0.92), 3 cm per tile. Each J-card panel and both labels get their own repeat, all sharing one upload. Visible in close-ups and on the unfolded card.
+- [x] Contact shadows; faked AO on the shelf (no SSAO on mobile).
+  - **Contact shadows** (`contactShadows.ts`, the same idea as drei's):
+    - An orthographic camera on the floor looks up at the hero tape and renders it into a 512² target. The darkness fades out 2.5 cm above the floor.
+    - Blurred twice and shown on a 32 × 24 cm plane under the turntable.
+    - It only re-renders when the tape moved, so a tape at rest costs nothing. Hidden while the tape is on the shelf.
+  - **Shelf AO** (shader only, nothing baked):
+    - the wood darkens towards each cubby's back, corners and board edges, from distances worked out from the layout
+    - the cases darken at the foot of their spine, a little under the board above, and deeper in the shelf
+    - a hovered case lights up as it slides out
+    - Still **6 draw calls** for 150 tapes.
+- [ ] Optional: paper-curl vertex bend, if hinged folds feel too stiff. **Not done:** the Stage 3 checkpoint approved the folds as they are.
+- [ ] Optional: subtle DOF, desktop high tier only. **Deferred to Stage 7:** it needs the quality tiers to decide who gets it.
+- [x] Sound hooks (case click, cassette clack, paper unfold) via Web Audio; mute toggle with saved preference. Human supplies CC0 audio.
+  - **Hooks:** the tape machine places a cue on each step's timeline, at the moment something happens. GSAP fires them in both directions, so closing gives the snap as the lid shuts. The cues:
+    - case slides out / back in
+    - lid unlatches / snaps shut
+    - cassette off / back on the spindles, put down on the table
+    - J-card slides out / in
+    - each crease as it opens or closes
+    - card turned over
+  - **Files:** each cue plays `public/3d/sounds/<name>.mp3` (names and levels in `SOUND_FILES`, list in `public/3d/CREDITS.md`). **Waiting on the human's CC0 audio.** Until then a synthesised stand-in plays for each (resonant clicks and knocks, filtered-noise paper), so every hook can be heard and timed.
+  - The audio starts on the first click or key press (browser autoplay rules). A cue repeated within 45 ms plays once, and at most 8 play at a time (spamming the buttons).
+  - **Mute:** a 🔊 / 🔇 button in the shelf toolbar and at the end of the tape's action buttons (`aria-pressed`). Remembered in localStorage as `library3d-sound` (on by default).
 
 **Acceptance:** side-by-side screenshots against vhs.texs.org.
+
+- [ ] **vhs.texs.org can't be reached from the sandbox** (403 from the proxy), so no side-by-side from here. Instead there are before/after pairs against Stage 5, and the new `polish-*.png` shots from `npm run screenshot:3d`. For the real comparison: a screenshot of vhs.texs.org from the human, or the same views side by side on your screen.
+- [x] `npm run screenshot:3d` has a Stage 6 part, which checks:
+  - the HDRI is what lights the scene
+  - contact shadows are on under the hero tape and off on the shelf
+  - every step of a walk with the overlay buttons makes its sound, in order
+  - the mute switch silences the cues and is still on after a reload, and unmuting is remembered too
+
+  Shots: `polish-threeQuarter`, `-scuffs`, `-scuffs-empty`, `-paper-closeup`, `-label-closeup`, `-unfolded`, `-cassette-on-table`, `-shelf`.
+- [x] Everything from Stages 0–5 still passes, including the 3-cycle leak check. The case's scuff mask, the paper grain and the contact shadows' render targets are all freed.
+
+**For the checkpoint (look and sound):**
+- **Scratch strength** is a matter of taste. Right now the case looks lightly used, and the scratches show most against the dark background (e.g. the open case behind the J-card). `?debug=1` → Case plastic → scuff roughness, or `SURFACE.scuffScatter`, to taste. Fingerprints are subtle and only show in a highlight.
+- **Board tops** read lighter than before: the studio HDRI lights them from above. Say if you'd like them darker.
+- **Sounds are stand-ins.** Please pick CC0 recordings for the 8 files in `public/3d/CREDITS.md`, or tell me where to get them; the sandbox can't browse freesound etc. Also: should sound be **on by default** (as now) or off?
+- **Cost:** contact shadows re-render the hero tape (another ~150 draw calls) on frames where it moves, e.g. while it auto-spins or animates. Stage 7's tiers can turn them off on low-end devices.
 
 **Human checkpoint.**
 
@@ -472,6 +521,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-24 · Stage 6 built** (details under Stage 6): studio HDRI, case scuffs and fingerprints, paper grain, contact shadows, shelf AO, sound cues with stand-in sounds and a remembered mute switch. The two optional items aren't done: paper curl isn't needed, and DOF moves to Stage 7. No side-by-side with vhs.texs.org (unreachable): there are before/after pairs against Stage 5 instead. **Waiting on the human checkpoint** and the CC0 sound files.
 
 - **2026-09-24 · Stage 5 approved** (public shelf included). Stage 6 starts in a new session.
 

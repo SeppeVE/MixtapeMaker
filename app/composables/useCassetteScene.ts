@@ -10,6 +10,8 @@ import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
 import { uploadJCardRender, uploadJCardSpine } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
+import type { TapeSounds } from '~/lib/cassette3d/audio';
+import { getLibrarySoundMuted, setLibrarySoundMuted } from '~/utils/localStorage';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
 
@@ -57,6 +59,8 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
     status: 'loading', source: null, signedIn: false, hasMixtapes: false, error: false, entries: [], order: [],
     mixtapeIds: [], missingTape: false, owner: null,
   });
+  /** Sound effects off (remembered in localStorage). */
+  const muted = ref(getLibrarySoundMuted());
   const hovered = ref<number | null>(null);
   const selected = ref<number | null>(null);
   /** The tapes on the shelf, shared with the library (edited in place, then triggered). */
@@ -78,6 +82,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
   let handle: CassetteScene | null = null;
   let hero: Hero | null = null;
   let library: Library | null = null;
+  let sounds: TapeSounds | null = null;
   let debugCleanup: (() => void) | null = null;
   let unmounted = false;
 
@@ -89,16 +94,20 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
       return;
     }
     try {
-      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }] = await Promise.all([
+      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }, { createTapeSounds }] = await Promise.all([
         import('~/lib/cassette3d/scene'),
         import('~/lib/cassette3d/hero'),
         import('~/lib/cassette3d/library'),
         import('~/lib/cassette3d/debug'),
         import('~/lib/cassette3d/textures/snapshotSource'),
+        import('~/lib/cassette3d/audio'),
       ]);
       if (unmounted) return;
       const params = debug.parseDebugParams(route.query);
       handle = createCassetteScene(el, { onStatus: (s) => { status.value = s; } });
+      const environmentReady = handle.environmentReady;
+      sounds = createTapeSounds({ muted: muted.value });
+      const tapeSounds = sounds;
       // Stored renders first; a card you own that had to be rendered here gets its render uploaded.
       const snapshotSource = createSnapshotSource({
         supabaseUrl,
@@ -111,6 +120,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         fade: (to, ms) => fadeCanvas(el, to, ms),
         hasShelf: () => !!library,
         getSlot: (out) => library?.slotMatrix(out) ?? null,
+        cue: (c) => tapeSounds.play(c),
       });
       hero.view.turntable.visible = false;
       hero.onTextureStatus((s) => { textureStatus.value = s; });
@@ -126,9 +136,12 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
       });
       // Look at the shelf while the tapes load.
       hero.machine.jump('onShelf');
-      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev);
+      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev, sounds);
       if (unmounted) cleanup();
       else debugCleanup = cleanup;
+      // The studio lighting, so the first frame isn't lit by the fallback (it resolves either way).
+      await environmentReady;
+      if (unmounted) return;
       status.value = 'ready';
 
       const data = await resolveShelfTapes(route.query, import.meta.dev, scope);
@@ -192,6 +205,8 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
 
   onBeforeUnmount(() => {
     unmounted = true;
+    sounds?.dispose();
+    sounds = null;
     library?.dispose();
     library = null;
     // The scene first: it frees GPU resources three.js only reaches through live materials.
@@ -217,6 +232,12 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
     /** A mixtape saved from here (the draft): it's in the cloud now. */
     addMixtapeId: (id: string) => {
       if (!shelf.value.mixtapeIds.includes(id)) shelf.value = { ...shelf.value, mixtapeIds: [...shelf.value.mixtapeIds, id], hasMixtapes: true };
+    },
+    muted,
+    setMuted: (value: boolean) => {
+      muted.value = value;
+      setLibrarySoundMuted(value);
+      sounds?.setMuted(value);
     },
     request: (state: TapeState) => hero?.machine.request(state),
     step: (dir: 1 | -1) => hero?.machine.step(dir),

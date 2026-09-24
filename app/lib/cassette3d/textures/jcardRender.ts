@@ -19,7 +19,7 @@ export const DEFAULT_DPI = 300;
  * Bump when the output of the render pipeline changes (resolution, components,
  * fonts...): every stored render then counts as stale and gets re-rendered.
  */
-export const RENDER_PIPELINE = 'r1';
+export const RENDER_PIPELINE = 'r2'; // r2: cut guides hidden
 export const RENDER_BUCKET = 'jcard-renders';
 const WEBP_QUALITY = 0.9;
 

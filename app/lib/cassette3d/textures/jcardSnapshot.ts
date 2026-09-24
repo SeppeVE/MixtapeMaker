@@ -58,7 +58,8 @@ export interface JCardSnapshot {
 
 export async function snapshotJCard(rawContent: JCardContent, dpi = DEFAULT_DPI): Promise<JCardSnapshot> {
   const t0 = performance.now();
-  const content = migrateJCardContent(rawContent);
+  // Cut guides belong on paper, not on the 3D card (human decision, Stage 2 real-data check).
+  const content: JCardContent = { ...migrateJCardContent(rawContent), showCutGuides: false };
   const pxPerMm = dpi / 25.4;
 
   const [images, fonts] = await Promise.all([

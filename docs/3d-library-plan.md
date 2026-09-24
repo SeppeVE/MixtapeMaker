@@ -218,7 +218,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 ### Caching (**ASK FIRST**: Storage bucket + DB column)
 
 - [x] Proposal: render the J-card image once on save, upload to Supabase Storage, store URL + version on the row. Until approved, generate at runtime with an in-memory cache. **Approved and built (2026-09-23).** Migration: `SUPABASE_SETUP.md` step 3k, which adds a nullable `jcards.render jsonb` and a public `jcard-renders` bucket with owner-folder write policies. **Not yet run on the real project.**
-  - **Version = content hash**, not `updated_at`: `updateJCard` saves content without touching `updated_at`, and Postgres reorders jsonb keys, so the hash is taken over key-sorted JSON (plus a pipeline version `r1`; bump it when rendering changes).
+  - **Version = content hash**, not `updated_at`: `updateJCard` saves content without touching `updated_at`, and Postgres reorders jsonb keys, so the hash is taken over key-sorted JSON (plus a pipeline version, now `r2`; bump it when rendering changes).
   - **After a save:** the editor (and the library's "save to cloud") calls `scheduleJCardRender`. Once edits have been quiet for 8 s, in idle time, one render at a time, it checks the stored version, renders, uploads `{user}/{card}/{hash}-{outside|inside}.webp` (1-year cache), writes `render` to the row, and deletes older versions. Leaving the editor flushes pending renders. Renders with failed images are not stored. If the column or bucket is missing, it stops for the session.
   - **In the 3D view:** memory cache → stored render (only when the hash matches and the URLs are in our own bucket) → render in the browser. When a card you own had to be rendered in the browser, it uploads the result for next time (write-back). Report fields: `origin` (memory/stored/runtime), `version`, `writeBack`.
   - **Cleanup:** deleting a card removes its renders; account deletion removes the user's `jcard-renders/` folder.
@@ -240,12 +240,11 @@ Build the geometry procedurally in code, so every dimension stays editable in di
     - Both uploaded fonts (TTF and OTF) load and render: cover, spine, track list.
     - The panels map correctly outside and inside. The inside is blank as expected: its only text sits in flap 3, left over from when the card had more flaps, and the 2D print doesn't show it either.
     - The two background photos could not be checked, because this sandbox's proxy blocks the Supabase host (403). With them missing, the white text sits on the cream background, as it would in the PDF. With a dark stand-in image in their place, everything reads.
-    - **Cut guides** (`showCutGuides`) show up as red dashed lines on the 3D card. Open question to the human (see the log).
+    - **Cut guides** (`showCutGuides`) showed up as red dashed lines on the 3D card. **Human decision:** hide them in 3D. Done: the 3D render always turns them off, and the pipeline is now `r2`, so renders already stored with guides get redone.
 
 **Known issues:**
 
 - **Reversed cards** (`isReversed`) put every panel's own artwork on the right panel, but the 3D card still folds the normal way. A background that runs across panels therefore won't line up at the creases on a reversed card.
-- **Cut guides** are drawn on the 3D card when the card has them switched on (they belong to the printable).
 - A faint light line can show along some creases when the card lies flat (panel edge faces).
 - A snapshot takes 0.5–4 s in headless Chromium without a GPU, with the most time going to font embedding. The stored-render cache removes that for any card that has been saved since step 3k was run.
 
@@ -379,6 +378,10 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Human answers.**
+  - Hide cut guides in 3D: done (pipeline `r2`).
+  - Real cards stay **out of git**: they're only checked locally, through `showTape`.
+  - `?tape=` takes the **mixtape** id.
 - **2026-09-24 · Stage 2 real-data check, card 1 of 3.** Results under Stage 2. Two fixes came out of it:
   - The font report turned `font-family: &quot;Lady Starlight&quot;` into a family called `&quot`. The name is now decoded before parsing (the font itself was fine).
   - After a *jump* to the unfolded card (reduced motion, `?debugState`), the orbit started from the stale camera position, so the card could be framed wrong or cropped. The camera is now placed on the rig first.

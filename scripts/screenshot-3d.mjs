@@ -389,12 +389,14 @@ async function shelfTests(page) {
   check(mid === 'pulledOut' && got.s === 'onShelf', 'shelf: Escape puts the tape back step by step', `${mid} → ${got.s}`);
 
   // Search and sort re-flow the shelf.
-  const shown = await page.evaluate(() => window.__cassette3d.setShelfView('moon', 'title').length);
+  // A word only some seeded titles have (the seeded track lists all share the same songs).
+  const shown = await page.evaluate(() => window.__cassette3d.setShelfView('velvet', 'title').length);
   await page.waitForTimeout(700);
   await page.screenshot({ path: `${OUT_DIR}shelf-search.png` });
   const titles = await page.evaluate(() => {
     const a = window.__cassette3d.getShelfInfo();
-    return a.order.map((i) => document.querySelectorAll('.lib3d-list-item')[a.order.indexOf(i)]?.textContent?.trim() ?? '');
+    // List items read "<title>, C-90 · 11 tracks": compare the titles only.
+    return a.order.map((i) => (document.querySelectorAll('.lib3d-list-item')[a.order.indexOf(i)]?.textContent ?? '').trim().replace(/, C-\d+ · \d+ tracks$/, ''));
   });
   const sorted = titles.every((t, i) => i === 0 || titles[i - 1].localeCompare(t, undefined, { sensitivity: 'base', numeric: true }) <= 0);
   check(shown > 0 && shown < SEED && sorted, 'shelf: search filters and sort orders the shelf', `${shown} shown, sorted ${sorted}`);

@@ -235,7 +235,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 **Acceptance:** for 3 real mixtapes, correct J-card on the lid, readable spine, correct label; sharp text at hero distance.
 
 - [x] With the 3 **fixtures** (`.screenshots/tape{1,2,3}-*.png`): the J-card is on the lid, the spine reads, the back flap shows through the tray, and labels A/B are correct. The cover close-up is sharp. Flat outside/inside shots check panel mapping, including a continuous background running across panels and the mirrored inside face. The script checks each fixture: textures ready, every font loaded, every image fetched with CORS, and the cache hit.
-- [ ] With **3 real mixtapes**: 1 of 3 checked (below); still needs two more cards, and the real background images.
+- [x] With **real mixtapes**: signed off on 1 real card (below). Two more cards and the real background images are deferred to the end of development (human decision).
   - **Real card 1** ("Yell along songs", 2 flaps, bleed, two uploaded fonts, background photos outside and inside). The human pasted its content JSON; it's kept out of git and rendered locally through `showTape`. Results:
     - Both uploaded fonts (TTF and OTF) load and render: cover, spine, track list.
     - The panels map correctly outside and inside. The inside is blank as expected: its only text sits in flap 3, left over from when the card had more flaps, and the 2D print doesn't show it either.
@@ -378,7 +378,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
-- **2026-09-24 · Stage 3 approved.** Stage 4 starts in a new session. Still open from Stage 2 (not blocking): 2 more real cards, and a browser check that the real background images load (CORS).
+- **2026-09-24 · Stage 2 and Stage 3 approved.** Stage 4 starts in a new session.
+  - Stage 2 was signed off on the one real card. The two further real cards and the browser check of the real background images (CORS) are **deferred to the end of development**: any tweaks happen then, so they don't interfere with the plan.
 - **2026-09-24 · Human answers.**
   - Hide cut guides in 3D: done (pipeline `r2`).
   - Real cards stay **out of git**: they're only checked locally, through `showTape`.

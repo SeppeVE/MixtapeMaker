@@ -1,4 +1,4 @@
-import type { JCard } from '~/types';
+import type { JCard, JCardRender } from '~/types';
 import { isTrustedRender, jcardRenderVersion, loadStoredSnapshot } from './jcardRender';
 import type { JCardSnapshot } from './jcardSnapshot';
 import { getSnapshot, isSnapshotCached, type SnapshotOrigin } from './snapshotCache';
@@ -28,6 +28,8 @@ export interface SnapshotSourceDeps {
   /** Upload a render of a card the viewer may write to. Absent or resolving false: skip. */
   canWriteBack?: (jcard: JCard) => boolean;
   writeBack?: (jcard: JCard, snapshot: JCardSnapshot, version: string) => Promise<unknown>;
+  /** Add the shelf's spine crop to a stored render of a card the viewer may write to (older renders lack it). */
+  writeSpine?: (jcard: JCard, render: JCardRender, snapshot: JCardSnapshot) => Promise<unknown>;
 }
 
 export type SnapshotSource = (jcard: JCard) => Promise<SnapshotResult>;
@@ -43,7 +45,17 @@ export function createSnapshotSource(deps: SnapshotSourceDeps): SnapshotSource {
       const stored = jcard.render;
       if (stored?.version === version && isTrustedRender(stored, deps.supabaseUrl)) {
         try {
-          return { snapshot: await loadStoredSnapshot(stored), origin: 'stored' };
+          const snapshot = await loadStoredSnapshot(stored);
+          if (!stored.spine && deps.writeSpine && deps.canWriteBack?.(jcard)) {
+            writeBack = deps.writeSpine(jcard, stored, snapshot).then(
+              () => 'stored' as const,
+              (err) => {
+                console.warn('[cassette3d] Could not store the J-card spine', err);
+                return 'failed' as const;
+              },
+            );
+          }
+          return { snapshot, origin: 'stored' };
         } catch (err) {
           console.warn('[cassette3d] Stored J-card render failed to load; rendering it here instead', err);
         }

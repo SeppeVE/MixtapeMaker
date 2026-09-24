@@ -1,7 +1,7 @@
 import type { JCardContent, JCardRender, JCardRenderFace } from '~/types';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import type { JCardPanelName } from '../objects/jcard';
-import type { FaceSnapshot, JCardSnapshot } from './jcardSnapshot';
+import type { FaceSnapshot, JCardSnapshot, PanelRect } from './jcardSnapshot';
 
 /**
  * Stored J-card renders: what gets uploaded after a save, and turning a stored
@@ -21,6 +21,8 @@ export const DEFAULT_DPI = 300;
  */
 export const RENDER_PIPELINE = 'r2'; // r2: cut guides hidden
 export const RENDER_BUCKET = 'jcard-renders';
+/** Height of the stored spine crop the shelf uses, px (≈ 125 dpi; ~5–15 kB as WebP). */
+export const SPINE_RENDER_HEIGHT = 512;
 const WEBP_QUALITY = 0.9;
 
 /**
@@ -54,12 +56,56 @@ export function encodeFace(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+/** The outside spine of a snapshot, `height` px tall (the shelf's spine atlas, the stored spine). */
+export function spineFromSnapshot(snapshot: JCardSnapshot, height = 256): HTMLCanvasElement | null {
+  const rect = snapshot.outside.panels.spine;
+  return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
+}
+
+/** Copy one panel's columns out of a face canvas, scaled to `height` px. */
+export function cropPanel(source: HTMLCanvasElement, rect: PanelRect, height: number): HTMLCanvasElement {
+  const scale = height / source.height;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(rect.width * scale));
+  canvas.height = Math.max(1, Math.round(height));
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, rect.x, 0, rect.width, source.height, 0, 0, canvas.width, canvas.height);
+  }
+  return canvas;
+}
+
+const bucketPrefix = (supabaseUrl: string) => `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${RENDER_BUCKET}/`;
+
+/**
+ * The stored spine's URL if the render has one from our own bucket, else null.
+ * (The shelf checks the render's version against the card itself.)
+ */
+export function trustedSpineUrl(render: JCardRender | null | undefined, supabaseUrl: string): string | null {
+  const url = render?.spine?.url;
+  return typeof url === 'string' && !!supabaseUrl && url.startsWith(bucketPrefix(supabaseUrl)) ? url : null;
+}
+
+/** Download a stored spine as a canvas. */
+export async function loadStoredSpine(url: string): Promise<HTMLCanvasElement> {
+  const res = await fetch(url, { mode: 'cors' });
+  if (!res.ok) throw new Error(`Stored J-card spine: http ${res.status}`);
+  const bitmap = await createImageBitmap(await res.blob());
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return canvas;
+}
+
 /**
  * Only accept stored renders from our own bucket. The `render` column is written
  * by the card's owner, and public cards are shown to other people.
  */
 export function isTrustedRender(render: JCardRender, supabaseUrl: string): boolean {
-  const prefix = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${RENDER_BUCKET}/`;
+  const prefix = bucketPrefix(supabaseUrl);
   const faces = [render.outside, render.inside].filter((f): f is JCardRenderFace => !!f);
   return faces.length > 0 && faces.every((f) => typeof f.url === 'string' && f.url.startsWith(prefix));
 }

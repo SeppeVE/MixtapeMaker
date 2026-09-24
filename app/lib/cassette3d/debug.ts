@@ -119,6 +119,8 @@ export interface Cassette3DDebugApi {
     order: number[];
     selected: number | null;
     hovered: number | null;
+    /** Tapes whose spine on the shelf is the real one (from a render), not drawn. */
+    realSpines: number[];
     bays: number;
     pan: { x: number; y: number };
     zoom: number;
@@ -218,6 +220,7 @@ export async function installDebug(
           order: [...library.getOrder()],
           selected: library.selected(),
           hovered: library.hovered(),
+          realSpines: library.realSpines(),
           bays: shelf?.layout.bays ?? 0,
           pan: view.getPan(),
           zoom: view.getZoom(),

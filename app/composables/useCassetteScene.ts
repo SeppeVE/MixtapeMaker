@@ -6,7 +6,7 @@ import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/ta
 import { resolveShelfTapes, type ShelfData } from '~/composables/useHeroTapeData';
 import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
-import { uploadJCardRender } from '~/utils/jcardRenders';
+import { uploadJCardRender, uploadJCardSpine } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
@@ -79,6 +79,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
         supabaseUrl,
         canWriteBack: (jcard) => !!auth.user && jcard.userId === auth.user.id && isCloudId(jcard.id),
         writeBack: (jcard, snapshot, version) => uploadJCardRender(jcard, snapshot, version),
+        writeSpine: (jcard, render, snapshot) => uploadJCardSpine(jcard, render, snapshot),
       });
       hero = createHero(handle, params.hero, snapshotSource, {
         reducedMotion: () => prefersReducedMotion(route.query.motion),
@@ -90,6 +91,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       hero.onTextureStatus((s) => { textureStatus.value = s; });
       hero.machine.onChange((s) => { tape.value = s; });
       library = createLibrary(handle, hero, {
+        supabaseUrl,
         onHover: (i) => { hovered.value = i; },
         onSelect: (i) => { selected.value = i; },
         onOrder: (order) => { shelf.value = { ...shelf.value, order }; },

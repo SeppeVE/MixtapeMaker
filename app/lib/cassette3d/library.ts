@@ -7,8 +7,7 @@ import { createShelf, type Shelf } from './shelf/shelfModel';
 import { createShelfView, type ShelfView } from './shelf/shelfView';
 import type { CassetteScene } from './scene';
 import type { TapeData } from './tapeData';
-import { jcardRenderVersion } from './textures/jcardRender';
-import { spineFromSnapshot } from './textures/jcardTexture';
+import { jcardRenderVersion, loadStoredSpine, spineFromSnapshot, trustedSpineUrl } from './textures/jcardRender';
 import { getSnapshot, isSnapshotCached } from './textures/snapshotCache';
 import { drawSpine, loadSpineFonts, spineFonts } from './textures/spineTexture';
 import { registerCustomFonts } from '~/utils/fontManager';
@@ -30,6 +29,8 @@ import type { CustomFont } from '~/types';
 export type ShelfSort = 'updated' | 'created' | 'title';
 
 export interface LibraryOptions {
+  /** NUXT_PUBLIC_SUPABASE_URL: stored spines are only loaded from this project's render bucket. */
+  supabaseUrl?: string;
   /** Called when the hovered (or keyboard-focused) tape changes. */
   onHover?: (index: number | null) => void;
   /** Called when the tapes shown on the shelf change (search / sort / new list). */
@@ -47,6 +48,8 @@ export interface Library {
   selected: () => number | null;
   /** The hovered (or keyboard-highlighted) tape. */
   hovered: () => number | null;
+  /** Tapes whose shelf spine is the real one (from a render), not drawn. */
+  realSpines: () => number[];
   /** Highlight a tape as if hovered (keyboard focus in the overlay), or clear it. */
   highlight: (index: number | null) => void;
   /** Filter and sort the shelf. Returns the tapes shown, in order. */
@@ -62,6 +65,8 @@ export interface Library {
 }
 
 const CLICK_SLOP_PX = 6;
+/** Stored spines downloading at once. */
+const SPINE_LOADS = 4;
 const HERO_FOCUS = { x: 0, y: 0, z: 0, halfSize: 12 };
 /** Shelf brightness while a tape is on the turntable. */
 const SHELF_DIM = 0.3;
@@ -80,8 +85,9 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   let highlighted: number | null = null;
   let generation = 0;
   let disposed = false;
-  /** Drawn spines, kept for the hero's placeholder until a real one arrives. */
+  /** Drawn spines, and the real ones as they arrive: the hero wears the best one until its own render is in. */
   let drawn: HTMLCanvasElement[] = [];
+  let best: (HTMLCanvasElement | undefined)[] = [];
   /** Tapes whose atlas cell already holds the real spine. */
   let real = new Set<number>();
 
@@ -145,7 +151,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     selected = index;
     options.onSelect?.(index);
     const gen = generation;
-    void hero.setTape(tape, { spine: drawn[index] }).then(() => {
+    void hero.setTape(tape, { spine: best[index] ?? drawn[index] }).then(() => {
       if (disposed || gen !== generation || selected !== index) return;
       upgradeSpine(index, hero.spineThumbnail(shelf?.atlas.spineHeight));
     });
@@ -156,6 +162,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     if (!canvas || !shelf) return;
     shelf.atlas.setSpine(index, canvas);
     real.add(index);
+    best[index] = canvas;
   }
 
   // --- Picking on the shelf ----------------------------------------------------------------
@@ -269,6 +276,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     options.onSelect?.(null);
     setHovered(null);
     real = new Set();
+    best = [];
     shelf?.dispose();
     shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer);
     handle.scene.add(shelf.root);
@@ -305,18 +313,41 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     if (disposed || gen !== generation) return;
     drawAll();
 
-    // Real spines for any card this tab has already rendered (memory cache).
+    // Real spines: from the snapshot cache (cards this tab has rendered), else the
+    // small spine stored with the card's render, if it's still for this content.
+    const toFetch: { index: number; url: string }[] = [];
     for (let i = 0; i < tapes.length; i++) {
       const { jcard } = tapes[i]!;
-      const key = `${jcard.id}:${await jcardRenderVersion(jcard.content)}`;
+      const version = await jcardRenderVersion(jcard.content);
       if (disposed || gen !== generation) return;
-      if (!isSnapshotCached(key) || real.has(i)) continue;
-      try {
-        const cached = await getSnapshot(key, () => Promise.reject(new Error('not cached')));
-        if (disposed || gen !== generation) return;
-        upgradeSpine(i, spineFromSnapshot(cached.snapshot, height));
-      } catch { /* evicted meanwhile: keep the drawn spine */ }
+      if (real.has(i)) continue;
+      const key = `${jcard.id}:${version}`;
+      if (isSnapshotCached(key)) {
+        try {
+          const cached = await getSnapshot(key, () => Promise.reject(new Error('not cached')));
+          if (disposed || gen !== generation) return;
+          upgradeSpine(i, spineFromSnapshot(cached.snapshot, height));
+          continue;
+        } catch { /* evicted meanwhile: try the stored spine */ }
+      }
+      const url = jcard.render?.version === version ? trustedSpineUrl(jcard.render, options.supabaseUrl ?? '') : null;
+      if (url) toFetch.push({ index: i, url });
     }
+    // In shelf order, so the top-left of the shelf fills in first.
+    const rank = new Map(order.map((index, slot) => [index, slot]));
+    toFetch.sort((a, b) => (rank.get(a.index) ?? a.index) - (rank.get(b.index) ?? b.index));
+    const worker = async () => {
+      for (let job = toFetch.shift(); job; job = toFetch.shift()) {
+        try {
+          const canvas = await loadStoredSpine(job.url);
+          if (disposed || gen !== generation) return;
+          if (!real.has(job.index)) upgradeSpine(job.index, canvas);
+        } catch (err) {
+          console.warn('[cassette3d] Could not load a stored spine; keeping the drawn one', err);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: SPINE_LOADS }, worker));
   }
 
   return {
@@ -325,6 +356,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     select,
     selected: () => selected,
     hovered: () => hovered ?? highlighted,
+    realSpines: () => [...real].sort((a, b) => a - b),
     highlight(index) {
       highlighted = index;
       shelf?.setHovered(hovered ?? index);

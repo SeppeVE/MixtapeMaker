@@ -50,7 +50,7 @@ const jcardRow = {
 // --- Mock Supabase ------------------------------------------------------------------
 
 const files = new Map(); // storage path → { body, type }
-const log = { uploads: [], patches: [], removed: [] };
+const log = { uploads: [], patches: [], removed: [], downloads: [] };
 const inserted = new Map(); // cards created by the editor during the test
 
 const cors = {
@@ -123,6 +123,7 @@ async function handle(route) {
   }
   if (path.startsWith('/storage/v1/object/public/')) {
     const key = decodeURIComponent(path.slice('/storage/v1/object/public/'.length));
+    log.downloads.push(key);
     const file = files.get(key);
     if (!file) return route.fulfill({ status: 404, headers: cors, body: 'not found' });
     return route.fulfill({ status: 200, headers: { ...cors, 'content-type': file.type }, body: file.body });
@@ -188,7 +189,8 @@ const page = await context.newPage();
 page.on('pageerror', (err) => console.log(`page error: ${err.message}`));
 
 async function openViewer(label) {
-  await page.goto(`${BASE_URL}/library/3d?3d=1&view=threeQuarter&turntable=0`, { waitUntil: 'networkidle' });
+  // ?tape=: straight onto the turntable (the viewer otherwise opens on the shelf).
+  await page.goto(`${BASE_URL}/library/3d?3d=1&tape=${MIXTAPE_ID}&view=threeQuarter&turntable=0`, { waitUntil: 'networkidle' });
   await page.waitForFunction(
     () => ['ready', 'error'].includes(window.__cassette3d?.getTextureReport().status),
     null,
@@ -214,7 +216,21 @@ try {
   const patch = log.patches.at(-1)?.render;
   check(patch?.version === report.version, 'row.render.version = content hash', `${patch?.version}`);
   check(!!patch?.outside?.panels?.flap1 && !!patch?.outside?.panels?.spine && !!patch?.outside?.panels?.back, 'row.render has the panel layout', JSON.stringify(patch?.outside?.panels));
+  const spineKey = `jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`;
+  check(files.has(spineKey) && patch?.spine?.url?.endsWith(`${report.version}-spine.webp`) && patch?.spine?.height === 512,
+    'spine crop stored beside the faces, row.render.spine points at it', `${files.get(spineKey)?.body.length} bytes, ${JSON.stringify(patch?.spine)}`);
   const firstVersion = report.version;
+
+  // 1b. The shelf in a fresh tab: the card's spine comes from the stored spine file, not a render.
+  await page.goto(`${BASE_URL}/library/3d?3d=1`, { waitUntil: 'networkidle' });
+  const shelfSpine = await page.waitForFunction(() => {
+    const info = window.__cassette3d?.getShelfInfo();
+    return info && info.count > 0 && info.realSpines.length > 0 ? info : null;
+  }, null, { timeout: 30_000 }).then((h) => h.jsonValue()).catch(() => null);
+  check(!!shelfSpine && log.downloads.includes(spineKey), 'shelf: the real spine is loaded from the stored spine file',
+    shelfSpine ? `real spines ${JSON.stringify(shelfSpine.realSpines)}` : 'none within 30 s');
+  check(!log.downloads.some((k) => k.endsWith('-outside.webp')), 'shelf: without downloading the full render');
+  await page.screenshot({ path: `${OUT_DIR}render-cache-1b-shelf.png` });
 
   // 2. Fresh tab (empty memory cache): the stored render is used.
   report = await openViewer('2-stored');
@@ -227,7 +243,16 @@ try {
   check(report.version !== firstVersion, 'new content, new hash');
   check(report.origin === 'runtime' && report.writeBack === 'stored', 'stale stored render: re-rendered and replaced', `${report.origin}/${report.writeBack}`);
   check(log.removed.some((p) => p.includes(firstVersion)), 'the old version\'s files are deleted', log.removed.join(', '));
-  check(files.size === 1, 'one file left for the card', [...files.keys()].join(', '));
+  check(files.size === 2 && [...files.keys()].every((k) => k.includes(report.version)), 'only the new version\'s files are left (outside + spine)', [...files.keys()].join(', '));
+
+  // 3b. A render stored before spines existed: the viewer adds the spine from the stored images.
+  const { spine: _dropped, ...noSpine } = jcardRow.render;
+  jcardRow.render = noSpine;
+  files.delete(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`);
+  report = await openViewer('3b-backfill');
+  check(report.origin === 'stored' && report.writeBack === 'stored', 'old render without a spine: loaded, spine added', `${report.origin}/${report.writeBack}`);
+  check(files.has(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`) && !!jcardRow.render.spine && jcardRow.render.version === report.version,
+    'spine uploaded and added to the same render version', JSON.stringify(jcardRow.render.spine));
 
   // 4. Somebody else's card: rendered, never uploaded.
   jcardRow.user_id = OTHER_USER;
@@ -262,6 +287,7 @@ try {
   const stored = await waitFor(() => saved && log.patches.find((p) => p.id === saved.id && p.render), 45_000);
   check(!!stored, 'editor: the render is stored after the save settles', stored ? `${Math.round((Date.now() - start) / 1000)} s after saving, version ${stored.render.version}` : 'no render PATCH within 45 s');
   check(!!stored && files.has(`jcard-renders/${USER_ID}/${saved.id}/${stored.render.version}-outside.webp`), 'editor: file uploaded to the user\'s folder');
+  check(!!stored?.render?.spine && files.has(`jcard-renders/${USER_ID}/${saved.id}/${stored.render.version}-spine.webp`), 'editor: the spine is stored too');
 } finally {
   await browser.close();
 }

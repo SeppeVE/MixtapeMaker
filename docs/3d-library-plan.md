@@ -316,7 +316,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Spines are drawn first, and real ones replace them.**
     - Rendering 150 J-cards to get their spines isn't possible (0.5–4 s each), and downloading 150 full stored renders is too heavy.
     - So every spine is drawn straight away from the card's spine text, colours and fonts (`spineTexture.ts`, no images).
-    - A drawn spine is replaced by the real crop from the J-card render once this tab has one: a tape you took off the shelf, or a card already in the snapshot cache.
+    - A drawn spine is replaced by the real one as soon as there is one: first from the snapshot cache (cards this tab has rendered), else from the **stored spine file** (below), loaded 4 at a time in shelf order. Taking a tape off the shelf upgrades its spine too.
     - The hero case wears the drawn spine too until its own render arrives, so nothing jumps when the tape leaves the shelf.
   - **150 tapes: 6 draw calls** on the shelf (incl. shadows), measured by the script. With a tape on the turntable it's ~150, almost all of it the hero case (as in Stage 3).
 - [x] Layout spine-out, left to right; propose an approach for large libraries.
@@ -366,10 +366,18 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 **Known issues / for the checkpoint:**
 
 - **The wood is procedural**, not a CC0 photo (network). If you'd like a specific CC0 texture (e.g. Poly Haven "wood_table_001", 1k), drop it in `public/textures/` or allow the host, and I'll wire it in.
-- **Real spines on the shelf** only appear for tapes this tab has rendered. **Proposal (ASK FIRST, not built):**
-  - When the render-on-save pipeline uploads a card's render, it also uploads a small spine crop (`{user}/{card}/{hash}-spine.webp`, ~5 kB) and adds its URL to the `render` jsonb.
-  - No migration is needed (it's a new key in the existing column), and it uses the same bucket and policies.
-  - The shelf would then load real spines for every saved card, a few kB each.
+- ~~**Real spines on the shelf** only appear for tapes this tab has rendered.~~ **Stored spine thumbnails: approved and built (2026-09-24).**
+  - Every stored render now also uploads `{user}/{card}/{hash}-spine.webp`: 512 px tall, ~2 kB for a plain card. Its URL goes in the `render` jsonb as `spine: { url, height }`.
+  - There's no migration: it's a new key in the existing column, in the same bucket with the same policies. The version cleanup and card deletion remove the spine file with the rest.
+  - The shelf loads a spine when the render's hash still matches the card and the URL is in our bucket. It never downloads the full faces for that.
+  - **Older renders** (stored before this) get their spine without a re-render. When the owner saves the card, or opens it in 3D, the spine is cropped from the stored images and added to the same render version.
+  - The crop code moved to `jcardRender.ts` (three-free), because the editor's save path uses it.
+  - `npm run test:render-cache` checks it (26 checks):
+    - the spine is stored and linked
+    - the shelf loads it (and not the full render)
+    - an old render gets backfilled
+    - the editor's save stores it
+    - old versions' spines are deleted
 - The **drawn spine** leaves out images: a spine with a photo background shows its background colour. It uses a card's uploaded font only if that font is on the spine.
 - **The shelf plastic** is dimmer than the hero's because of RoomEnvironment's hot ceiling light. Stage 6's HDRI is the place to bring its reflections back.
 - **Timing / feel to judge:** pull-out 0.5 s, fly-in 1.4 s (3 cm arc), landing angle −20°, hover slide 12 mm + glow, shelf dimmed to 30 % behind the hero. They're all in `ANIM.shelf` / `SHELF`, and in `?debug=1` → Tape machine → Shelf timing.
@@ -445,6 +453,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 4: stored spine thumbnails approved and built** (details under Stage 4, known issues). The shelf shows every saved card's real spine from a ~2 kB file. Render-cache test: 26/26. Stage 4 checkpoint still open for the rest (wood texture, timing/feel, 2D search/sort).
 - **2026-09-24 · Stage 4 built** (details under Stage 4): shelf, instanced cases with an atlas of spines, pull-out and fly-in in the tape machine, hover, search and sort in the 3D overlay, empty state, keyboard list, shelf tests in `npm run screenshot:3d`. **Waiting on the human checkpoint.** Open: CC0 wood texture (network), stored spine thumbnails (proposal, ASK FIRST), search/sort for the 2D library (not touched).
 - **2026-09-24 · Stage 2 and Stage 3 approved.** Stage 4 starts in a new session.
   - Stage 2 was signed off on the one real card. The two further real cards and the browser check of the real background images (CORS) are **deferred to the end of development**: any tweaks happen then, so they don't interfere with the plan.

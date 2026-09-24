@@ -9,7 +9,8 @@ import {
   type WebGLRenderer,
 } from 'three';
 import type { JCardModel, JCardPanelName } from '../objects/jcard';
-import type { FaceSnapshot, JCardSnapshot, PanelRect } from './jcardSnapshot';
+import type { FaceSnapshot, JCardSnapshot } from './jcardSnapshot';
+import { spineFromSnapshot } from './jcardRender';
 
 /**
  * Turns a J-card snapshot into textures on the hinged 3D card.
@@ -90,12 +91,6 @@ export function applyJCardTextures(
   };
 }
 
-/** The outside spine of a snapshot, `height` px tall (the shelf's spine atlas). */
-export function spineFromSnapshot(snapshot: JCardSnapshot, height = 256): HTMLCanvasElement | null {
-  const rect = snapshot.outside.panels.spine;
-  return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
-}
-
 /** The canvas itself, or a scaled-down copy when it's larger than the GPU's texture limit. */
 function fitToSize(canvas: HTMLCanvasElement, maxSize: number): HTMLCanvasElement {
   const scale = Math.min(1, maxSize / canvas.width, maxSize / canvas.height);
@@ -109,18 +104,4 @@ function fitToSize(canvas: HTMLCanvasElement, maxSize: number): HTMLCanvasElemen
     ctx.drawImage(canvas, 0, 0, out.width, out.height);
   }
   return out;
-}
-
-/** Copy one panel's columns out of a face canvas, scaled to `height` px. */
-function cropPanel(source: HTMLCanvasElement, rect: PanelRect, height: number): HTMLCanvasElement {
-  const scale = height / source.height;
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(rect.width * scale));
-  canvas.height = Math.max(1, Math.round(height));
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(source, rect.x, 0, rect.width, source.height, 0, 0, canvas.width, canvas.height);
-  }
-  return canvas;
 }

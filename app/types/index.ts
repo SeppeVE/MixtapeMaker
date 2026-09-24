@@ -142,6 +142,8 @@ export interface JCardRender {
   pxPerMm: number;
   outside: JCardRenderFace;
   inside?: JCardRenderFace | null;
+  /** The outside spine on its own, small, for the 3D library's shelf. Absent on renders stored before it existed. */
+  spine?: { url: string; height: number } | null;
 }
 
 export interface JCard {

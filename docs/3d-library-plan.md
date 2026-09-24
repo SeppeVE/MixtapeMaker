@@ -293,7 +293,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **Clicking the open case closes it.** Is that too easy to trigger by accident?
 - **Unfolded view:** the cassette lies on the table beside the card; the open case is hidden behind the card.
 
-**Human checkpoint:** timing and feel on desktop and phone.
+**Human checkpoint:** timing and feel on desktop and phone. **Approved 2026-09-24** (as built: the reversed lid ease, click-to-close and the unfolded layout stay as they are).
 
 ## Stage 4: The shelf
 
@@ -378,6 +378,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 3 approved.** Stage 4 starts in a new session. Still open from Stage 2 (not blocking): 2 more real cards, and a browser check that the real background images load (CORS).
 - **2026-09-24 · Human answers.**
   - Hide cut guides in 3D: done (pipeline `r2`).
   - Real cards stay **out of git**: they're only checked locally, through `showTape`.

@@ -144,3 +144,66 @@ export const FIXTURES: Record<string, () => TapeData> = {
   '2': fixture2,
   '3': fixture3,
 };
+
+// --- Seeded shelf (dev: ?seed=<n>) ----------------------------------------------
+
+const SEED_WORDS = [
+  'Summer', 'Night', 'Drive', 'Rain', 'Static', 'Velvet', 'Neon', 'Paper', 'Moon', 'Harbour', 'Radio',
+  'Kitchen', 'Sunday', 'Winter', 'Slow', 'Ghost', 'Garden', 'Orbit', 'Coffee', 'Roadtrip', 'Lullaby',
+  'Heatwave', 'Tape', 'Echo', 'Satellite', 'Cherry', 'Midnight', 'Postcard', 'Riverside', 'Bedroom',
+];
+const SEED_FONTS = ['Bebas Neue', 'Permanent Marker', 'Caveat', 'Special Elite', 'Playfair Display', 'JetBrains Mono', 'Inter'];
+
+/** HSL → #rrggbb. */
+function hsl(h: number, s: number, l: number): string {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/**
+ * `count` tapes for the shelf: the three samples first, then generated ones with
+ * varied titles, colours and spine fonts. Deterministic, so screenshots compare.
+ * Their J-cards have no images, so selecting one renders it quickly.
+ */
+export function seedTapes(count: number): TapeData[] {
+  const tapes = [fixture1(), fixture2(), fixture3()].slice(0, count);
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  for (let i = tapes.length; i < count; i++) {
+    const words = 1 + Math.floor(rand() * 3);
+    const title = Array.from({ length: words }, () => SEED_WORDS[Math.floor(rand() * SEED_WORDS.length)]).join(' ') + (rand() < 0.3 ? ` Vol. ${1 + Math.floor(rand() * 4)}` : '');
+    const lengths: Mixtape['cassetteLength'][] = [60, 90, 120];
+    const m = mixtape(`seed-${i}`, title, lengths[Math.floor(rand() * 3)]!, 4 + Math.floor(rand() * 4), 4 + Math.floor(rand() * 4));
+    // Newest first, like the library's own order.
+    m.updatedAt = new Date(Date.UTC(2026, 8, 20) - i * 3_600_000 * 7).toISOString();
+    m.createdAt = new Date(Date.UTC(2026, 8, 20) - ((i * 7919) % count) * 86_400_000).toISOString();
+    const base = applyMixtapeToJCard(buildBlankJCardContent(), m);
+    const light = rand() < 0.35;
+    const bg = hsl(rand() * 360, 0.25 + rand() * 0.5, light ? 0.78 + rand() * 0.12 : 0.18 + rand() * 0.3);
+    const ink = light ? '#1e1a1c' : '#f5efe2';
+    const font = SEED_FONTS[Math.floor(rand() * SEED_FONTS.length)]!;
+    const content: JCardContent = {
+      ...base,
+      flaps: (1 + Math.floor(rand() * 3)) as JCardContent['flaps'],
+      backgroundColor: bg,
+      flapContents: [
+        `<h2 style="text-align:center;color:${ink}"><span style="font-family: '${font}'; font-size: 7mm">${title}</span></h2>`,
+        ...base.flapContents.slice(1),
+      ],
+      spineTopContent: `<span style="color:${ink};font-family: '${font}'">${title}</span>`,
+      spineBottomContent: `<span style="color:${ink}">C${m.cassetteLength}</span>`,
+    };
+    tapes.push(pair(m, content));
+  }
+  return tapes;
+}
+
+/** The three samples, for the shelf when you're signed out. */
+export function sampleTapes(): TapeData[] {
+  return [fixture1(), fixture2(), fixture3()];
+}

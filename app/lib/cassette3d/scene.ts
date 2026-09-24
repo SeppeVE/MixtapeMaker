@@ -16,6 +16,7 @@ import {
   type Material,
   type Object3D,
   type WebGLRenderTarget,
+  Vector3,
 } from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -38,6 +39,13 @@ export interface CassetteScene {
   scene: Scene;
   camera: PerspectiveCamera;
   keyLight: DirectionalLight;
+  /** Where the key light shines from, relative to its focus (debug GUI edits this). */
+  keyOffset: Vector3;
+  /**
+   * Centre the key light's shadow on a point, covering a square of `halfSize` cm
+   * either way: tight round the hero tape, wide over the shelf.
+   */
+  setShadowFocus: (x: number, y: number, z: number, halfSize: number) => void;
   /** Called every frame before rendering, with the frame delta in seconds. */
   onFrame: (fn: (dt: number) => void) => () => void;
   /** Called after the canvas and camera have been resized. */
@@ -92,17 +100,31 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   scene.add(hemi);
 
   const keyLight = new DirectionalLight('#fff1dc', 2.2);
-  keyLight.position.set(18, 30, 16);
+  const keyOffset = new Vector3(18, 30, 16);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.set(2048, 2048);
   keyLight.shadow.radius = 4;
   keyLight.shadow.bias = -0.0005;
   keyLight.shadow.normalBias = 0.02;
-  // Tight around the hero case, so its shadow stays crisp. Stage 4 widens this for the shelf.
-  const sc = keyLight.shadow.camera;
-  sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12;
-  sc.near = 20; sc.far = 60;
   scene.add(keyLight);
+  scene.add(keyLight.target);
+  // The shadow camera follows a focus: tight round the hero case, so its shadow
+  // stays crisp, and wide over the part of the shelf in view.
+  const lastFocus = { x: NaN, y: NaN, z: NaN, s: NaN, ox: NaN, oy: NaN, oz: NaN };
+  function setShadowFocus(x: number, y: number, z: number, halfSize: number) {
+    const f = lastFocus;
+    if (f.x === x && f.y === y && f.z === z && f.s === halfSize && f.ox === keyOffset.x && f.oy === keyOffset.y && f.oz === keyOffset.z) return;
+    Object.assign(lastFocus, { x, y, z, s: halfSize, ox: keyOffset.x, oy: keyOffset.y, oz: keyOffset.z });
+    const dist = 60 + 2 * halfSize;
+    keyLight.target.position.set(x, y, z);
+    keyLight.position.copy(keyOffset).setLength(dist).add(keyLight.target.position);
+    const sc = keyLight.shadow.camera;
+    sc.left = -halfSize; sc.right = halfSize; sc.top = halfSize; sc.bottom = -halfSize;
+    sc.near = dist - halfSize - 25;
+    sc.far = dist + halfSize + 25;
+    sc.updateProjectionMatrix();
+  }
+  setShadowFocus(0, 0, 0, 12);
 
   // Shadow-catcher floor: invisible except where shadows land.
   const floor = new Mesh(new PlaneGeometry(200, 200), new ShadowMaterial({ opacity: 0.35 }));
@@ -199,6 +221,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     scene,
     camera,
     keyLight,
+    keyOffset,
+    setShadowFocus,
     onFrame(fn) {
       frameCallbacks.add(fn);
       return () => frameCallbacks.delete(fn);

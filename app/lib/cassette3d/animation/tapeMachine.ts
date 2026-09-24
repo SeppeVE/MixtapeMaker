@@ -1,14 +1,16 @@
 import { gsap } from 'gsap';
 import { Euler, MathUtils, Matrix4, Quaternion, Vector3 } from 'three';
-import { CASE_LAYOUT, JCARD } from '../dimensions';
-import type { HeroView } from '../heroView';
+import { CASE_LAYOUT, JCARD, SHELF } from '../dimensions';
+import { defaultRig, HERO_CENTRE_Y, type HeroView } from '../heroView';
 import type { CassetteScene } from '../scene';
 import type { TapeModel } from '../objects/tape';
 import { ANIM } from './config';
 
 /**
  * The tape state machine: the only thing that moves tape objects once a tape
- * leaves 'presented'.
+ * leaves 'presented'. From Stage 4 it also carries the tape between its slot on
+ * the shelf and the turntable (onShelf → pulledOut → presented), and blends the
+ * camera from the shelf to the hero view on the way.
  *
  * A state is a set of numbers (turntable angle, lid angle, how far the cassette
  * and the J-card are out, how unfolded the card is, the camera rig). Every frame
@@ -36,7 +38,7 @@ export function isTapeState(value: unknown): value is TapeState {
   return typeof value === 'string' && (TAPE_STATES as readonly string[]).includes(value);
 }
 
-/** The states this machine drives; onShelf and pulledOut arrive with the shelf (Stage 4). */
+/** The states from 'presented' on: the tape is off the shelf. */
 export const HERO_STATES = ['presented', 'lidOpen', 'cassetteOut', 'jcardOut', 'jcardUnfolded'] as const;
 export type HeroState = (typeof HERO_STATES)[number];
 
@@ -53,6 +55,12 @@ interface Params {
   unfold: number;
   /** Unfolded card turned over (0 = outside facing you, 1 = inside). Only ever non-zero in jcardUnfolded. */
   flip: number;
+  /** How far the case has slid out of its slot (0 = on the shelf, 1 = pulled out). */
+  pull: number;
+  /** Flight from the pulled-out pose to the turntable (0 = at the shelf, 1 = on the turntable). */
+  fly: number;
+  /** Camera: 1 = the shelf camera, 0 = the hero rig. */
+  shelf: number;
   elevation: number;
   distanceScale: number;
   targetX: number;
@@ -65,26 +73,32 @@ export interface TapeMachineOptions {
   reducedMotion?: () => boolean;
   /** Fade the view out or in (reduced motion). Resolves when the fade is done. */
   fade?: (to: 'out' | 'in', ms: number) => Promise<void>;
+  /** Whether there is a shelf to go back to. Without one, 'presented' is as far back as it goes. */
+  hasShelf?: () => boolean;
+  /** World matrix of the current tape's slot on the shelf (case frame), or null if it has none. */
+  getSlot?: (out: Matrix4) => Matrix4 | null;
 }
 
 export interface TapeMachineStatus {
   /** Last state the tape came to rest in. */
-  state: HeroState;
+  state: TapeState;
   /** Where it's heading (same as `state` when idle). */
-  target: HeroState;
+  target: TapeState;
   animating: boolean;
 }
 
 export interface TapeMachine {
-  getState: () => HeroState;
-  getTarget: () => HeroState;
+  getState: () => TapeState;
+  getTarget: () => TapeState;
   isAnimating: () => boolean;
   /** Animate to `state`, one step at a time. Mid-animation: queued, or reversed if it points back. */
-  request: (state: HeroState) => void;
+  request: (state: TapeState) => void;
   /** One step forwards (+1) or back (−1) from wherever the tape is heading. */
   step: (dir: 1 | -1) => void;
   /** Go straight to `state` with no animation. */
-  jump: (state: HeroState) => void;
+  jump: (state: TapeState) => void;
+  /** How much of the camera is the shelf camera right now (1 = all of it). */
+  shelfBlend: () => number;
   /** Turn the unfolded card over (and back again). */
   flip: () => Promise<void>;
   onChange: (fn: (status: TapeMachineStatus) => void) => () => void;
@@ -99,6 +113,9 @@ const _pos = new Vector3();
 const _quat = new Quaternion();
 const _scale = new Vector3(1, 1, 1);
 const _euler = new Euler();
+/** Index of 'presented': below it the tape is on (or at) the shelf. */
+const P = TAPE_STATES.indexOf('presented');
+const LAST = TAPE_STATES.length - 1;
 
 export function createTapeMachine(
   handle: CassetteScene,
@@ -108,14 +125,14 @@ export function createTapeMachine(
 ): TapeMachine {
   // Resting in 'presented': whatever the turntable and camera were doing (captured on leaving).
   let presentedRest: Params = {
-    turn: 0, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0,
+    turn: 0, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0, pull: 1, fly: 1, shelf: 0,
     elevation: view.rig.elevation, distanceScale: view.rig.distanceScale,
     targetX: view.rig.targetX, targetY: view.rig.targetY, targetZ: view.rig.targetZ,
   };
   const params: Params = { ...presentedRest };
   let flipTween: gsap.core.Tween | null = null;
-  let settled = 0; // index into HERO_STATES
-  let goal = 0;
+  let settled = P; // index into TAPE_STATES
+  let goal = P;
   let anim: { a: number; tl: gsap.core.Timeline; backwards: boolean } | null = null;
   let busy = false; // waiting on an orbit release or a fade
   let disposed = false;
@@ -140,14 +157,30 @@ export function createTapeMachine(
     return { cover, flaps, left, total: flaps + left };
   }
 
-  function restParams(state: HeroState): Params {
-    const i = HERO_STATES.indexOf(state);
-    const base: Params = { ...presentedRest, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0 };
-    if (i === 0) return base;
+  /** Resting in 'presented' after coming off the shelf: cover towards you, at a slight angle. */
+  function shelfArrival(): Params {
+    return {
+      turn: ANIM.shelf.presentTurnDeg, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0,
+      pull: 1, fly: 1, shelf: 0, ...defaultRig(),
+    };
+  }
+
+  const slotMatrix = new Matrix4();
+  /** How far back the tape can go: the shelf, if there is one. */
+  const minIndex = () => (options.hasShelf?.() ? 0 : P);
+
+  function restParams(state: TapeState): Params {
+    const i = TAPE_STATES.indexOf(state);
+    const base: Params = {
+      ...presentedRest, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0, pull: 1, fly: 1, shelf: 0,
+    };
+    if (i < P) return { ...base, pull: i === P - 1 ? 1 : 0, fly: 0, shelf: 1 };
+    const h = i - P;
+    if (h === 0) return base;
     const p: Params = { ...base, turn: ANIM.open.turnDeg, lid: ANIM.open.lidDeg, ...ANIM.camera.lidOpen };
-    if (i >= 2) Object.assign(p, { cassette: 1 }, ANIM.camera.cassetteOut);
-    if (i >= 3) Object.assign(p, { cassetteAside: 1, jcard: 1 }, ANIM.camera.jcardOut);
-    if (i >= 4) {
+    if (h >= 2) Object.assign(p, { cassette: 1 }, ANIM.camera.cassetteOut);
+    if (h >= 3) Object.assign(p, { cassetteAside: 1, jcard: 1 }, ANIM.camera.jcardOut);
+    if (h >= 4) {
       const { elevation, margin, targetX, targetY, targetZ } = ANIM.camera.jcardUnfolded;
       // Turned over or not is up to the viewer; either way counts as resting.
       Object.assign(p, { unfold: 1, flip: Math.round(params.flip), elevation, targetX, targetY, targetZ });
@@ -158,62 +191,71 @@ export function createTapeMachine(
 
   // --- Transitions ---------------------------------------------------------------------
 
-  /** The forward timeline for step a → a+1, from rest(a) to rest(a+1). Paused. */
+  /** The forward timeline for step a → a+1 (indices into TAPE_STATES), from rest(a) to rest(a+1). Paused. */
   function buildStep(a: number): gsap.core.Timeline {
-    const from = restParams(HERO_STATES[a]!);
-    const to = restParams(HERO_STATES[a + 1]!);
+    const from = restParams(TAPE_STATES[a]!);
+    const to = restParams(TAPE_STATES[a + 1]!);
     const tl = gsap.timeline({ paused: true });
+    const moved = new Set<keyof Params>();
     const tween = (keys: (keyof Params)[], duration: number, ease: string, at = 0) => {
       const f: Partial<Params> = {};
       const t: Partial<Params> = {};
       for (const k of keys) {
         f[k] = from[k];
         t[k] = to[k];
+        moved.add(k);
       }
       tl.fromTo(params, f, { ...t, duration, ease, immediateRender: false }, at);
     };
     const camera: (keyof Params)[] = ['elevation', 'distanceScale', 'targetX', 'targetY', 'targetZ'];
-    // Everything that doesn't move in this step still gets pinned to its rest value.
-    const pin = (keys: (keyof Params)[]) => tween(keys, 0.001, 'none', 0);
 
-    switch (a) {
-      case 0: { // presented → lidOpen
+    switch (TAPE_STATES[a]) {
+      case 'onShelf': { // → pulledOut
+        const s = ANIM.shelf;
+        tween(['pull'], s.pullDuration, s.pullEase);
+        break;
+      }
+      case 'pulledOut': { // → presented
+        const s = ANIM.shelf;
+        tween(['fly'], s.flyDuration, s.flyEase);
+        tween(['shelf'], s.flyDuration, s.cameraEase);
+        break;
+      }
+      case 'presented': { // → lidOpen
         const o = ANIM.open;
         tween(['turn'], o.turnDuration, o.turnEase);
         tween(['lid'], o.lidDuration, o.lidEase, o.lidDelay);
         tween(camera, Math.max(o.turnDuration, o.lidDelay + o.lidDuration), ANIM.camera.ease);
-        pin(['cassette', 'cassetteAside', 'jcard', 'unfold']);
         break;
       }
-      case 1: { // lidOpen → cassetteOut
+      case 'lidOpen': { // → cassetteOut
         const c = ANIM.cassetteOut;
         tween(['cassette'], c.duration, c.ease);
         tween(camera, c.duration, ANIM.camera.ease);
-        pin(['turn', 'lid', 'cassetteAside', 'jcard', 'unfold']);
         break;
       }
-      case 2: { // cassetteOut → jcardOut
+      case 'cassetteOut': { // → jcardOut
         const j = ANIM.jcardOut;
         tween(['cassetteAside'], j.cassetteDuration, j.ease);
         tween(['jcard'], j.duration, j.ease, j.delay);
         tween(camera, j.delay + j.duration, ANIM.camera.ease);
-        pin(['turn', 'lid', 'cassette', 'unfold']);
         break;
       }
-      case 3: { // jcardOut → jcardUnfolded
+      case 'jcardOut': { // → jcardUnfolded
         const u = ANIM.unfold;
         tween(['unfold'], u.duration, u.ease);
         tween(camera, u.duration, ANIM.camera.ease);
-        pin(['turn', 'lid', 'cassette', 'cassetteAside', 'jcard', 'flip']);
         break;
       }
     }
-    if (a < 3) pin(['flip']);
+    // Everything that doesn't move in this step still gets pinned to its rest value.
+    const rest = (Object.keys(from) as (keyof Params)[]).filter((k) => !moved.has(k));
+    tween(rest, 0.001, 'none', 0);
     return tl;
   }
 
   function emit() {
-    const status = { state: HERO_STATES[settled]!, target: HERO_STATES[goal]!, animating: !!anim || busy || !!flipTween };
+    const status = { state: TAPE_STATES[settled]!, target: TAPE_STATES[goal]!, animating: !!anim || busy || !!flipTween };
     for (const fn of listeners) fn(status);
   }
 
@@ -221,7 +263,7 @@ export function createTapeMachine(
     // Take over from the turntable: remember where it and the camera were.
     const turn = normalizeDeg(view.getAngle());
     presentedRest = {
-      turn, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0,
+      turn, lid: 0, cassette: 0, cassetteAside: 0, jcard: 0, unfold: 0, flip: 0, pull: 1, fly: 1, shelf: 0,
       elevation: view.rig.elevation, distanceScale: view.rig.distanceScale,
       targetX: view.rig.targetX, targetY: view.rig.targetY, targetZ: view.rig.targetZ,
     };
@@ -234,10 +276,12 @@ export function createTapeMachine(
   function arrive(index: number) {
     settled = index;
     anim = null;
-    Object.assign(params, restParams(HERO_STATES[index]!));
+    // Back on the shelf: next time it comes off, it lands facing you again.
+    if (index === 0) presentedRest = shelfArrival();
+    Object.assign(params, restParams(TAPE_STATES[index]!));
     apply();
-    if (index === 0) view.setLocked(false);
-    if (HERO_STATES[index] === 'jcardUnfolded') view.startOrbit(ANIM.orbit.azimuthDeg);
+    if (index === P) view.setLocked(false);
+    if (TAPE_STATES[index] === 'jcardUnfolded') view.startOrbit(ANIM.orbit.azimuthDeg);
     emit();
     drive();
   }
@@ -246,7 +290,8 @@ export function createTapeMachine(
     if (settled === goal || disposed) return;
     const forward = goal > settled;
 
-    if (settled === 0 && forward) leavePresented();
+    // Leaving the turntable either way (opening, or back to the shelf): take over from it.
+    if (settled === P) leavePresented();
     // Leaving the unfolded card: turn it back face up and give the camera back to the rig first.
     if (view.isOrbiting() || params.flip > 0 || flipTween) {
       busy = true;
@@ -342,8 +387,8 @@ export function createTapeMachine(
     flipTween?.kill();
     flipTween = null;
     params.flip = 0;
-    if (settled === 0 && index !== 0) leavePresented();
-    if (view.isOrbiting() && HERO_STATES[index] !== 'jcardUnfolded') void view.stopOrbit(0);
+    if (settled === P && index !== P) leavePresented();
+    if (view.isOrbiting() && TAPE_STATES[index] !== 'jcardUnfolded') void view.stopOrbit(0);
     goal = index;
     arrive(index);
   }
@@ -353,7 +398,7 @@ export function createTapeMachine(
   function targetMatrix(pos: { x: number; y: number; z: number }, rotDeg: { x: number; y: number; z: number }, out: Matrix4) {
     _euler.set(MathUtils.degToRad(rotDeg.x), MathUtils.degToRad(rotDeg.y), MathUtils.degToRad(rotDeg.z));
     _quat.setFromEuler(_euler);
-    _pos.set(pos.x, view.turntable.position.y + pos.y, pos.z);
+    _pos.set(pos.x, HERO_CENTRE_Y + pos.y, pos.z);
     return out.compose(_pos, _quat, _scale);
   }
 
@@ -406,9 +451,40 @@ export function createTapeMachine(
     _m.decompose(obj.position, obj.quaternion, obj.scale);
   }
 
+  const heroPos = new Vector3();
+  const heroQuat = new Quaternion();
+  const slotPos = new Vector3();
+  const slotQuat = new Quaternion();
+  const pulledPos = new Vector3();
+
+  /** Where the turntable (the tape's carrier) is: on the shelf, in flight, or home. */
+  function placeCarrier() {
+    const turntable = view.turntable;
+    if (params.fly >= 1 || !options.getSlot?.(slotMatrix)) {
+      turntable.position.set(0, HERO_CENTRE_Y, 0);
+      turntable.rotation.set(0, MathUtils.degToRad(params.turn), 0);
+      return;
+    }
+    slotMatrix.decompose(slotPos, slotQuat, _scale);
+    pulledPos.copy(slotPos);
+    pulledPos.z += SHELF.pullOut;
+    if (params.fly <= 0) {
+      turntable.position.lerpVectors(slotPos, pulledPos, params.pull);
+      turntable.quaternion.copy(slotQuat);
+      return;
+    }
+    heroPos.set(0, HERO_CENTRE_Y, 0);
+    _euler.set(0, MathUtils.degToRad(params.turn), 0);
+    heroQuat.setFromEuler(_euler);
+    const u = params.fly;
+    turntable.position.lerpVectors(pulledPos, heroPos, u);
+    turntable.position.y += Math.sin(Math.PI * u) * ANIM.shelf.arc;
+    turntable.quaternion.slerpQuaternions(slotQuat, heroQuat, u);
+  }
+
   function apply() {
     const tape = getTape();
-    view.turntable.rotation.y = MathUtils.degToRad(params.turn);
+    placeCarrier();
     tape.case.setLidAngle(params.lid);
     view.turntable.updateMatrixWorld(true);
     lidWorld.copy(tape.case.lid.matrixWorld);
@@ -467,30 +543,30 @@ export function createTapeMachine(
 
   const offFrame = handle.onFrame(() => {
     // Resting in 'presented' the turntable and the debug hooks own the tape.
-    if (settled === 0 && !anim && !busy) return;
+    if (settled === P && !anim && !busy) return;
     apply();
   });
 
   return {
-    getState: () => HERO_STATES[settled]!,
-    getTarget: () => HERO_STATES[goal]!,
+    getState: () => TAPE_STATES[settled]!,
+    getTarget: () => TAPE_STATES[goal]!,
     isAnimating: () => !!anim || busy || !!flipTween,
     request(state) {
-      goal = HERO_STATES.indexOf(state);
+      goal = MathUtils.clamp(TAPE_STATES.indexOf(state), minIndex(), LAST);
       emit();
       drive();
     },
     step(dir) {
-      const next = MathUtils.clamp(goal + dir, 0, HERO_STATES.length - 1);
-      goal = next;
+      goal = MathUtils.clamp(goal + dir, minIndex(), LAST);
       emit();
       drive();
     },
     jump(state) {
-      jumpTo(HERO_STATES.indexOf(state));
+      jumpTo(MathUtils.clamp(TAPE_STATES.indexOf(state), minIndex(), LAST));
     },
+    shelfBlend: () => params.shelf,
     flip() {
-      if (HERO_STATES[settled] !== 'jcardUnfolded' || anim || busy) return Promise.resolve();
+      if (TAPE_STATES[settled] !== 'jcardUnfolded' || anim || busy) return Promise.resolve();
       return turnCard(params.flip >= 0.5 ? 0 : 1);
     },
     onChange(fn) {
@@ -498,7 +574,7 @@ export function createTapeMachine(
       return () => listeners.delete(fn);
     },
     poseError() {
-      const rest = restParams(HERO_STATES[settled]!);
+      const rest = restParams(TAPE_STATES[settled]!);
       return Math.max(...(Object.keys(rest) as (keyof Params)[]).map((k) => Math.abs(rest[k] - params[k])));
     },
     dispose() {

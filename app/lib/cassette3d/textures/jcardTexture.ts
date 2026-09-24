@@ -81,16 +81,19 @@ export function applyJCardTextures(
 
   return {
     materials: owned,
-    spineThumbnail(height = 256) {
-      const rect = snapshot.outside.panels.spine;
-      return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
-    },
+    spineThumbnail: (height = 256) => spineFromSnapshot(snapshot, height),
     dispose() {
       for (const t of textures) t.dispose();
       for (const m of owned) m.dispose();
       for (const panel of jcard.panels) (panel.mesh as Mesh).material = paper;
     },
   };
+}
+
+/** The outside spine of a snapshot, `height` px tall (the shelf's spine atlas). */
+export function spineFromSnapshot(snapshot: JCardSnapshot, height = 256): HTMLCanvasElement | null {
+  const rect = snapshot.outside.panels.spine;
+  return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
 }
 
 /** The canvas itself, or a scaled-down copy when it's larger than the GPU's texture limit. */

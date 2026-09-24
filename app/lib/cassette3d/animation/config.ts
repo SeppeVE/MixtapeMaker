@@ -7,6 +7,19 @@
  * +X right, +Y up, +Z towards the camera (at the default front view).
  */
 export const ANIM = {
+  shelf: {
+    /** onShelf → pulledOut: the case slides out of its row (SHELF.pullOut cm). */
+    pullDuration: 0.5,
+    pullEase: 'power2.out',
+    /** pulledOut → presented: it flies to the turntable while the camera follows. */
+    flyDuration: 1.4,
+    flyEase: 'power2.inOut',
+    cameraEase: 'power2.inOut',
+    /** Height of the flight's arc, cm. */
+    arc: 3,
+    /** Turntable angle the case lands at, so it arrives showing its cover at a slight angle. */
+    presentTurnDeg: -20,
+  },
   open: {
     /** Turntable turn that shows the open case like a book, both halves visible. */
     turnDeg: -35,

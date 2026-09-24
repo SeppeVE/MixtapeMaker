@@ -82,12 +82,18 @@ app/pages/library/3d.vue                  # route, behind feature flag
 app/components/cassette3d/Library3D.vue   # mounts canvas + overlay (inside <ClientOnly>)
 app/components/cassette3d/Overlay.vue     # buttons for every tape action + Back, live region, Escape
 app/composables/useCassetteScene.ts       # bridge: Vue <-> scene
-app/composables/useHeroTapeData.ts        # which tape to show (fixture / ?tape= / latest)
+app/composables/useHeroTapeData.ts        # what goes on the shelf (yours / samples / ?seed=) + deep link
 app/utils/jcardRenders.ts                 # Supabase side of stored renders + render-after-save
 scripts/test-render-cache.mjs             # render cache end to end against a mocked Supabase
 app/utils/featureFlags.ts                 # isLibrary3DEnabled()
 app/lib/cassette3d/
-  scene.ts            # renderer, camera, lights, env map, resize, render loop, dispose
+  scene.ts            # renderer, camera, lights, env map, shadow focus, resize, render loop, dispose
+  library.ts          # shelf + hero: selection, search/sort, hover, camera blend, spines (Stage 4)
+  shelf/
+    layout.ts         # where every case stands: bays of 4 rows, filled top-left first
+    shelfModel.ts     # wood bookcase + instanced cases (contents with atlas spines, plastic)
+    shelfView.ts      # shelf camera: fit to height, pan along the bays, zoom, drag / wheel / pinch
+    spineAtlas.ts     # every spine in one texture, a cell per tape
   animation/
     config.ts         # every duration, ease and pose of the tape machine (live-editable in ?debug=1)
     tapeMachine.ts    # TAPE_STATES + the state machine (Stage 3)
@@ -107,6 +113,8 @@ app/lib/cassette3d/
     jcardRender.ts    # stored renders: content hash, encode, load back, URL check
     snapshotSource.ts # memory → stored render → render here (+ upload if yours)
     snapshotCache.ts  # in-memory LRU of snapshots, keyed by card id + content hash
+    spineTexture.ts   # shelf spines drawn from the card's spine text / colours / fonts
+    woodTexture.ts    # procedural wood grain (stand-in for a CC0 photo texture)
   objects/
     geometry.ts       # extrusion helpers (profiles along Y, shapes along Z)
     caseModel.ts      # tray + lid on the hinge axis
@@ -114,7 +122,6 @@ app/lib/cassette3d/
     jcard.ts          # J-card as hinged panels
     tape.ts           # case + cassette + J-card assembled
   quality.ts          # (Stage 7)
-  textures/…  animation/tapeMachine.ts  interaction/picking.ts   # later stages
 scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 ```
 
@@ -131,7 +138,8 @@ scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
 - `?debugState=<state>&tape=<id>` jumps straight to a state with no animation. `?motion=reduce` forces the reduced-motion path.
 - `?debug=1` shows lil-gui and stats. Stage 1 added folders for the tape (view, turntable, lid angle, J-card fold, flap count, short back) and for the case plastic and shell materials.
 - Hero inspection (Stage 1): `?view=front|threeQuarter|spine|back|threeQuarterBack`, `?case=smoke`, `?flaps=1–6`, `?shortBack=1`, `?lid=<deg>`, `?fold=<0–1>`, `?turntable=0`.
-- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. `window.__cassette3dLastDispose` records renderer memory after the last unmount.
+- Shelf (Stage 4): `?seed=<n>` fills the shelf with n generated tapes (dev only; `?seed=0` = the empty shelf). `?debugState=onShelf|pulledOut|…` works with any tape source; with no `?tape=`, the first tape is the one taken off the shelf.
+- In dev only, `window.__cassette3d` exposes `goTo(state)`, `setTape(id)`, `getState()`, `getTape()`, `renderer`, and `info()` (a serialisable `renderer.info` snapshot). Stage 1 added `setView`, `setElevation`, `setAutoRotate`, `setLidAngle`, `setJCardFold`, `setJCardLayout(flaps, shortBack)`, `setCaseTint` and `setPartsVisible({ case, cassette, jcard })`. Stage 4 added `selectTape(i)`, `highlightTape(i)`, `setShelfView(search, sort)`, `getShelfInfo()`, `setShelfPan(x, y)`, `setShelfZoom(z)`, `spineScreenPosition(i)` and `scene`. `window.__cassette3dLastDispose` records renderer memory after the last unmount.
 
 ### Self-verification with screenshots
 
@@ -297,16 +305,75 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Stage 4: The shelf
 
-- [ ] Wooden shelf with rows, CC0 wood texture (1k).
-- [ ] Load the user's mixtapes via the existing data layer.
-- [ ] InstancedMesh cases; spines from an atlas via per-instance UV offsets (`onBeforeCompile`).
-- [ ] Layout spine-out, left to right; propose an approach for large libraries.
-- [ ] Hovered case slides out a few mm.
-- [ ] Selection swaps the instance for a hero tape; onShelf → pulledOut → presented with camera fly-in; reversible.
-- [ ] Hook library sort/search (none exists today; see Discovery).
-- [ ] Empty state with a prompt to create a mixtape.
+- [x] Wooden shelf with rows. A bookcase stands on the floor behind the hero turntable (`SHELF` in dimensions.ts): 4 rows per bay, 48 cm bays, 26 cases a row, and all the wood is merged into **one mesh**. **Wood texture: procedural** (`woodTexture.ts`, a 1k tileable grain drawn on a canvas, mapped in world cm). This sandbox's network blocks the CC0 libraries (Poly Haven, ambientCG). Swapping in a CC0 photo texture later only touches that file.
+- [x] Load the user's mixtapes via the existing data layer: `loadMixtapes` + the J-card store + `pairTapes` (only tapes with a J-card, as decided). Signed out, the shelf shows the 3 sample tapes with a "Sign in to see your own" note.
+- [x] InstancedMesh cases; spines from an atlas via per-instance UV offsets (`onBeforeCompile`).
+  - **contents**: one InstancedMesh, a block standing in for the J-card + cassette. Its spine face reads the tape's atlas cell through a per-instance UV rect (`aSpineRect`). Its other faces take the card's background colour (`instanceColor`). A per-instance `aHover` adds the hover glow.
+  - **plastic**: one InstancedMesh sharing the same instance matrices. The shelf's cases use a **cheaper plastic than the hero's** (no transmission pass): reflections added on top, plus a touch of dimming.
+    - Found on the way: three.js ignores a material's `envMapIntensity` for `scene.environment` and uses `scene.environmentIntensity` instead. So the shelf plastic gets the environment as its own `envMap`, which lets it be dimmed.
+    - Without that, RoomEnvironment's ceiling light washed a whole row of spines out to white.
+  - **atlas** (`spineAtlas.ts`): 2048 px wide, 35 × 256 px cells. A cell is the case's spine-side face, with the J-card spine where it sits behind the plastic. The atlas height grows with the library; if it hits the GPU's texture limit, the cells halve.
+  - **Spines are drawn first, and real ones replace them.**
+    - Rendering 150 J-cards to get their spines isn't possible (0.5–4 s each), and downloading 150 full stored renders is too heavy.
+    - So every spine is drawn straight away from the card's spine text, colours and fonts (`spineTexture.ts`, no images).
+    - A drawn spine is replaced by the real crop from the J-card render once this tab has one: a tape you took off the shelf, or a card already in the snapshot cache.
+    - The hero case wears the drawn spine too until its own render arrives, so nothing jumps when the tape leaves the shelf.
+  - **150 tapes: 6 draw calls** on the shelf (incl. shadows), measured by the script. With a tape on the turntable it's ~150, almost all of it the hero case (as in Stage 3).
+- [x] Layout spine-out, left to right; propose an approach for large libraries.
+  - **Built:** the shelf fills bay by bay, top row first, left to right. A library bigger than one bay (104 tapes) adds bays to the right, and the shelf camera pans.
+  - **Camera:** it fits the bookcase's height and starts top left. A small library (≤ 2 rows) opens zoomed in on its rows.
+  - **Controls:** drag pans (with a little inertia), and the wheel or trackpad scrolls along the shelf. Ctrl + wheel and pinch zoom; zoomed in, you can also pan up and down.
+  - **Large libraries (proposal):** this holds to ~900 tapes at full spine resolution, in one atlas and 6 draw calls whatever the count.
+    - Past that, the atlas halves its cells (blurrier spines). That also caps the instance count at ~2000.
+    - If anyone gets near that, the next step is paging by bay: only the bays near the camera get atlas cells and instances, filled as you pan.
+    - Search and sort already make big shelves manageable. I'd leave paging until someone has a library that size.
+- [x] Hovered case slides out a few mm. 12 mm (a few mm can't be seen head-on), plus a faint glow. The overlay names the tape.
+- [x] Selection swaps the instance for a hero tape; onShelf → pulledOut → presented with camera fly-in; reversible.
+  - **Tape machine:** `onShelf` and `pulledOut` are real states now, with three more numbers:
+    - `pull`: the case slides out of its row
+    - `fly`: pulled out → turntable, on an arc, turning to show the cover at −20°
+    - `shelf`: the camera blend, shelf ↔ hero rig
+  - Same rules as Stage 3: one timeline per step, reversed to go back, and jumps just set the numbers.
+  - **The swap:** while the tape is off the shelf, its instance is hidden. The hero tape (on the turntable group) is carried from the slot's exact pose, goes back the same way, and the instance reappears when it arrives.
+  - **Camera:** the hero view passes its pose through a filter that blends in the shelf camera. The key light's shadow follows a focus point that blends from tight round the hero (as before) to the part of the shelf in view.
+  - The shelf **dims to 30 %** while a tape is on the turntable, so the case isn't competing with 150 spines behind it.
+  - Choosing another tape while one is out puts the first one back, then brings the new one out.
+  - Going back to the shelf pans the shelf camera so the slot is in view (e.g. for a deep-linked tape in bay 2).
+- [x] Hook library sort/search. The 2D library has none, so this lives in the **3D overlay only**. There's a search box (title, song titles, artists) and a sort (recently updated, recently created, title A–Z). The shelf re-flows, and cases glide to their new slots. Adding the same to the 2D library would change an existing feature, so I haven't touched it (ask if wanted).
+- [x] Empty state with a prompt to create a mixtape.
+  - With no mixtapes: "Your shelf is empty" → **Make a tape** (`newMixtape()`).
+  - With mixtapes but no J-cards: → **Design a J-card** (`openDesigner`).
+  - Load errors get a retry.
+- **Keyboard / screen readers:**
+  - A visually hidden list of the tapes on the shelf, in shelf order. Tabbing to one highlights its case (and pans to it), and Enter takes it off the shelf.
+  - Escape walks back: presented → pulledOut → onShelf.
+  - The live region names the tape.
 
 **Acceptance:** ~150 seeded tapes render in a handful of draw calls; hover/select/return work.
+
+- [x] `?seed=150`: 150 tapes, 2 bays, **6 draw calls**. The script (`npm run screenshot:3d`, screenshots in `.screenshots/shelf-*.png`) checks:
+  - hover with a real mouse (the caption names the tape)
+  - click → presented, then back → onShelf; reversal mid-flight; swapping tapes
+  - Escape step by step
+  - search + sort, and a search with no match
+  - keyboard focus + Enter
+  - a phone viewport
+  - a deep link to a tape in bay 2, going back to its slot
+  - the empty shelf
+  - reduced motion onto and off the shelf
+- [x] Stage 1–3 checks still pass. They now start from `?fixture=1` (the sample shelf, with sample 1 presented). The leak check still passes with the shelf.
+
+**Known issues / for the checkpoint:**
+
+- **The wood is procedural**, not a CC0 photo (network). If you'd like a specific CC0 texture (e.g. Poly Haven "wood_table_001", 1k), drop it in `public/textures/` or allow the host, and I'll wire it in.
+- **Real spines on the shelf** only appear for tapes this tab has rendered. **Proposal (ASK FIRST, not built):**
+  - When the render-on-save pipeline uploads a card's render, it also uploads a small spine crop (`{user}/{card}/{hash}-spine.webp`, ~5 kB) and adds its URL to the `render` jsonb.
+  - No migration is needed (it's a new key in the existing column), and it uses the same bucket and policies.
+  - The shelf would then load real spines for every saved card, a few kB each.
+- The **drawn spine** leaves out images: a spine with a photo background shows its background colour. It uses a card's uploaded font only if that font is on the spine.
+- **The shelf plastic** is dimmer than the hero's because of RoomEnvironment's hot ceiling light. Stage 6's HDRI is the place to bring its reflections back.
+- **Timing / feel to judge:** pull-out 0.5 s, fly-in 1.4 s (3 cm arc), landing angle −20°, hover slide 12 mm + glow, shelf dimmed to 30 % behind the hero. They're all in `ANIM.shelf` / `SHELF`, and in `?debug=1` → Tape machine → Shelf timing.
+- After the fly-in, the case doesn't auto-spin (it did before, when it was the only tape on the page). Dragging still turns it.
 
 **Human checkpoint.**
 
@@ -378,6 +445,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 4 built** (details under Stage 4): shelf, instanced cases with an atlas of spines, pull-out and fly-in in the tape machine, hover, search and sort in the 3D overlay, empty state, keyboard list, shelf tests in `npm run screenshot:3d`. **Waiting on the human checkpoint.** Open: CC0 wood texture (network), stored spine thumbnails (proposal, ASK FIRST), search/sort for the 2D library (not touched).
 - **2026-09-24 · Stage 2 and Stage 3 approved.** Stage 4 starts in a new session.
   - Stage 2 was signed off on the one real card. The two further real cards and the browser check of the real background images (CORS) are **deferred to the end of development**: any tweaks happen then, so they don't interfere with the plan.
 - **2026-09-24 · Human answers.**

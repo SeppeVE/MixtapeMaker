@@ -171,3 +171,37 @@ export const CASE_LAYOUT = (() => {
     ribMinX: spineOuterX + t + JCARD.backFull + 0.15,
   };
 })();
+
+/**
+ * The shelf (Stage 4): a bookcase standing on the floor behind the hero turntable.
+ * Cases stand spine-out on their short end, side by side, in rows. Each bay holds
+ * `rows` rows; larger libraries add bays to the right, and the shelf camera pans.
+ *
+ * World axes: +X right, +Y up, +Z towards the viewer. The hero turntable sits at
+ * the origin, in front of the shelf.
+ */
+export const SHELF = {
+  rows: 4,
+  /** Inside width of one bay. */
+  bayWidth: 48,
+  /** Clear height between a board's top and the next board's underside. */
+  rowClearance: 12.6,
+  board: 1.8,
+  /** Side panels (also between bays). */
+  side: 1.8,
+  back: 0.6,
+  /** Board depth, from the front edge to the back panel. */
+  depth: 10,
+  /** Base under the bottom board. */
+  plinth: 5,
+  /** Space between two cases on a row. */
+  gap: 0.12,
+  /** Front edge of the boards. */
+  frontZ: -16,
+  /** The spines sit this far back from the boards' front edge. */
+  inset: 0.4,
+  /** How far a hovered case slides out. */
+  hoverPull: 1.2,
+  /** How far a selected case slides out before it's taken off the shelf (pulledOut). */
+  pullOut: 4.8,
+} as const;

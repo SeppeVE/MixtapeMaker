@@ -7,14 +7,30 @@ import Overlay from './Overlay.vue';
 // <ClientOnly>: WebGL has nothing to render on the server. (Not a .client.vue:
 // Nuxt's client-only wrapper runs onMounted before template refs are bound.)
 const container = useTemplateRef<HTMLElement>('canvasHost');
-const { status, textureStatus, tape, request, step, flip } = useCassetteScene(container);
+const {
+  status, textureStatus, tape, shelf, hovered, selected,
+  request, step, flip, select, highlight, setShelfView,
+} = useCassetteScene(container);
 </script>
 
 <template>
   <div class="lib3d">
     <div ref="canvasHost" class="lib3d-canvas" />
-    <Overlay v-if="status === 'ready'" :tape="tape" @request="request" @step="step" @flip="flip" />
-    <div v-if="status === 'ready' && textureStatus === 'loading'" class="lib3d-hint" role="status">Printing the J-card…</div>
+    <Overlay
+      v-if="status === 'ready'"
+      :tape="tape"
+      :shelf="shelf"
+      :hovered="hovered"
+      :selected="selected"
+      @request="request"
+      @step="step"
+      @flip="flip"
+      @select="select"
+      @highlight="highlight"
+      @view="setShelfView"
+    />
+    <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">Fetching your tapes…</div>
+    <div v-else-if="status === 'ready' && textureStatus === 'loading' && tape.target !== 'onShelf'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">
       <template v-if="status === 'loading'">Loading 3D library…</template>
       <template v-else-if="status === 'contextLost'">The 3D view lost its graphics context. It will resume when the browser restores it.</template>

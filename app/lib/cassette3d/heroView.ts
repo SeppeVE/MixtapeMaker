@@ -65,6 +65,11 @@ export interface HeroView {
   isOrbiting: () => boolean;
   /** Turntable angle in degrees. */
   getAngle: () => number;
+  /**
+   * Adjust the camera pose after the rig has placed it (the shelf blends its own
+   * camera in here while a tape flies between the shelf and the turntable).
+   */
+  setCameraFilter: (fn: ((position: Vector3, target: Vector3) => void) | null) => void;
   dispose: () => void;
 }
 
@@ -73,6 +78,8 @@ export const DEFAULT_ELEVATION = 10; // degrees
 const ELEVATION_RANGE: [number, number] = [-5, 60];
 /** Small lift so the case's shadow separates from it. */
 const LIFT = 0.02;
+/** Height of the case centre on the turntable (it stands on its short end). */
+export const HERO_CENTRE_Y = CASE.length / 2 + LIFT;
 const FIT_MARGIN = 1.08;
 
 export function defaultRig(): CameraRig {
@@ -86,7 +93,7 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
   const turntable = new Group();
   turntable.name = 'turntable';
   // Standing on the short end: the case frame's Y is up, so the bottom end sits on the floor.
-  turntable.position.y = CASE.length / 2 + LIFT;
+  turntable.position.y = HERO_CENTRE_Y;
   scene.add(turntable);
 
   let autoRotate = options.autoRotate ?? true;
@@ -114,11 +121,15 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
   }
 
   const rigPosition = new Vector3();
+  let cameraFilter: ((position: Vector3, target: Vector3) => void) | null = null;
   function rigPose() {
-    target.set(rig.targetX, turntable.position.y + rig.targetY, rig.targetZ);
+    // Relative to the turntable's home, not the turntable itself: the tape machine
+    // moves the turntable when it carries a tape to and from the shelf.
+    target.set(rig.targetX, HERO_CENTRE_Y + rig.targetY, rig.targetZ);
     const d = fitDistance(rig.elevation) * rig.distanceScale;
     const e = MathUtils.degToRad(rig.elevation);
     rigPosition.set(target.x, target.y + Math.sin(e) * d, target.z + Math.cos(e) * d);
+    cameraFilter?.(rigPosition, target);
   }
 
   function placeCamera() {
@@ -278,6 +289,9 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
     },
     isOrbiting: () => !!orbit,
     getAngle: () => MathUtils.radToDeg(turntable.rotation.y),
+    setCameraFilter(fn) {
+      cameraFilter = fn;
+    },
     dispose() {
       endOrbit();
       offFrame();

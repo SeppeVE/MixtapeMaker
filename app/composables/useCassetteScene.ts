@@ -1,14 +1,35 @@
-import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, shallowRef, type Ref } from 'vue';
 import { useRoute } from 'vue-router';
 import type { Hero, TextureReport } from '~/lib/cassette3d/hero';
-import type { HeroState, TapeMachineStatus } from '~/lib/cassette3d/animation/tapeMachine';
-import { resolveHeroTape } from '~/composables/useHeroTapeData';
+import type { Library, ShelfSort } from '~/lib/cassette3d/library';
+import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/tapeMachine';
+import { resolveShelfTapes, type ShelfData } from '~/composables/useHeroTapeData';
 import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
 import { uploadJCardRender } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
+
+/** One tape as the overlay lists it. */
+export interface ShelfEntry {
+  index: number;
+  id: string;
+  title: string;
+  meta: string;
+}
+
+/** The shelf, for the overlay. */
+export interface ShelfInfo {
+  status: 'loading' | 'ready';
+  source: ShelfData['source'] | null;
+  signedIn: boolean;
+  hasMixtapes: boolean;
+  error: boolean;
+  entries: ShelfEntry[];
+  /** Tapes on the shelf right now (search / sort), as indices into `entries`. */
+  order: number[];
+}
 
 /**
  * Bridge between Vue and the framework-free 3D scene. three.js is imported
@@ -23,9 +44,15 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
   const textureStatus = ref<TextureReport['status']>('idle');
   /** Where the tape is in the tape machine, for the overlay. */
   const tape = ref<TapeMachineStatus>({ state: 'presented', target: 'presented', animating: false });
+  const shelf = shallowRef<ShelfInfo>({
+    status: 'loading', source: null, signedIn: false, hasMixtapes: false, error: false, entries: [], order: [],
+  });
+  const hovered = ref<number | null>(null);
+  const selected = ref<number | null>(null);
 
   let handle: CassetteScene | null = null;
   let hero: Hero | null = null;
+  let library: Library | null = null;
   let debugCleanup: (() => void) | null = null;
   let unmounted = false;
 
@@ -37,9 +64,10 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       return;
     }
     try {
-      const [{ createCassetteScene }, { createHero }, debug, { createSnapshotSource }] = await Promise.all([
+      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }] = await Promise.all([
         import('~/lib/cassette3d/scene'),
         import('~/lib/cassette3d/hero'),
+        import('~/lib/cassette3d/library'),
         import('~/lib/cassette3d/debug'),
         import('~/lib/cassette3d/textures/snapshotSource'),
       ]);
@@ -55,17 +83,41 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
       hero = createHero(handle, params.hero, snapshotSource, {
         reducedMotion: () => prefersReducedMotion(route.query.motion),
         fade: (to, ms) => fadeCanvas(el, to, ms),
+        hasShelf: () => !!library,
+        getSlot: (out) => library?.slotMatrix(out) ?? null,
       });
+      hero.view.turntable.visible = false;
       hero.onTextureStatus((s) => { textureStatus.value = s; });
       hero.machine.onChange((s) => { tape.value = s; });
-      if (params.debugState) hero.machine.jump(params.debugState === 'onShelf' || params.debugState === 'pulledOut' ? 'presented' : params.debugState);
-      const cleanup = await debug.installDebug(handle, hero, params, import.meta.dev);
+      library = createLibrary(handle, hero, {
+        onHover: (i) => { hovered.value = i; },
+        onSelect: (i) => { selected.value = i; },
+        onOrder: (order) => { shelf.value = { ...shelf.value, order }; },
+      });
+      // Look at the shelf while the tapes load.
+      hero.machine.jump('onShelf');
+      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev);
       if (unmounted) cleanup();
       else debugCleanup = cleanup;
       status.value = 'ready';
 
-      const data = await resolveHeroTape(route.query);
-      if (data && hero) await hero.setTape(data);
+      const data = await resolveShelfTapes(route.query, import.meta.dev);
+      if (unmounted || !library) return;
+      shelf.value = {
+        status: 'ready',
+        source: data.source,
+        signedIn: data.signedIn,
+        hasMixtapes: data.hasMixtapes,
+        error: !!data.error,
+        entries: data.tapes.map((t, index) => ({
+          index,
+          id: t.mixtape.id,
+          title: t.mixtape.title,
+          meta: `C-${t.mixtape.cassetteLength} · ${t.mixtape.sideA.length + t.mixtape.sideB.length} tracks`,
+        })),
+        order: shelf.value.order,
+      };
+      await library.setTapes(data.tapes, data.initial);
     } catch (err) {
       console.error('[cassette3d] Failed to start the 3D scene', err);
       status.value = 'error';
@@ -74,6 +126,8 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
 
   onBeforeUnmount(() => {
     unmounted = true;
+    library?.dispose();
+    library = null;
     // The scene first: it frees GPU resources three.js only reaches through live materials.
     handle?.dispose();
     handle = null;
@@ -88,9 +142,15 @@ export function useCassetteScene(container: Ref<HTMLElement | null>) {
     status,
     textureStatus,
     tape,
-    request: (state: HeroState) => hero?.machine.request(state),
+    shelf,
+    hovered,
+    selected,
+    request: (state: TapeState) => hero?.machine.request(state),
     step: (dir: 1 | -1) => hero?.machine.step(dir),
     flip: () => hero?.machine.flip(),
+    select: (index: number) => library?.select(index),
+    highlight: (index: number | null) => library?.highlight(index),
+    setShelfView: (search: string, sort: ShelfSort) => library?.setView(search, sort),
   };
 }
 

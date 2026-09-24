@@ -1,11 +1,12 @@
 import { CASE } from './dimensions';
 import { DEFAULT_HERO_OPTIONS, type Hero, type HeroOptions, type TextureReport } from './hero';
 import type { TapeData } from './tapeData';
+import type { Library, ShelfSort } from './library';
 import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
 import type { CassetteScene } from './scene';
 import { ANIM } from './animation/config';
-import { HERO_STATES, isHeroState, isTapeState, type HeroState, type TapeState } from './animation/tapeMachine';
+import { isTapeState, TAPE_STATES, type TapeState } from './animation/tapeMachine';
 
 /**
  * Debug hooks for tuning and for screenshot-based self-verification.
@@ -16,12 +17,12 @@ import { HERO_STATES, isHeroState, isTapeState, type HeroState, type TapeState }
  *                                   plus the Stage 1 hero controls (views, lid, J-card fold)
  *
  * Tape (Stage 2): ?fixture=1|2|3 shows a built-in sample; ?tape=<mixtape id> one of yours.
+ * Shelf (Stage 4): ?seed=<n> fills it with n generated tapes (dev only).
  *
  * Hero inspection params (Stage 1): ?view=front|threeQuarter|spine|back|threeQuarterBack,
  * ?case=smoke, ?flaps=1–6, ?shortBack=1, ?lid=<deg>, ?moving=lid|tray, ?fold=<0–1>, ?turntable=0.
  *
- * States: onShelf and pulledOut arrive with the shelf (Stage 4); until then they
- * count as 'presented'. ?motion=reduce forces the reduced-motion path.
+ * ?motion=reduce forces the reduced-motion path.
  */
 
 export interface DebugParams {
@@ -78,8 +79,8 @@ export interface Cassette3DDebugApi {
   /** One step forwards (+1) or back (−1). */
   step: (dir: 1 | -1) => void;
   setTape: (id: string | null) => void;
-  getState: () => HeroState;
-  getTarget: () => HeroState;
+  getState: () => TapeState;
+  getTarget: () => TapeState;
   isAnimating: () => boolean;
   /** 0 when every animated number is exactly at the resting state's value. */
   poseError: () => number;
@@ -87,6 +88,7 @@ export interface Cassette3DDebugApi {
   flip: () => Promise<void>;
   getTape: () => string | null;
   readonly renderer: CassetteScene['renderer'];
+  readonly scene: CassetteScene['scene'];
   /** Snapshot of renderer.info.memory / render, safe to JSON-serialise from Playwright. */
   info: () => { memory: { geometries: number; textures: number }; render: { calls: number; triangles: number } };
   // Stage 1 hero controls.
@@ -106,6 +108,26 @@ export interface Cassette3DDebugApi {
   /** Show any mixtape + J-card pair, e.g. rows pasted from the database. */
   showTape: (data: Omit<TapeData, 'source'> & { source?: TapeData['source'] }) => Promise<TextureReport>;
   getTextureReport: () => TextureReport;
+  // Stage 4 shelf.
+  /** Take tape `index` (in the shelf's list) off the shelf, animated. */
+  selectTape: (index: number) => void;
+  /** Hover highlight, as the overlay's keyboard focus does. */
+  highlightTape: (index: number | null) => void;
+  setShelfView: (search: string, sort: ShelfSort) => number[];
+  getShelfInfo: () => {
+    count: number;
+    order: number[];
+    selected: number | null;
+    hovered: number | null;
+    bays: number;
+    pan: { x: number; y: number };
+    zoom: number;
+    ids: string[];
+  };
+  setShelfPan: (x: number, y: number) => void;
+  setShelfZoom: (zoom: number) => void;
+  /** Screen position (CSS px, relative to the canvas) of a tape's spine, or null if it isn't on the shelf. */
+  spineScreenPosition: (index: number) => { x: number; y: number } | null;
 }
 
 declare global {
@@ -120,13 +142,13 @@ declare global {
 export async function installDebug(
   handle: CassetteScene,
   hero: Hero,
+  library: Library,
   params: DebugParams,
   isDev: boolean,
 ): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
   let tape: string | null = params.tape;
-  const heroState = (s: TapeState): HeroState => (isHeroState(s) ? s : 'presented');
 
   if (isDev) {
     const { renderer } = handle;
@@ -141,11 +163,11 @@ export async function installDebug(
     window.__cassette3d = {
       goTo(next) {
         if (!isTapeState(next)) throw new Error(`Unknown tape state "${next}"`);
-        hero.machine.jump(heroState(next));
+        hero.machine.jump(next);
       },
       request(next) {
         if (!isTapeState(next)) throw new Error(`Unknown tape state "${next}"`);
-        hero.machine.request(heroState(next));
+        hero.machine.request(next);
       },
       step: (dir) => hero.machine.step(dir),
       setTape(id) {
@@ -158,6 +180,7 @@ export async function installDebug(
       flip: () => hero.machine.flip(),
       getTape: () => tape,
       renderer,
+      scene: handle.scene,
       info: () => ({
         memory: { ...renderer.info.memory },
         render: { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles },
@@ -184,6 +207,34 @@ export async function installDebug(
         return hero.getTextureReport();
       },
       getTextureReport: () => hero.getTextureReport(),
+      selectTape: (index) => library.select(index),
+      highlightTape: (index) => library.highlight(index),
+      setShelfView: (search, sort) => library.setView(search, sort),
+      getShelfInfo() {
+        const shelf = library.shelf();
+        const view = library.shelfView();
+        return {
+          count: library.getTapes().length,
+          order: [...library.getOrder()],
+          selected: library.selected(),
+          hovered: library.hovered(),
+          bays: shelf?.layout.bays ?? 0,
+          pan: view.getPan(),
+          zoom: view.getZoom(),
+          ids: library.getTapes().map((t) => t.mixtape.id),
+        };
+      },
+      setShelfPan: (x, y) => library.shelfView().setPan(x, y),
+      setShelfZoom: (zoom) => library.shelfView().setZoom(zoom),
+      spineScreenPosition(index) {
+        const p = library.shelf()?.slotPosition(index);
+        if (!p) return null;
+        // The middle of the spine face, a little up so it clears the row's board.
+        p.z += CASE.width / 2;
+        p.project(handle.camera);
+        const canvas = handle.renderer.domElement;
+        return { x: ((p.x + 1) / 2) * canvas.clientWidth, y: ((1 - p.y) / 2) * canvas.clientHeight };
+      },
     };
     cleanups.push(() => {
       window.__cassette3dLastDispose = { ...renderer.info.memory };
@@ -210,9 +261,10 @@ export async function installDebug(
     r.add(handle.scene, 'environmentIntensity', 0, 3, 0.01).name('env intensity');
     const key = gui.addFolder('Key light');
     key.add(handle.keyLight, 'intensity', 0, 10, 0.05);
-    key.add(handle.keyLight.position, 'x', -60, 60, 0.5);
-    key.add(handle.keyLight.position, 'y', 1, 80, 0.5);
-    key.add(handle.keyLight.position, 'z', -60, 60, 0.5);
+    // Direction the light comes from (its distance follows the shadow focus).
+    key.add(handle.keyOffset, 'x', -60, 60, 0.5);
+    key.add(handle.keyOffset, 'y', 1, 80, 0.5);
+    key.add(handle.keyOffset, 'z', -60, 60, 0.5);
 
     const settings = {
       view: params.hero.view ?? 'threeQuarter',
@@ -239,8 +291,13 @@ export async function installDebug(
     tape.add(settings, 'shortBack').onChange(relayout);
 
     const states = gui.addFolder('Tape machine');
-    const actions = Object.fromEntries(HERO_STATES.map((st) => [st, () => hero.machine.request(st)]));
-    for (const st of HERO_STATES) states.add(actions, st).name(`→ ${st}`);
+    const actions = Object.fromEntries(TAPE_STATES.map((st) => [st, () => hero.machine.request(st)]));
+    for (const st of TAPE_STATES) states.add(actions, st).name(`→ ${st}`);
+    const shelfTiming = states.addFolder('Shelf timing (next transition)').close();
+    shelfTiming.add(ANIM.shelf, 'pullDuration', 0.1, 2, 0.05).name('pull out: s');
+    shelfTiming.add(ANIM.shelf, 'flyDuration', 0.2, 3, 0.05).name('fly in: s');
+    shelfTiming.add(ANIM.shelf, 'arc', 0, 10, 0.1).name('fly arc cm');
+    shelfTiming.add(ANIM.shelf, 'presentTurnDeg', -90, 90, 1).name('lands at deg');
     const timing = states.addFolder('Timing (next transition)').close();
     timing.add(ANIM.open, 'turnDeg', -90, 90, 1).name('open: turn');
     timing.add(ANIM.open, 'lidDuration', 0.1, 3, 0.05).name('open: lid s');

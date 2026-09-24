@@ -8,6 +8,8 @@
 //   BASE_URL=http://localhost:3100 CYCLES=5 npm run screenshot:3d
 //   STATES=presented,lidOpen npm run screenshot:3d     (which ?debugState shots; default: all)
 //   SPAM=80 npm run screenshot:3d                       (random requests in the spam test)
+//   SEED=300 npm run screenshot:3d                      (tapes on the seeded shelf; default 150)
+//   MAX_CALLS=12 npm run screenshot:3d                  (draw-call budget for the whole shelf)
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
@@ -16,8 +18,11 @@ const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3100';
 const OUT_DIR = new URL('../.screenshots/', import.meta.url).pathname;
 const CYCLES = Number(process.env.CYCLES ?? 3);
 const HERO_STATES = ['presented', 'lidOpen', 'cassetteOut', 'jcardOut', 'jcardUnfolded'];
-const STATES = (process.env.STATES ?? HERO_STATES.join(',')).split(',').filter(Boolean);
+const TAPE_STATES = ['onShelf', 'pulledOut', ...HERO_STATES];
+const STATES = (process.env.STATES ?? TAPE_STATES.join(',')).split(',').filter(Boolean);
 const SPAM = Number(process.env.SPAM ?? 40);
+const SEED = Number(process.env.SEED ?? 150);
+const MAX_CALLS = Number(process.env.MAX_CALLS ?? 10);
 // Any Chromium works: CHROMIUM_PATH, a preinstalled one, or Playwright's own
 // (`npx playwright install chromium`).
 const EXECUTABLE = process.env.CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -44,8 +49,14 @@ async function frames(page, n = 3) {
 async function waitForScene(page) {
   await page.waitForFunction(() => (window.__cassette3d?.info().render.calls ?? 0) > 0, null, { timeout: 30_000 });
   // The tape's textures arrive after the scene is up; memory numbers are only comparable once they're on.
+  // Resting on the shelf, no tape is textured: the shelf being up is enough.
   await page.waitForFunction(
-    () => ['ready', 'error'].includes(window.__cassette3d?.getTextureReport().status),
+    () => {
+      const api = window.__cassette3d;
+      if (!api) return false;
+      if (api.getTarget() === 'onShelf') return api.getShelfInfo().count > 0 && !api.isAnimating();
+      return ['ready', 'error'].includes(api.getTextureReport().status);
+    },
     null,
     { timeout: 60_000 },
   );
@@ -103,8 +114,8 @@ try {
   await page.goto(`${BASE_URL}/library/3d`, { waitUntil: 'networkidle' });
   console.log(`info  /library/3d without ?3d=1 → ${new URL(page.url()).pathname}`);
 
-  // 2. The scene renders.
-  await page.goto(`${BASE_URL}/library/3d?3d=1`, { waitUntil: 'networkidle' });
+  // 2. The scene renders. ?fixture=1: the sample shelf, with sample 1 presented on the turntable.
+  await page.goto(`${BASE_URL}/library/3d?3d=1&fixture=1`, { waitUntil: 'networkidle' });
   await waitForScene(page);
   const baseline = await page.evaluate(() => window.__cassette3d.info());
   check(baseline.render.calls > 0, 'scene renders', JSON.stringify(baseline));
@@ -273,15 +284,165 @@ try {
   }
 
   // 6. Reduced motion: a request becomes a quick fade and a cut.
-  await page.goto(`${BASE_URL}/library/3d?3d=1&motion=reduce&turntable=0`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE_URL}/library/3d?3d=1&fixture=1&motion=reduce&turntable=0`, { waitUntil: 'networkidle' });
   await waitForScene(page);
   const t0 = Date.now();
   await page.evaluate(() => window.__cassette3d.request('jcardOut'));
   await page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout: 10_000 });
   const reduced = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
   check(reduced.s === 'jcardOut' && reduced.e < 1e-6, 'reduced motion: straight to the state', `${Date.now() - t0} ms, ${JSON.stringify(reduced)}`);
+  await page.evaluate(() => window.__cassette3d.request('onShelf'));
+  await page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout: 10_000 });
+  const reducedBack = await page.evaluate(() => ({ s: window.__cassette3d.getState(), e: window.__cassette3d.poseError() }));
+  check(reducedBack.s === 'onShelf' && reducedBack.e < 1e-6, 'reduced motion: back onto the shelf', JSON.stringify(reducedBack));
+
+  // 7. Stage 4: the shelf, seeded with SEED tapes.
+  await shelfTests(page);
 } finally {
   await browser.close();
+}
+
+async function shelfTests(page) {
+  const api = () => page.evaluate(() => {
+    const a = window.__cassette3d;
+    const info = a.getShelfInfo();
+    return {
+      s: a.getState(), t: a.getTarget(), e: a.poseError(), calls: a.info().render.calls,
+      count: info.count, shown: info.order.length, selected: info.selected, hovered: info.hovered, bays: info.bays,
+    };
+  });
+  const idle = (timeout = 30_000) => page.waitForFunction(() => !window.__cassette3d.isAnimating(), null, { timeout });
+  const waitForShelf = async () => {
+    await page.waitForFunction(() => window.__cassette3d?.getShelfInfo().count > 0 && window.__cassette3d.getState() === 'onShelf', null, { timeout: 60_000 });
+    await frames(page, 4);
+  };
+
+  await page.goto(`${BASE_URL}/library/3d?3d=1&seed=${SEED}`, { waitUntil: 'networkidle' });
+  await waitForShelf();
+  let got = await api();
+  check(got.count === SEED && got.shown === SEED, `shelf: ${SEED} seeded tapes on the shelf`, `${got.count} tapes, ${got.bays} bays`);
+  check(got.calls <= MAX_CALLS, `shelf: ${SEED} tapes in a handful of draw calls`, `${got.calls} calls (budget ${MAX_CALLS})`);
+  await page.screenshot({ path: `${OUT_DIR}shelf.png` });
+  await page.evaluate(() => { window.__cassette3d.setShelfZoom(0.3); window.__cassette3d.setShelfPan(-12, 48); });
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}shelf-closeup.png` });
+  await page.evaluate(() => { window.__cassette3d.setShelfZoom(1); window.__cassette3d.setShelfPan(1e3, 0); });
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}shelf-last-bay.png` });
+  await page.evaluate(() => window.__cassette3d.setShelfPan(-1e3, 0));
+  await frames(page);
+
+  // Hover with a real mouse: the case slides out and the overlay names it.
+  const canvas = await page.locator('canvas').boundingBox();
+  const target = 30;
+  const at = await page.evaluate((i) => window.__cassette3d.spineScreenPosition(i), target);
+  await page.mouse.move(canvas.x + at.x, canvas.y + at.y);
+  await page.waitForTimeout(500);
+  got = await api();
+  const title = await page.evaluate((i) => window.__cassette3d.getShelfInfo().ids[i], target);
+  const caption = await page.locator('.lib3d-caption strong').textContent().catch(() => '');
+  check(got.hovered === target && !!caption, 'shelf: hovering a spine highlights it and shows its title', `hovered ${got.hovered}, "${caption}" (${title})`);
+  await page.screenshot({ path: `${OUT_DIR}shelf-hover.png` });
+
+  // Click: off the shelf, onto the turntable.
+  await page.mouse.click(canvas.x + at.x, canvas.y + at.y);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT_DIR}shelf-pulling.png` });
+  await idle();
+  got = await api();
+  check(got.s === 'presented' && got.selected === target && got.e < 1e-6, 'shelf: clicking a tape brings it to the turntable', JSON.stringify(got));
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}shelf-presented.png` });
+
+  // And back onto the shelf; the instance takes over again.
+  await page.evaluate(() => window.__cassette3d.request('onShelf'));
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: `${OUT_DIR}shelf-returning.png` });
+  await idle();
+  await frames(page);
+  got = await api();
+  check(got.s === 'onShelf' && got.e < 1e-6 && got.calls <= MAX_CALLS, 'shelf: back onto the shelf', JSON.stringify(got));
+
+  // Reverse mid-flight.
+  await page.evaluate((i) => window.__cassette3d.selectTape(i), 5);
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.__cassette3d.request('onShelf'));
+  await idle();
+  got = await api();
+  check(got.s === 'onShelf' && got.e < 1e-6, 'shelf: reversed mid-flight, back in its slot', JSON.stringify(got));
+
+  // Another tape while one is out: the first goes back, then the second comes off.
+  await page.evaluate(() => window.__cassette3d.selectTape(7));
+  await idle();
+  await page.evaluate(() => window.__cassette3d.selectTape(12));
+  await idle();
+  got = await api();
+  check(got.s === 'presented' && got.selected === 12 && got.e < 1e-6, 'shelf: choosing another tape swaps them', JSON.stringify(got));
+
+  // Escape walks back: presented → pulledOut → onShelf.
+  await page.keyboard.press('Escape');
+  await idle();
+  const mid = (await api()).s;
+  await page.keyboard.press('Escape');
+  await idle();
+  got = await api();
+  check(mid === 'pulledOut' && got.s === 'onShelf', 'shelf: Escape puts the tape back step by step', `${mid} → ${got.s}`);
+
+  // Search and sort re-flow the shelf.
+  const shown = await page.evaluate(() => window.__cassette3d.setShelfView('moon', 'title').length);
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${OUT_DIR}shelf-search.png` });
+  const titles = await page.evaluate(() => {
+    const a = window.__cassette3d.getShelfInfo();
+    return a.order.map((i) => document.querySelectorAll('.lib3d-list-item')[a.order.indexOf(i)]?.textContent?.trim() ?? '');
+  });
+  const sorted = titles.every((t, i) => i === 0 || titles[i - 1].localeCompare(t, undefined, { sensitivity: 'base', numeric: true }) <= 0);
+  check(shown > 0 && shown < SEED && sorted, 'shelf: search filters and sort orders the shelf', `${shown} shown, sorted ${sorted}`);
+  await page.fill('.lib3d-search', 'zzzz-no-such-tape');
+  await page.waitForTimeout(200);
+  check(await page.locator('.lib3d-empty').isVisible(), 'shelf: a search with no match says so');
+  await page.fill('.lib3d-search', '');
+  await page.waitForTimeout(200);
+  got = await api();
+  check(got.shown === SEED, 'shelf: clearing the search puts every tape back', `${got.shown}`);
+
+  // Keyboard: the hidden list of tapes; focus highlights, Enter takes it off the shelf.
+  const first = page.locator('.lib3d-list-item').first();
+  await first.focus();
+  await page.waitForTimeout(300);
+  const focused = (await api()).hovered;
+  await page.keyboard.press('Enter');
+  await idle();
+  got = await api();
+  check(focused !== null && got.s === 'presented' && got.selected === focused, 'shelf: keyboard focus highlights a tape and Enter selects it', `focused ${focused}, ${JSON.stringify(got)}`);
+  await page.getByRole('button', { name: 'Back to the shelf' }).click();
+  await idle();
+
+  // Phone.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  await frames(page);
+  await page.screenshot({ path: `${OUT_DIR}shelf-mobile.png` });
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  // Deep link: ?tape= starts with that tape on the turntable; Back puts it on the shelf.
+  await page.goto(`${BASE_URL}/library/3d?3d=1&seed=${SEED}&tape=seed-100`, { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.__cassette3d?.getShelfInfo().count > 0, null, { timeout: 60_000 });
+  await frames(page, 4);
+  got = await api();
+  check(got.s === 'presented' && got.selected === 100, 'shelf: ?tape= deep link presents that tape', JSON.stringify(got));
+  await page.evaluate(() => window.__cassette3d.request('onShelf'));
+  await idle();
+  await frames(page);
+  got = await api();
+  check(got.s === 'onShelf' && got.e < 1e-6, 'shelf: deep-linked tape goes back to its slot (in bay 2)', JSON.stringify(got));
+  await page.screenshot({ path: `${OUT_DIR}shelf-deeplink-returned.png` });
+
+  // Empty shelf (dev: ?seed=0).
+  await page.goto(`${BASE_URL}/library/3d?3d=1&seed=0`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.lib3d-empty', { timeout: 30_000 });
+  check(await page.getByRole('button', { name: /Make a tape/ }).isVisible(), 'shelf: empty state offers to make a tape');
+  await page.screenshot({ path: `${OUT_DIR}shelf-empty.png` });
 }
 
 console.log(`\nScreenshots in ${OUT_DIR}`);

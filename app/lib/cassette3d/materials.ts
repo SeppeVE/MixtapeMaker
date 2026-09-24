@@ -1,6 +1,9 @@
 import {
   Color,
+  CustomBlending,
   DoubleSide,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
   FrontSide,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
@@ -81,6 +84,33 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
   });
   applyCaseTint(material, tint);
   return material;
+}
+
+/**
+ * Cheaper case plastic for the shelf's many cases: no transmission pass. It adds
+ * the plastic's reflections on top of what's behind (black base colour, additive
+ * source) and dims that a touch through its alpha, like thin clear plastic.
+ */
+export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
+  return new MeshPhysicalMaterial({
+    name: 'shelfPlastic',
+    color: '#000000',
+    metalness: 0,
+    // Dimmer than the hero case: RoomEnvironment's area lights are so bright that
+    // even a 4 % head-on reflection washed a whole row of spines out to white.
+    // (Stage 6's HDRI should let this come back up.) envMapIntensity only counts
+    // when the material has its own envMap; the shelf sets it to the scene's.
+    roughness: 0.08,
+    specularIntensity: 1,
+    envMapIntensity: 0.04,
+    transparent: true,
+    opacity: 0.1,
+    depthWrite: false,
+    blending: CustomBlending,
+    blendSrc: OneFactor,
+    blendDst: OneMinusSrcAlphaFactor,
+    side: FrontSide,
+  });
 }
 
 export function applyCaseTint(material: MeshPhysicalMaterial, tint: CaseTint) {

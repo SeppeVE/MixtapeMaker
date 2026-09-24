@@ -1,4 +1,5 @@
-import { createTapeMachine, type HeroState, type TapeMachine, type TapeMachineOptions } from './animation/tapeMachine';
+import { CanvasTexture, MeshStandardMaterial, SRGBColorSpace, type Material, type Mesh } from 'three';
+import { createTapeMachine, type TapeMachine, type TapeMachineOptions, type TapeState } from './animation/tapeMachine';
 import { CASE_LAYOUT } from './dimensions';
 import { createPicking, type Picking, type TapePart } from './interaction/picking';
 import { createHeroView, type HeroView, type HeroViewName } from './heroView';
@@ -16,7 +17,8 @@ import { createSnapshotSource, type SnapshotResult, type SnapshotSource, type Wr
 /**
  * One tape on the hero turntable, driven by the tape machine (Stage 3): click
  * or use the overlay to open it, take the cassette and the J-card out, and
- * unfold the card. Stage 4 puts the shelf behind it.
+ * unfold the card. The shelf (Stage 4) hands it the tape to show, and the
+ * machine carries it between its slot and the turntable.
  */
 export interface HeroOptions extends JCardOptions {
   tint: CaseTint;
@@ -73,8 +75,14 @@ export interface Hero {
   setJCardLayout: (layout: JCardOptions) => void;
   /** Show or hide the parts, e.g. to look at the J-card on its own (debug). */
   setPartsVisible: (parts: Partial<Record<'case' | 'cassette' | 'jcard', boolean>>) => void;
-  /** Show a real tape: rebuilds the J-card to its layout, then textures it and the labels. */
-  setTape: (data: TapeData) => Promise<void>;
+  /**
+   * Show a real tape: rebuilds the J-card to its layout, then textures it and the labels.
+   * `spine`, if given, goes on the J-card spine straight away (the shelf's drawn spine),
+   * so the case looks the same as on the shelf until the real render arrives.
+   */
+  setTape: (data: TapeData, options?: { spine?: HTMLCanvasElement }) => Promise<void>;
+  /** The current tape's real spine, cropped from its J-card render (null until it's in). */
+  spineThumbnail: (height?: number) => HTMLCanvasElement | null;
   getTextureReport: () => TextureReport;
   onTextureStatus: (fn: (status: TextureReport['status']) => void) => void;
   dispose: () => void;
@@ -92,7 +100,9 @@ export function createHero(
   const machine = createTapeMachine(handle, view, () => tape, machineOptions);
 
   // What clicking each part does, by where the tape is (or is heading).
-  const CLICKS: Record<HeroState, Partial<Record<TapePart, HeroState>>> = {
+  const CLICKS: Record<TapeState, Partial<Record<TapePart, TapeState>>> = {
+    onShelf: {},
+    pulledOut: { case: 'presented', cassette: 'presented', jcard: 'presented' },
     presented: { case: 'lidOpen', cassette: 'lidOpen', jcard: 'lidOpen' },
     lidOpen: { cassette: 'cassetteOut', jcard: 'jcardOut', case: 'presented' },
     cassetteOut: { cassette: 'lidOpen', jcard: 'jcardOut' },
@@ -113,6 +123,7 @@ export function createHero(
   let fold = options.fold;
   let jcardTextures: JCardTextureSet | null = null;
   let labelTextures: LabelTextureSet | null = null;
+  let placeholder: { texture: CanvasTexture; material: Material } | null = null;
   let generation = 0;
   let disposed = false;
   let statusListener: ((status: TextureReport['status']) => void) | null = null;
@@ -122,7 +133,31 @@ export function createHero(
     statusListener?.(next.status);
   };
 
+  function clearPlaceholder() {
+    if (!placeholder) return;
+    placeholder.texture.dispose();
+    placeholder.material.dispose();
+    placeholder = null;
+    const spine = tape.jcard.panels.find((p) => p.name === 'spine');
+    if (spine) (spine.mesh as Mesh).material = tape.materials.paper;
+  }
+
+  /** Put a drawn spine on the J-card's spine panel (outside face) until the real textures arrive. */
+  function setPlaceholderSpine(canvas: HTMLCanvasElement) {
+    clearPlaceholder();
+    const spine = tape.jcard.panels.find((p) => p.name === 'spine');
+    if (!spine) return;
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    const material = new MeshStandardMaterial({ name: 'jcard-spine-placeholder', map: texture, roughness: 0.82, metalness: 0 });
+    const paper = tape.materials.paper;
+    // Box faces: +X, −X, +Y, −Y, +Z (outside), −Z (inside).
+    (spine.mesh as Mesh).material = [paper, paper, paper, paper, material, paper];
+    placeholder = { texture, material };
+  }
+
   function clearTextures() {
+    clearPlaceholder();
     jcardTextures?.dispose();
     jcardTextures = null;
     labelTextures?.dispose();
@@ -178,7 +213,7 @@ export function createHero(
       if (parts.cassette !== undefined) tape.cassette.root.visible = parts.cassette;
       if (parts.jcard !== undefined) tape.jcard.root.visible = parts.jcard;
     },
-    async setTape(data) {
+    async setTape(data, setOptions = {}) {
       const gen = ++generation;
       const { mixtape, jcard } = data;
       const t0 = performance.now();
@@ -188,10 +223,12 @@ export function createHero(
         tape: { id: mixtape.id, title: mixtape.title, source: data.source, jcardId: jcard.id },
       });
       relayout({ flaps: jcard.content.flaps, shortBack: jcard.content.shortBack });
+      if (setOptions.spine) setPlaceholderSpine(setOptions.spine);
       try {
         const result = await snapshotSource(jcard);
         const { snapshot } = result;
         if (disposed || gen !== generation) return;
+        clearPlaceholder();
         jcardTextures = applyJCardTextures(tape.jcard, snapshot, handle.renderer, tape.materials.paper);
         const labels = await applyLabelTextures(tape.cassette, mixtape, labelStyleFor(jcard.content), handle.renderer);
         if (disposed || gen !== generation) {
@@ -223,6 +260,7 @@ export function createHero(
         setReport({ ...report, status: 'error', error: err instanceof Error ? err.message : String(err) });
       }
     },
+    spineThumbnail: (height) => (report.status === 'ready' ? jcardTextures?.spineThumbnail(height) ?? null : null),
     getTextureReport: () => report,
     onTextureStatus(fn) {
       statusListener = fn;

@@ -383,7 +383,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **Timing / feel to judge:** pull-out 0.5 s, fly-in 1.4 s (3 cm arc), landing angle −20°, hover slide 12 mm + glow, shelf dimmed to 30 % behind the hero. They're all in `ANIM.shelf` / `SHELF`, and in `?debug=1` → Tape machine → Shelf timing.
 - After the fly-in, the case doesn't auto-spin (it did before, when it was the only tape on the page). Dragging still turns it.
 
-**Human checkpoint.**
+**Human checkpoint.** ✅ Approved 2026-09-24 ("current shelf looking good"), as built: procedural wood, timing as is, search/sort only in 3D. Step 3k runs on the real project; the spine file needs no extra SQL.
 
 ## Stage 5: App integration
 
@@ -453,6 +453,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-24 · Stage 4 approved.** Stage 5 starts in a new session.
 - **2026-09-24 · Stage 4: stored spine thumbnails approved and built** (details under Stage 4, known issues). The shelf shows every saved card's real spine from a ~2 kB file. Render-cache test: 26/26. Stage 4 checkpoint still open for the rest (wood texture, timing/feel, 2D search/sort).
 - **2026-09-24 · Stage 4 built** (details under Stage 4): shelf, instanced cases with an atlas of spines, pull-out and fly-in in the tape machine, hover, search and sort in the 3D overlay, empty state, keyboard list, shelf tests in `npm run screenshot:3d`. **Waiting on the human checkpoint.** Open: CC0 wood texture (network), stored spine thumbnails (proposal, ASK FIRST), search/sort for the 2D library (not touched).
 - **2026-09-24 · Stage 2 and Stage 3 approved.** Stage 4 starts in a new session.

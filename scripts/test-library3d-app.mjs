@@ -8,6 +8,8 @@
 // Needs the dev server started with the dummy project URL the mock listens on:
 //   NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NUXT_PUBLIC_SUPABASE_ANON_KEY=dummy npm run dev
 //   npm run test:library3d
+// Add NUXT_PUBLIC_LIBRARY3D=false to the server to check the flag-off side too
+// (the flag is on by default since launch).
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
@@ -274,6 +276,12 @@ try {
   const active = await page.evaluate(() => Object.keys(localStorage).map((k) => localStorage.getItem(k)).find((v) => v?.includes('Summer Drive card')));
   check(page.url().endsWith('/cards/designer') && !!active, 'Edit J-card: the designer opens with its card');
 
+  // Is the server's library3d flag on (the default since launch)? Without ?3d=1, the
+  // 3D route only opens when it is.
+  await page.goto(`${BASE_URL}/library/3d`, { waitUntil: 'networkidle' });
+  const flagOn = new URL(page.url()).pathname === '/library/3d';
+  console.log(`info  library3d flag ${flagOn ? 'on' : 'off'} on this server`);
+
   // 9. The 2D/3D switch, and the choice remembered.
   await page.goto(`${BASE_URL}/library?3d=1`, { waitUntil: 'networkidle' });
   check(page.url().includes('/library?') && !page.url().includes('/library/3d'), '2D/3D: with nothing remembered, /library is the list');
@@ -293,7 +301,14 @@ try {
   check(new URL(page.url()).pathname === '/library', '2D/3D: ?tab= links always get the list');
   await page.evaluate(() => localStorage.setItem('library-view', '3d'));
   await page.goto(`${BASE_URL}/library`, { waitUntil: 'networkidle' });
-  check(new URL(page.url()).pathname === '/library', '2D/3D: flag off, the remembered 3D is ignored');
+  // The flag is on by default since launch (Stage 8); a server started with
+  // NUXT_PUBLIC_LIBRARY3D=false checks the flag-off side instead.
+  if (flagOn) {
+    await page.waitForURL((u) => u.pathname === '/library/3d', { timeout: 30_000 }).catch(() => undefined);
+    check(new URL(page.url()).pathname === '/library/3d', '2D/3D: flag on, the remembered 3D opens the shelf without ?3d=1');
+  } else {
+    check(new URL(page.url()).pathname === '/library', '2D/3D: flag off, the remembered 3D is ignored');
+  }
 
   // 10. New menu, and the unsaved draft note.
   await page.evaluate(() => localStorage.setItem('mixtape-current', JSON.stringify({
@@ -354,9 +369,14 @@ try {
   const shelfLink = page.getByRole('link', { name: 'View on a 3D shelf' });
   await shelfLink.waitFor({ timeout: 30_000 });
   check((await shelfLink.getAttribute('href')) === '/user/tester/3d?3d=1', 'profile: links to its 3D shelf', await shelfLink.getAttribute('href'));
-  await page.goto(`${BASE_URL}/user/maker/3d`, { waitUntil: 'commit' });
-  await page.waitForURL((u) => u.pathname === '/user/maker', { timeout: 30_000 }).catch(() => undefined);
-  check(new URL(page.url()).pathname === '/user/maker', 'public shelf: flag off → the profile page', page.url());
+  if (!flagOn) {
+    await page.goto(`${BASE_URL}/user/maker/3d`, { waitUntil: 'commit' });
+    await page.waitForURL((u) => u.pathname === '/user/maker', { timeout: 30_000 }).catch(() => undefined);
+    check(new URL(page.url()).pathname === '/user/maker', 'public shelf: flag off → the profile page', page.url());
+  } else {
+    await page.goto(`${BASE_URL}/user/maker/3d`, { waitUntil: 'networkidle' });
+    check(new URL(page.url()).pathname === '/user/maker/3d', 'public shelf: flag on, opens without ?3d=1', page.url());
+  }
 
   // 12. Phone: the panel starts folded.
   await page.setViewportSize({ width: 390, height: 844 });

@@ -87,6 +87,10 @@ check(total.gz <= BUDGET_KB * 1024, `3D view code within ${BUDGET_KB} kB gzip`,
 console.log(`info  largest: ${[...own].map((f) => [f, gzipSync(source[f]).length]).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([f, n]) => `${f} ${kb(n)}`).join(', ')}`);
 console.log(`info  pdf-lib for Print (on demand, shared with the 2D export): ${kb(size(onPrint).gz)} gzip`);
 
+// Debug tooling stays out of production (Stage 8): the __cassette3d hooks, lil-gui, stats.js.
+const debugChunks = files.filter((f) => /__cassette3d|lil-gui|"FPS","#0ff"/.test(source[f]));
+check(debugChunks.length === 0, 'no debug hooks, lil-gui or stats.js in the build', debugChunks.join(', '));
+
 // Assets it fetches.
 const hdri = new URL('../.output/public/3d/hdri/studio.exr', import.meta.url).pathname;
 try {

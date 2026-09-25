@@ -15,6 +15,10 @@ import { isTapeState, TAPE_STATES, type TapeState } from './animation/states';
 /**
  * Debug hooks for tuning and for screenshot-based self-verification.
  *
+ * Dev build only (Stage 8): useCassetteScene imports this module behind
+ * import.meta.dev, so none of it (nor lil-gui, stats.js or the query params
+ * below) is in the production bundle; check:bundle-3d checks that.
+ *
  *  - ?debug=1                       lil-gui + stats.js overlay
  *  - ?debugState=<state>&tape=<id>  jump straight to a state, no animation
  *  - window.__cassette3d            (dev only) goTo / setTape / getState / renderer info,

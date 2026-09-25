@@ -507,7 +507,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Frame-time probe.** Once the shelf is up it waits 1.5 s, then takes the median frame interval over 2.5 s (at least 5 frames). Slower than 40 ms (under 25 fps) steps the tier down, live, and it measures once more. The windows are timed rather than counted, so a device at 2 fps is helped after seconds, not minutes.
   - **`?tier=high|mid|low`** forces a tier and turns the probe off (works in production too). Dev only: `?probeFrom=high` starts on a tier with the probe still on (the test uses it).
   - Changing tier live: shadows switch through `castShadow` (materials recompile), a new map size gets a new shadow map, the plastic switches mode, and the J-card textures are remade at the new size from the snapshot already in memory.
-  - ⚠ **Deviation from the table: high's J-card limit is 4096 px, not 2048.** A 2-flap card at 300 dpi is ~1970 px wide and fits either way, but a 6-flap card is ~4900 px. At 2048 its unfolded text would drop to ~105 dpi, visibly soft on a 1440p screen. At 4096 a face is ≤ ~20 MB of GPU memory with mipmaps, fine for a desktop GPU. Mid keeps 2048, as the table says. Say if you'd rather have 2048.
+  - ⚠ **Deviation from the table (confirmed by the human, 2026-09-25): high's J-card limit is 4096 px, not 2048.** A 2-flap card at 300 dpi is ~1970 px wide and fits either way, but a 6-flap card is ~4900 px. At 2048 its unfolded text would drop to ~105 dpi, visibly soft on a 1440p screen. At 4096 a face is ≤ ~20 MB of GPU memory with mipmaps, fine for a desktop GPU. Mid keeps 2048, as the table says.
   - **Depth of field** (`dof.ts`, high tier only, while a tape is off the shelf; it fades in as the camera leaves the shelf):
     - The scene renders once into a multisampled half-float target with a depth texture. One full-screen pass then blurs each pixel by its distance from the focus: a 16-tap disc, nothing within 4 cm of the focus, at most 5 px at 1080p. It focuses on what the camera looks at (the case, or the unfolded card).
     - It doesn't use three's BokehPass, which renders the whole scene a second time for depth.
@@ -563,10 +563,44 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Stage 8: Launch
 
-- [ ] Strip debug-only code from production (keep query-param debug behind a dev check).
-- [ ] Flag on for everyone, or opt-in (human decides).
-- [ ] Draft the "What's new" text for the admin panel.
-- [ ] README feature line + short 3D architecture section.
+- [x] Strip debug-only code from production (keep query-param debug behind a dev check).
+  - `useCassetteScene` imports `debug.ts` behind `import.meta.dev`, so production has none of it:
+    - the `window.__cassette3d` hooks
+    - `?debug=1` (lil-gui, stats.js)
+    - the Stage 1 inspection params (`?view`, `?case`, `?flaps`, `?shortBack`, `?lid`, `?moving`, `?fold`, `?turntable`)
+  - Dev only too: `?debugState=`, `?fixture=`, `?seed=`, `?motion=` and `?probeFrom=`.
+  - `npm run check:bundle-3d` now also fails if the hooks, lil-gui or stats.js turn up in the build.
+  - **Kept in production** (features, not debug): `?tape=` (deep link, `fixture-<n>` for the samples when signed out), `?tier=` (quality override) and `?3d=1` (per-visit opt-in when the flag is off).
+- [x] Flag on for everyone, or opt-in (human decides). **Decided (human, 2026-09-25): on for everyone, 2D stays the default.**
+  - `runtimeConfig.public.library3d` now defaults to `true` (`.env.example` says so too), and `NUXT_PUBLIC_LIBRARY3D=false` switches it off.
+  - Everyone sees the 2D | 3D switch in the library and "View on a 3D shelf" on profiles. `/library` opens in 2D until someone picks 3D, and the choice is remembered.
+  - ⚠ If Vercel has `NUXT_PUBLIC_LIBRARY3D=false` set from earlier, remove it (or set it to true), or it overrides the new default.
+  - `test:library3d` now reads the server's flag and checks whichever side is on. Starting the dev server with `NUXT_PUBLIC_LIBRARY3D=false` still checks the flag-off side.
+- [x] Draft the "What's new" text for the admin panel. To paste into `/admin` (title ≤ 120 characters, message ≤ 2000, plain text with line breaks):
+
+  > **Title:** New: your library on a 3D shelf
+  >
+  > **Message:**
+  > Your mixtapes can now stand on a wooden shelf as real cassette cases.
+  >
+  > Flip the 2D | 3D switch at the top of your library, then pick a tape off the shelf. Open the case, slide the cassette out to see its label, and unfold the J-card you designed, panel by panel. Turn it over to see the inside.
+  >
+  > Everything from the regular library works from the shelf too: edit the tape or its J-card, print, share, make it public. And every profile now has a 3D shelf of its public tapes for visitors to browse.
+  >
+  > Only mixtapes with a J-card linked to them stand on the shelf. The speaker button mutes the sounds. Prefer the list? Switch back to 2D any time; your library remembers your choice.
+  >
+  > **Link:** https://mixtape-maker.com/library/3d · **Link label:** Open the 3D shelf
+- [x] README feature line + short 3D architecture section.
+  - README: a line in Features, and a "3D library" section: how it's built, the flag, the quality tiers, the dev tools and tests.
+  - ARCHITECTURE.md: the two 3D routes, the moved library and profile page files, and `NUXT_PUBLIC_LIBRARY3D`.
+
+**Before launch (human):**
+- Remove or flip `NUXT_PUBLIC_LIBRARY3D` in Vercel if it's set.
+- Post the What's new text after the deploy.
+- From earlier stages, still open:
+  - the CORS check of real J-card images in the browser (Stage 2, deferred to the end)
+  - the two more real cards (Stage 2)
+  - the real-device check (Stage 7)
 
 **Human checkpoint:** final sign-off.
 
@@ -580,6 +614,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-25 · Stage 7: the 4096 px J-card limit on high confirmed** (human). **Stage 8 built:** debug code dev-only (checked in the bundle), flag on for everyone with 2D as the default (human decision), What's new draft, README and ARCHITECTURE.md. **Waiting on final sign-off.**
 
 - **2026-09-25 · Stage 7 built** (details under Stage 7):
   - quality tiers with detection, `?tier=` and a timed frame-time probe

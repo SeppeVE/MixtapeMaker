@@ -58,7 +58,8 @@ export interface ShelfScope {
  * ?debugState=<state> starts the picked tape (or the first one) in that state.
  */
 export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, scope: ShelfScope = {}): Promise<ShelfData> {
-  const debugState = firstParam(query.debugState);
+  // ?debugState=, ?seed= and ?fixture= are dev-build tools (Stage 8); ?tape= works everywhere.
+  const debugState = isDev ? firstParam(query.debugState) : null;
   const state: TapeState | null = isTapeState(debugState) ? debugState : null;
   const initialFor = (index: number | null): ShelfData['initial'] => {
     if (state === 'onShelf') return null;
@@ -76,7 +77,7 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, sc
     return { tapes, source: 'seed', signedIn: true, hasMixtapes: tapes.length > 0, initial: tapes.length ? initialFor(index) : null };
   }
 
-  const fixture = firstParam(query.fixture);
+  const fixture = isDev ? firstParam(query.fixture) : null;
   if (fixture) {
     const { sampleTapes } = await import('~/lib/cassette3d/fixtures');
     const tapes = sampleTapes();

@@ -137,17 +137,19 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
     // A rebuild starts from the default shelf view, like the overlay (remounted) does.
     view = { search: '', sort: 'updated' };
     try {
-      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }, { createTapeSounds }, q] = await Promise.all([
+      // The debug hooks, lil-gui and stats.js exist in the dev build only (Stage 8): in
+      // production this import is dead code and none of it is bundled.
+      const [{ createCassetteScene }, { createHero, DEFAULT_HERO_OPTIONS }, { createLibrary }, debug, { createSnapshotSource }, { createTapeSounds }, q] = await Promise.all([
         import('~/lib/cassette3d/scene'),
         import('~/lib/cassette3d/hero'),
         import('~/lib/cassette3d/library'),
-        import('~/lib/cassette3d/debug'),
+        import.meta.dev ? import('~/lib/cassette3d/debug') : null,
         import('~/lib/cassette3d/textures/snapshotSource'),
         import('~/lib/cassette3d/audio'),
         import('~/lib/cassette3d/quality'),
       ]);
       if (stale()) return;
-      const params = debug.parseDebugParams(route.query);
+      const heroOptions = debug ? debug.parseDebugParams(route.query).hero : DEFAULT_HERO_OPTIONS;
       handle = createCassetteScene(el, { onStatus: onSceneStatus });
       const sceneHandle = handle;
       // Quality: forced with ?tier=, otherwise from the device, and the probe may step it down.
@@ -170,8 +172,9 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         writeBack: (jcard, snapshot, version) => uploadJCardRender(jcard, snapshot, version),
         writeSpine: (jcard, render, snapshot) => uploadJCardSpine(jcard, render, snapshot),
       });
-      hero = createHero(handle, params.hero, snapshotSource, {
-        reducedMotion: () => prefersReducedMotion(route.query.motion),
+      hero = createHero(handle, heroOptions, snapshotSource, {
+        // ?motion=reduce|full overrides the system setting in the dev build only.
+        reducedMotion: () => prefersReducedMotion(import.meta.dev ? route.query.motion : undefined),
         fade: (to, ms) => fadeCanvas(el, to, ms),
         hasShelf: () => !!library,
         getSlot: (out) => library?.slotMatrix(out) ?? null,
@@ -192,12 +195,14 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
       });
       // Look at the shelf while the tapes load.
       hero.machine.jump('onShelf');
-      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev, sounds, {
-        quality: () => ({ ...quality.value, dofActive: sceneHandle.isDofActive() }),
-        loseContext: (restoreAfterMs) => sceneHandle.simulateContextLoss(restoreAfterMs),
-      });
-      if (stale()) cleanup();
-      else debugCleanup = cleanup;
+      if (debug) {
+        const cleanup = await debug.installDebug(handle, hero, library, debug.parseDebugParams(route.query), true, sounds, {
+          quality: () => ({ ...quality.value, dofActive: sceneHandle.isDofActive() }),
+          loseContext: (restoreAfterMs) => sceneHandle.simulateContextLoss(restoreAfterMs),
+        });
+        if (stale()) cleanup();
+        else debugCleanup = cleanup;
+      }
       // The studio lighting, so the first frame isn't lit by the fallback (it resolves either way).
       await environmentReady;
       if (stale()) return;

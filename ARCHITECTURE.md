@@ -89,12 +89,14 @@ Rendering mode is set per route in `nuxt.config.ts` → `routeRules`.
 | --- | --- | --- | --- |
 | `/` | `pages/index.vue` | prerender | Landing page: hero, feature bar, sections, CTA with recent tapes, footer. Mounts `<NotificationModal>`. |
 | `/mixtape` | `pages/mixtape.vue` | client | The editor: Spotify search, Side A/B lists with drag-reorder, cassette preview, save/public/share. |
-| `/library` | `pages/library.vue` | client | Two tabs (`?tab=jcards`): cloud mixtapes (public toggle, share link, delete) and the J-card grid. |
+| `/library` | `pages/library/index.vue` | client | Two tabs (`?tab=jcards`): cloud mixtapes (public toggle, share link, delete) and the J-card grid. Sends people who picked 3D on to `/library/3d`. |
+| `/library/3d` | `pages/library/3d.vue` | client | The 3D library: the shelf of cassette cases (see README → 3D library, and `docs/3d-library-plan.md`). |
 | `/cards/designer` | `pages/cards/designer.vue` | client | J-card designer; wraps `<JCardView>` with the store's `activeCard`. Measures whether the previews fit above the footer and, if not, pushes the footer below the fold. |
 | `/explore` | `pages/explore/index.vue` | SSR | Two tabs (`?tab=jcards`), one component each: public mixtapes and public J-cards, with title search + pagination and author bylines. Tab, query and page all live in the URL so Back from a detail page restores the view. |
 | `/explore/:id` | `pages/explore/[id].vue` | SSR | One public mixtape + author + public J-cards linked to it. 404 if private. |
 | `/share/:token` | `pages/share/[token].vue` | SSR | A mixtape by share token, public or not. Same view component as explore. |
-| `/user/:username` | `pages/user/[username].vue` | SSR | Public profile: avatar, bio, public mixtapes and J-cards, or the "private" notice. |
+| `/user/:username` | `pages/user/[username]/index.vue` | SSR | Public profile: avatar, bio, public mixtapes and J-cards, or the "private" notice. |
+| `/user/:username/3d` | `pages/user/[username]/3d.vue` | client | That profile's public tapes on a 3D shelf. |
 | `/jcard/:id` | `pages/jcard/[id].vue` | SSR | A single public J-card, read-only, with a link to its mixtape and to the card it was copied from. Actions: PDF export (paper size picked per export), plus Edit for the owner or "Copy to my library" for everyone else. |
 | `/profile` | `pages/profile.vue` | client | Own dashboard: picture, username, bio, privacy, sign out, delete account. |
 | `/admin` | `pages/admin.vue` | client | Post/delete site notifications. Gated by `profile.isAdmin`. |
@@ -466,6 +468,7 @@ Environment variables (see `.env.example`):
 | `NUXT_PUBLIC_SPOTIFY_CLIENT_ID` | `utils/spotifyAuth.ts` (PKCE, public by design) |
 | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | server only, `server/api/spotify/search.get.ts` |
 | `NUXT_PUBLIC_TURNSTILE_SITE_KEY` | `auth/TurnstileWidget.vue`; the secret goes into Supabase's dashboard, not the app |
+| `NUXT_PUBLIC_LIBRARY3D` | `utils/featureFlags.ts`: the 3D library, on by default; `false` switches it off |
 
 ---
 

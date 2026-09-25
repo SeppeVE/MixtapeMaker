@@ -51,7 +51,7 @@ export default defineNuxtConfig({
       supabaseAnonKey: '',   // NUXT_PUBLIC_SUPABASE_ANON_KEY
       spotifyClientId: '',   // NUXT_PUBLIC_SPOTIFY_CLIENT_ID
       turnstileSiteKey: '',  // NUXT_PUBLIC_TURNSTILE_SITE_KEY
-      library3d: false,      // NUXT_PUBLIC_LIBRARY3D: enables /library/3d (also ?3d=1 per visit)
+      library3d: true,       // NUXT_PUBLIC_LIBRARY3D=false switches the 3D library off (then ?3d=1 opens it per visit)
       sentry: {
         dsn: '',             // NUXT_PUBLIC_SENTRY_DSN
         environment: '',     // NUXT_PUBLIC_SENTRY_ENVIRONMENT (optional)

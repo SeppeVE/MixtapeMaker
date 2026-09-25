@@ -52,6 +52,8 @@ export interface ContactShadows {
   update: (scene: Scene) => void;
   /** Force a re-render on the next update (e.g. after a tuning change). */
   invalidate: () => void;
+  /** Off on the low quality tier (Stage 7): nothing is rendered or shown. */
+  setEnabled: (on: boolean) => void;
   dispose: () => void;
 }
 
@@ -101,6 +103,7 @@ export function createContactShadows(renderer: WebGLRenderer): ContactShadows {
   plane.visible = false;
 
   let subject: Object3D | null = null;
+  let enabled = true;
   let lastSignature = NaN;
   const hidden: Object3D[] = [];
   const clear = new Color();
@@ -170,7 +173,7 @@ export function createContactShadows(renderer: WebGLRenderer): ContactShadows {
       lastSignature = NaN;
     },
     update(scene) {
-      const on = !!subject && subject.visible && c.opacity > 0;
+      const on = enabled && !!subject && subject.visible && c.opacity > 0;
       plane.visible = on;
       if (!on || !subject) return;
       let top = subject;
@@ -188,6 +191,10 @@ export function createContactShadows(renderer: WebGLRenderer): ContactShadows {
       camera.far = c.far;
       camera.updateProjectionMatrix();
       render(scene, top);
+    },
+    setEnabled(on) {
+      enabled = on;
+      lastSignature = NaN;
     },
     invalidate() {
       lastSignature = NaN;

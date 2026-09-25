@@ -18,11 +18,15 @@ import {
   type Material,
   type Object3D,
   type WebGLRenderTarget,
+  Vector2,
   Vector3,
 } from 'three';
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createContactShadows, type ContactShadows } from './contactShadows';
+import { createDepthOfField, type DepthOfField } from './dof';
+import { reportError } from './report';
+import { readDevice, TIER_SETTINGS, type DeviceInfo, type QualitySettings } from './quality';
 
 /**
  * Renderer, camera, lights, environment, resize handling and the render loop
@@ -32,7 +36,8 @@ import { createContactShadows, type ContactShadows } from './contactShadows';
  * Units: 1 scene unit = 1 cm.
  */
 
-export type SceneStatus = 'ready' | 'contextLost';
+/** 'contextRestored': the GPU is back; the caller rebuilds the whole scene (Stage 7). */
+export type SceneStatus = 'ready' | 'contextLost' | 'contextRestored';
 
 /**
  * Studio HDRI for the image-based lighting: a CC0 Poly Haven studio, 512 × 256
@@ -42,6 +47,8 @@ export const HDRI_URL = '/3d/hdri/studio.exr';
 
 export interface CassetteSceneOptions {
   onStatus?: (status: SceneStatus) => void;
+  /** Starting quality (the tier can change later with setQuality). Default: high. */
+  quality?: QualitySettings;
 }
 
 export interface CassetteScene {
@@ -67,12 +74,26 @@ export interface CassetteScene {
   onFrame: (fn: (dt: number) => void) => () => void;
   /** Called after the canvas and camera have been resized. */
   onResize: (fn: () => void) => () => void;
+  /** What the browser says about the device (GPU name etc.), for picking a tier. */
+  device: DeviceInfo;
+  getQuality: () => QualitySettings;
+  /** Pixel ratio cap, shadows, contact shadows and depth of field of a tier (the hero does the rest). */
+  setQuality: (settings: QualitySettings) => void;
+  /**
+   * Depth of field focus (cm from the camera) and strength (0–1) for this frame;
+   * null (or no strength) renders without it.
+   */
+  setDofFocus: (distance: number | null, strength?: number) => void;
+  /** Whether the last frame went through the depth of field pass. */
+  isDofActive: () => boolean;
+  /** Debug: lose the WebGL context (and get it back after `restoreAfterMs`, unless null). */
+  simulateContextLoss: (restoreAfterMs: number | null) => boolean;
   dispose: () => void;
 }
 
-const MAX_PIXEL_RATIO = 2;
 const BACKGROUND = '#1b1714';
 const DEG = Math.PI / 180;
+const _size = new Vector2();
 /** Environment tuning (the debug GUI edits scene.environmentIntensity / environmentRotation live). */
 export const ENVIRONMENT = { intensity: 0.6, rotationDeg: 0 };
 
@@ -85,7 +106,9 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   renderer.shadowMap.enabled = true;
   // PCFSoftShadowMap was removed in r18x; PCFShadowMap is now the soft, filtered option.
   renderer.shadowMap.type = PCFShadowMap;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO));
+  let quality: QualitySettings = options.quality ?? TIER_SETTINGS.high;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.pixelRatioCap));
+  const device = readDevice(renderer.getContext());
 
   const canvas = renderer.domElement;
   canvas.style.display = 'block';
@@ -133,6 +156,7 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     },
     (err) => {
       console.warn('[cassette3d] Studio HDRI failed to load, using RoomEnvironment', err);
+      reportError(err, 'environment', 'warning');
       if (!disposed) buildEnvironment();
       return 'room' as const;
     },
@@ -146,8 +170,8 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
 
   const keyLight = new DirectionalLight('#fff1dc', 2.2);
   const keyOffset = new Vector3(18, 30, 16);
-  keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.mapSize.set(quality.shadowMapSize || 1024, quality.shadowMapSize || 1024);
+  keyLight.castShadow = quality.shadowMapSize > 0;
   keyLight.shadow.radius = 4;
   keyLight.shadow.bias = -0.0005;
   keyLight.shadow.normalBias = 0.02;
@@ -179,15 +203,24 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   scene.add(floor);
 
   const contactShadows = createContactShadows(renderer);
+  contactShadows.setEnabled(quality.contactShadows);
   scene.add(contactShadows.root);
+
+  // Depth of field (high tier): made when first needed, freed when the tier drops it.
+  let dof: DepthOfField | null = null;
+  let dofFocus: number | null = null;
+  let dofStrength = 1;
+  let dofActive = false;
 
   // --- Resize ---------------------------------------------------------------
   const resizeCallbacks = new Set<() => void>();
   function resize() {
     const w = Math.max(1, container.clientWidth);
     const h = Math.max(1, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality.pixelRatioCap));
     renderer.setSize(w, h, false);
+    const size = renderer.getDrawingBufferSize(_size);
+    dof?.setSize(size.x, size.y);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     for (const fn of resizeCallbacks) fn();
@@ -202,12 +235,21 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   let contextLost = false;
   let running = false;
 
+  // renderer.info adds up over a frame (contact shadows, depth of field), not per render call.
+  renderer.info.autoReset = false;
   function frame(time: number) {
+    renderer.info.reset();
     const dt = Math.min((time - lastTime) / 1000, 0.1);
     lastTime = time;
     for (const fn of frameCallbacks) fn(dt);
     contactShadows.update(scene);
-    renderer.render(scene, camera);
+    dofActive = quality.dof && dofFocus !== null && dofStrength > 0.01;
+    if (dofActive && dofFocus !== null) {
+      dof ??= createDepthOfField(renderer, scene, camera);
+      dof.render(dofFocus, dofStrength);
+    } else {
+      renderer.render(scene, camera);
+    }
   }
   function syncLoop() {
     const shouldRun = !document.hidden && !contextLost;
@@ -220,10 +262,9 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
   syncLoop();
 
   // --- Context loss -----------------------------------------------------------
-  // three.js re-uploads geometries and textures itself after a restore; render
-  // targets lose their contents, so the environment map is rebuilt (from the
-  // HDRI still held on the CPU). Stage 7
-  // replaces this with a full scene rebuild.
+  // Render targets, the environment map and every texture upload are gone with the
+  // context, so rather than patch things up the caller rebuilds the whole scene
+  // once the context is back (Stage 7).
   function onContextLost(e: Event) {
     e.preventDefault();
     contextLost = true;
@@ -231,10 +272,7 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     options.onStatus?.('contextLost');
   }
   function onContextRestored() {
-    contextLost = false;
-    buildEnvironment();
-    syncLoop();
-    options.onStatus?.('ready');
+    options.onStatus?.('contextRestored');
   }
   canvas.addEventListener('webglcontextlost', onContextLost);
   canvas.addEventListener('webglcontextrestored', onContextRestored);
@@ -252,7 +290,10 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
     resizeCallbacks.clear();
 
     disposeTransmissionTargets(renderer, scene);
+    disposeSharedLUT(renderer, scene);
     contactShadows.dispose();
+    dof?.dispose();
+    dof = null;
     disposeObjectTree(scene);
     scene.environment = null;
     envTarget?.dispose();
@@ -285,6 +326,39 @@ export function createCassetteScene(container: HTMLElement, options: CassetteSce
       resizeCallbacks.add(fn);
       return () => resizeCallbacks.delete(fn);
     },
+    device,
+    getQuality: () => quality,
+    setQuality(next) {
+      const size = next.shadowMapSize;
+      if (size > 0 && size !== keyLight.shadow.mapSize.x) {
+        // A new size needs a new shadow map (three makes it on the next render).
+        keyLight.shadow.map?.depthTexture?.dispose();
+        keyLight.shadow.map?.dispose();
+        keyLight.shadow.map = null;
+        keyLight.shadow.mapSize.set(size, size);
+      }
+      // Toggling castShadow changes the lights' state, so materials recompile without shadows.
+      keyLight.castShadow = size > 0;
+      contactShadows.setEnabled(next.contactShadows);
+      if (!next.dof) {
+        dof?.dispose();
+        dof = null;
+      }
+      quality = next;
+      resize();
+    },
+    isDofActive: () => dofActive,
+    setDofFocus(distance, strength = 1) {
+      dofFocus = distance;
+      dofStrength = strength;
+    },
+    simulateContextLoss(restoreAfterMs) {
+      const ext = renderer.getContext().getExtension('WEBGL_lose_context');
+      if (!ext) return false;
+      ext.loseContext();
+      if (restoreAfterMs !== null) setTimeout(() => ext.restoreContext(), restoreAfterMs);
+      return true;
+    },
     dispose,
   };
 }
@@ -306,6 +380,30 @@ function disposeTransmissionTargets(renderer: WebGLRenderer, root: Object3D) {
     }
   });
   targets.forEach((t) => t.dispose());
+}
+
+/**
+ * three keeps one module-level lookup texture for PBR materials (the DFG LUT) and
+ * shares it between renderers. Each renderer that uses it adds a 'dispose'
+ * listener to it, and nothing ever disposes it, so that listener kept every
+ * renderer we ever made reachable: its WebGL context, canvas and all, ~0.2 MB a
+ * visit (found with the Stage 7 heap check). Disposing it runs those listeners,
+ * which drop their renderer; the next renderer uploads it again. The LUT is
+ * private to three's bundle, so it's taken from a material's uniforms.
+ */
+function disposeSharedLUT(renderer: WebGLRenderer, root: Object3D) {
+  let lut: Texture | null = null;
+  root.traverse((obj) => {
+    if (lut) return;
+    const material = (obj as Mesh).material as Material | Material[] | undefined;
+    if (!material) return;
+    for (const m of Array.isArray(material) ? material : [material]) {
+      const uniforms = (renderer.properties.get(m) as { uniforms?: Record<string, { value: unknown }> }).uniforms;
+      const value = uniforms?.dfgLUT?.value;
+      if (value instanceof Texture) lut = value;
+    }
+  });
+  (lut as Texture | null)?.dispose();
 }
 
 /**

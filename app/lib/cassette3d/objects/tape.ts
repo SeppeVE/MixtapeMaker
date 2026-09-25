@@ -1,6 +1,7 @@
 import { Group } from 'three';
 import { CASE_LAYOUT } from '../dimensions';
-import { applyCaseTint, createTapeMaterials, type CaseTint, type SurfaceMaps, type TapeMaterials } from '../materials';
+import { configureCasePlastic, createTapeMaterials, type CaseTint, type SurfaceMaps, type TapeMaterials } from '../materials';
+import type { PlasticMode } from '../quality';
 import { disposeObjectTree } from '../scene';
 import { createCase, type CaseModel } from './caseModel';
 import { createCassette, type CassetteModel } from './cassette';
@@ -18,17 +19,23 @@ export interface TapeModel {
   jcard: JCardModel;
   materials: TapeMaterials;
   setCaseTint: (tint: CaseTint) => void;
+  /** How the case plastic is drawn (quality tier). */
+  setPlasticMode: (mode: PlasticMode) => void;
   dispose: () => void;
 }
 
 export interface TapeOptions extends JCardOptions {
   tint?: CaseTint;
+  plastic?: PlasticMode;
   /** Scuffs and paper grain (Stage 6); the tape owns them from here on. */
   surfaces?: SurfaceMaps;
 }
 
 export function createTape(options: TapeOptions): TapeModel {
   const materials = createTapeMaterials(options.tint ?? 'clear', options.surfaces);
+  let tint: CaseTint = options.tint ?? 'clear';
+  let plastic: PlasticMode = options.plastic ?? 'transmission';
+  configureCasePlastic(materials.casePlastic, tint, plastic);
 
   const root = new Group();
   root.name = 'tape';
@@ -58,8 +65,13 @@ export function createTape(options: TapeOptions): TapeModel {
     cassette,
     jcard,
     materials,
-    setCaseTint(tint) {
-      applyCaseTint(materials.casePlastic, tint);
+    setCaseTint(next) {
+      tint = next;
+      configureCasePlastic(materials.casePlastic, tint, plastic);
+    },
+    setPlasticMode(next) {
+      plastic = next;
+      configureCasePlastic(materials.casePlastic, tint, plastic);
     },
     dispose() {
       root.removeFromParent();

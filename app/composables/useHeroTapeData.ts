@@ -6,7 +6,8 @@ import { loadMixtapes, loadPublicMixtapesByUser } from '~/utils/database';
 import { listPublicJCardsByUser } from '~/utils/jcardDatabase';
 import { loadProfileByUsername } from '~/utils/profileDatabase';
 import { pairTapes, type TapeData } from '~/lib/cassette3d/tapeData';
-import { isTapeState, type TapeState } from '~/lib/cassette3d/animation/tapeMachine';
+import { isTapeState, type TapeState } from '~/lib/cassette3d/animation/states';
+import { reportError } from '~/lib/cassette3d/report';
 
 const AUTH_TIMEOUT_MS = 5000;
 const MAX_SEED = 2000;
@@ -104,6 +105,7 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, sc
       };
     } catch (err) {
       console.error('[cassette3d] Could not load your mixtapes', err);
+      reportError(err, 'loadTapes');
       return { tapes: [], source: 'cloud', signedIn: true, hasMixtapes: false, initial: null, error: true };
     }
   }
@@ -142,6 +144,7 @@ async function resolvePublicShelf(
     };
   } catch (err) {
     console.error(`[cassette3d] Could not load @${name}'s public tapes`, err);
+    reportError(err, 'loadPublicTapes');
     return empty({ username: name, status: 'ok', isYou: false }, true);
   }
 }

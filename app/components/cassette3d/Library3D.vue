@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useTemplateRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUiStore } from '~/stores/ui';
 import { useCassetteScene } from '~/composables/useCassetteScene';
 import { setLibraryView } from '~/utils/localStorage';
 import Overlay from './Overlay.vue';
@@ -22,9 +24,15 @@ const fallback = props.username
   ? { to: `/user/${props.username}`, label: 'Open the profile page' }
   : { to: { path: '/library', query: { view: '2d' } }, label: 'Open the regular library' };
 
-// No WebGL 2 here: /library shouldn't keep sending this browser to the 3D view.
+// No WebGL 2 here: straight on to the 2D view (or the profile), with a note saying
+// why, and /library stops sending this browser to the 3D view.
+const router = useRouter();
+const ui = useUiStore();
 watch(status, (s) => {
-  if (s === 'unsupported') setLibraryView('2d');
+  if (s !== 'unsupported') return;
+  setLibraryView('2d');
+  ui.showToast('Your browser can\'t show the 3D library (no WebGL 2), so here\'s the regular one.', 'info');
+  void router.replace(fallback.to);
 });
 </script>
 
@@ -56,7 +64,7 @@ watch(status, (s) => {
     <div v-else-if="status === 'ready' && textureStatus === 'loading' && tape.target !== 'onShelf'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">
       <template v-if="status === 'loading'">Loading 3D library…</template>
-      <template v-else-if="status === 'contextLost'">The 3D view lost its graphics context. It will resume when the browser restores it.</template>
+      <template v-else-if="status === 'contextLost'">The graphics card dropped out. Restarting the 3D view…</template>
       <template v-else-if="status === 'unsupported'">
         Your browser doesn't support WebGL 2, so the 3D library can't run here.
         <NuxtLink :to="fallback.to">{{ fallback.label }}</NuxtLink>

@@ -4,6 +4,8 @@ import { CASE_LAYOUT } from './dimensions';
 import { createPicking, type Picking, type TapePart } from './interaction/picking';
 import { createHeroView, type HeroView, type HeroViewName } from './heroView';
 import type { CaseTint } from './materials';
+import type { QualitySettings } from './quality';
+import { reportError } from './report';
 import type { CaseHalf } from './objects/caseModel';
 import { createJCard, type JCardOptions } from './objects/jcard';
 import { createTape, type TapeModel } from './objects/tape';
@@ -85,6 +87,13 @@ export interface Hero {
   /** The current tape's real spine, cropped from its J-card render (null until it's in). */
   spineThumbnail: (height?: number) => HTMLCanvasElement | null;
   getTextureReport: () => TextureReport;
+  /**
+   * Free the J-card and label textures (Stage 7: full-resolution textures only
+   * while a tape is off the shelf). The next setTape builds them again.
+   */
+  releaseTextures: () => void;
+  /** Case plastic mode and J-card texture size of a quality tier. */
+  setQuality: (settings: QualitySettings) => void;
   onTextureStatus: (fn: (status: TextureReport['status']) => void) => void;
   dispose: () => void;
 }
@@ -95,13 +104,25 @@ export function createHero(
   snapshotSource: SnapshotSource = createSnapshotSource({ supabaseUrl: '' }),
   machineOptions: TapeMachineOptions = {},
 ): Hero {
+  let quality = handle.getQuality();
   const tape = createTape({
     ...options,
+    plastic: quality.plastic,
     surfaces: { scuffs: createCaseScuffs(handle.renderer), grain: createPaperGrain(handle.renderer) },
   });
   const view = createHeroView(handle, { autoRotate: options.autoRotate && !options.view });
   view.turntable.add(tape.root);
   handle.contactShadows.setSubject(view.turntable);
+  // The case plastic takes the scene's environment as its own envMap, so its
+  // envMapIntensity counts (three uses scene.environmentIntensity otherwise).
+  const offEnvironment = handle.onFrame(() => {
+    const plastic = tape.materials.casePlastic;
+    const env = handle.scene.environment;
+    if (plastic.envMap !== env) {
+      plastic.envMap = env;
+      plastic.needsUpdate = true;
+    }
+  });
   const machine = createTapeMachine(handle, view, () => tape, machineOptions);
 
   // What clicking each part does, by where the tape is (or is heading).
@@ -127,6 +148,8 @@ export function createHero(
 
   let fold = options.fold;
   let jcardTextures: JCardTextureSet | null = null;
+  /** The snapshot the J-card textures were made from (to remake them at another size). */
+  let lastSnapshot: SnapshotResult['snapshot'] | null = null;
   let labelTextures: LabelTextureSet | null = null;
   let placeholder: { texture: CanvasTexture; material: Material } | null = null;
   let generation = 0;
@@ -165,6 +188,7 @@ export function createHero(
     clearPlaceholder();
     jcardTextures?.dispose();
     jcardTextures = null;
+    lastSnapshot = null;
     labelTextures?.dispose();
     labelTextures = null;
   }
@@ -234,7 +258,8 @@ export function createHero(
         const { snapshot } = result;
         if (disposed || gen !== generation) return;
         clearPlaceholder();
-        jcardTextures = applyJCardTextures(tape.jcard, snapshot, handle.renderer, tape.materials.paper);
+        jcardTextures = applyJCardTextures(tape.jcard, snapshot, handle.renderer, tape.materials.paper, quality.jcardMaxPx);
+        lastSnapshot = snapshot;
         const labels = await applyLabelTextures(tape.cassette, mixtape, labelStyleFor(jcard.content), handle.renderer);
         if (disposed || gen !== generation) {
           labels.dispose();
@@ -262,7 +287,25 @@ export function createHero(
       } catch (err) {
         if (disposed || gen !== generation) return;
         console.error('[cassette3d] Could not build the J-card textures', err);
+        reportError(err, 'textures', 'error', { jcardId: jcard.id });
         setReport({ ...report, status: 'error', error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+    releaseTextures() {
+      // Whatever is still loading for the old tape is dropped too.
+      generation++;
+      clearTextures();
+      setReport(emptyReport());
+    },
+    setQuality(next) {
+      const resize = next.jcardMaxPx !== quality.jcardMaxPx;
+      quality = next;
+      tape.setPlasticMode(next.plastic);
+      if (resize && jcardTextures && lastSnapshot) {
+        const snapshot = lastSnapshot;
+        jcardTextures.dispose();
+        jcardTextures = applyJCardTextures(tape.jcard, snapshot, handle.renderer, tape.materials.paper, next.jcardMaxPx);
+        lastSnapshot = snapshot;
       }
     },
     spineThumbnail: (height) => (report.status === 'ready' ? jcardTextures?.spineThumbnail(height) ?? null : null),
@@ -274,6 +317,7 @@ export function createHero(
       disposed = true;
       statusListener = null;
       handle.contactShadows.setSubject(null);
+      offEnvironment();
       picking.dispose();
       machine.dispose();
       clearTextures();

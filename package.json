@@ -10,7 +10,8 @@
     "postinstall": "nuxt prepare",
     "screenshot:3d": "node scripts/screenshot-3d.mjs",
     "test:render-cache": "node scripts/test-render-cache.mjs",
-    "test:library3d": "node scripts/test-library3d-app.mjs"
+    "test:library3d": "node scripts/test-library3d-app.mjs",
+    "check:bundle-3d": "node scripts/check-bundle-3d.mjs"
   },
   "dependencies": {
     "@fontsource/bebas-neue": "^5.3.0",

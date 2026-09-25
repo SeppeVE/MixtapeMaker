@@ -6,9 +6,11 @@ import { HERO_VIEWS, isHeroViewName, type HeroViewName } from './heroView';
 import { SURFACE, type CaseTint } from './materials';
 import { ENVIRONMENT, type CassetteScene } from './scene';
 import { CONTACT_SHADOWS } from './contactShadows';
+import { DOF } from './dof';
 import type { TapeSounds } from './audio';
+import { recentReports, type ReportedError } from './report';
 import { ANIM } from './animation/config';
-import { isTapeState, TAPE_STATES, type TapeState } from './animation/tapeMachine';
+import { isTapeState, TAPE_STATES, type TapeState } from './animation/states';
 
 /**
  * Debug hooks for tuning and for screenshot-based self-verification.
@@ -138,8 +140,15 @@ export interface Cassette3DDebugApi {
   /** Sound cues so far (newest last) and the mute switch. */
   sounds: () => ReturnType<TapeSounds['log']>;
   isMuted: () => boolean;
+  // Stage 7 robustness.
+  /** The quality tier in use, why, and what the frame-time probe did. */
+  quality: () => unknown;
+  /** Lose the WebGL context; the browser gives it back after `restoreAfterMs` (null: never, so the rebuild starts over). */
+  loseContext: (restoreAfterMs: number | null) => boolean;
+  /** Errors and warnings passed to Sentry (tagged feature: library3d), newest last. */
+  reportedErrors: () => ReportedError[];
   /** The Stage 6 tuning objects, live (as the GUI edits them). */
-  tuning: { surface: typeof SURFACE; contactShadows: typeof CONTACT_SHADOWS; environment: typeof ENVIRONMENT };
+  tuning: { surface: typeof SURFACE; contactShadows: typeof CONTACT_SHADOWS; environment: typeof ENVIRONMENT; dof: typeof DOF };
 }
 
 declare global {
@@ -158,6 +167,10 @@ export async function installDebug(
   params: DebugParams,
   isDev: boolean,
   sounds: TapeSounds | null = null,
+  extra: { quality: () => unknown; loseContext: (restoreAfterMs: number | null) => boolean } = {
+    quality: () => null,
+    loseContext: () => false,
+  },
 ): Promise<() => void> {
   const cleanups: (() => void)[] = [];
 
@@ -252,7 +265,10 @@ export async function installDebug(
       environment: () => handle.environmentReady,
       sounds: () => sounds?.log() ?? [],
       isMuted: () => sounds?.isMuted() ?? true,
-      tuning: { surface: SURFACE, contactShadows: CONTACT_SHADOWS, environment: ENVIRONMENT },
+      quality: extra.quality,
+      loseContext: extra.loseContext,
+      reportedErrors: recentReports,
+      tuning: { surface: SURFACE, contactShadows: CONTACT_SHADOWS, environment: ENVIRONMENT, dof: DOF },
     };
     cleanups.push(() => {
       window.__cassette3dLastDispose = { ...renderer.info.memory };

@@ -44,9 +44,11 @@ export function applyJCardTextures(
   snapshot: JCardSnapshot,
   renderer: WebGLRenderer,
   paper: Material,
+  /** Longest side of a face texture (the quality tier's limit); the GPU's own limit applies too. */
+  maxPx = Infinity,
 ): JCardTextureSet {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const maxSize = renderer.capabilities.maxTextureSize;
+  const maxSize = Math.min(renderer.capabilities.maxTextureSize, maxPx);
   const textures: Texture[] = [];
   const owned: Material[] = [];
 

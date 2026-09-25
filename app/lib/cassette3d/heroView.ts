@@ -63,6 +63,8 @@ export interface HeroView {
   /** Blend the camera back from the orbit to the rig over `seconds`. */
   stopOrbit: (seconds: number) => Promise<void>;
   isOrbiting: () => boolean;
+  /** Distance from the camera to what it looks at (the depth of field focus). */
+  focusDistance: () => number;
   /** Turntable angle in degrees. */
   getAngle: () => number;
   /**
@@ -288,6 +290,7 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
       });
     },
     isOrbiting: () => !!orbit,
+    focusDistance: () => camera.position.distanceTo(orbit ? orbit.target : target),
     getAngle: () => MathUtils.radToDeg(turntable.rotation.y),
     setCameraFilter(fn) {
       cameraFilter = fn;

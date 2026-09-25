@@ -108,6 +108,8 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     // The environment is rebuilt after a context loss; keep the shelf on the current one.
     shelf?.setEnvironment(handle.scene.environment as Texture | null);
     const k = machine.shelfBlend();
+    // Depth of field (high tier) on the tape, fading in as the camera leaves the shelf.
+    handle.setDofFocus(hero.view.turntable.visible ? hero.view.focusDistance() : null, 1 - k);
     // With a tape off the shelf, the shelf steps back into the dark behind it.
     shelf?.setDim(SHELF_DIM + (1 - SHELF_DIM) * k);
     const { width, height } = shelfView.visibleSize();
@@ -138,6 +140,9 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
       if (p) shelfView.reveal(p.x, p.y);
     }
     lastTarget = s.target;
+    // Back in its slot: the shelf shows its spine from the atlas, so the full-size
+    // J-card and label textures go (Stage 7). Taking a tape out builds them again.
+    if (resting && !s.animating) hero.releaseTextures();
     if (resting && !s.animating && pending !== null) {
       const next = pending;
       pending = null;

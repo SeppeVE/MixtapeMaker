@@ -12,8 +12,26 @@ import { uploadJCardRender, uploadJCardSpine } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 import type { TapeSounds } from '~/lib/cassette3d/audio';
 import { getLibrarySoundMuted, setLibrarySoundMuted } from '~/utils/localStorage';
+import type { DeviceInfo, QualityTier } from '~/lib/cassette3d/quality';
+import { reportError, setErrorReporter } from '~/lib/cassette3d/report';
+import * as Sentry from '@sentry/nuxt';
 
 export type Cassette3DStatus = 'loading' | 'ready' | 'contextLost' | 'unsupported' | 'error';
+
+/** The quality tier in use and how it was picked (Stage 7). */
+export interface QualityState {
+  tier: QualityTier;
+  /** ?tier= forced it (no probe). */
+  forced: boolean;
+  reasons: string[];
+  device: DeviceInfo;
+  /** Steps the frame-time probe took. */
+  probes: { from: QualityTier; to: QualityTier; medianMs: number }[];
+}
+
+/** How long to wait for the browser to restore a lost context before starting over anyway. */
+const CONTEXT_WAIT_MS = 3000;
+const MAX_REBUILDS_PER_MINUTE = 3;
 
 /** One tape as the overlay lists it. */
 export interface ShelfEntry {
@@ -86,25 +104,62 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
   let debugCleanup: (() => void) | null = null;
   let unmounted = false;
 
-  onMounted(async () => {
+  /** Quality tier in use, and how it was chosen (debug hook, and the tests). */
+  const quality = shallowRef<QualityState | null>(null);
+  /** Bumped by every build and teardown: an older build that's still awaiting stops. */
+  let build = 0;
+  let stopProbe: (() => void) | null = null;
+  let contextTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Rebuilds after context loss, for giving up if the GPU keeps dropping out. */
+  const rebuilds: number[] = [];
+
+  onMounted(() => {
+    // Every error on this page (the overlay's too) is tagged in Sentry while it's open.
+    Sentry.setTag('feature', 'library3d');
+    setErrorReporter((error, area, level, extra) => {
+      const context = { tags: { feature: 'library3d', library3dArea: area }, extra, level };
+      if (error instanceof Error) Sentry.captureException(error, context);
+      else Sentry.captureMessage(`[library3d] ${area}: ${String(error)}`, context);
+    });
+    void start();
+  });
+
+  async function start() {
     const el = container.value;
     if (!el) return;
     if (!hasWebGL2()) {
       status.value = 'unsupported';
       return;
     }
+    const id = ++build;
+    const stale = () => unmounted || id !== build;
+    status.value = 'loading';
+    // A rebuild starts from the default shelf view, like the overlay (remounted) does.
+    view = { search: '', sort: 'updated' };
     try {
-      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }, { createTapeSounds }] = await Promise.all([
+      const [{ createCassetteScene }, { createHero }, { createLibrary }, debug, { createSnapshotSource }, { createTapeSounds }, q] = await Promise.all([
         import('~/lib/cassette3d/scene'),
         import('~/lib/cassette3d/hero'),
         import('~/lib/cassette3d/library'),
         import('~/lib/cassette3d/debug'),
         import('~/lib/cassette3d/textures/snapshotSource'),
         import('~/lib/cassette3d/audio'),
+        import('~/lib/cassette3d/quality'),
       ]);
-      if (unmounted) return;
+      if (stale()) return;
       const params = debug.parseDebugParams(route.query);
-      handle = createCassetteScene(el, { onStatus: (s) => { status.value = s; } });
+      handle = createCassetteScene(el, { onStatus: onSceneStatus });
+      const sceneHandle = handle;
+      // Quality: forced with ?tier=, otherwise from the device, and the probe may step it down.
+      const forced = first(route.query.tier);
+      const probeFrom = import.meta.dev ? first(route.query.probeFrom) : null;
+      const choice = q.isQualityTier(forced)
+        ? { tier: forced, reasons: ['?tier='] }
+        : q.isQualityTier(probeFrom) ? { tier: probeFrom, reasons: ['?probeFrom='] } : q.chooseTier(handle.device);
+      handle.setQuality(q.TIER_SETTINGS[choice.tier]);
+      quality.value = {
+        tier: choice.tier, forced: q.isQualityTier(forced), reasons: choice.reasons, device: handle.device, probes: [],
+      };
       const environmentReady = handle.environmentReady;
       sounds = createTapeSounds({ muted: muted.value });
       const tapeSounds = sounds;
@@ -122,6 +177,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         getSlot: (out) => library?.slotMatrix(out) ?? null,
         cue: (c) => tapeSounds.play(c),
       });
+      const heroTape = hero;
       hero.view.turntable.visible = false;
       hero.onTextureStatus((s) => { textureStatus.value = s; });
       hero.machine.onChange((s) => { tape.value = s; });
@@ -136,16 +192,19 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
       });
       // Look at the shelf while the tapes load.
       hero.machine.jump('onShelf');
-      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev, sounds);
-      if (unmounted) cleanup();
+      const cleanup = await debug.installDebug(handle, hero, library, params, import.meta.dev, sounds, {
+        quality: () => ({ ...quality.value, dofActive: sceneHandle.isDofActive() }),
+        loseContext: (restoreAfterMs) => sceneHandle.simulateContextLoss(restoreAfterMs),
+      });
+      if (stale()) cleanup();
       else debugCleanup = cleanup;
       // The studio lighting, so the first frame isn't lit by the fallback (it resolves either way).
       await environmentReady;
-      if (unmounted) return;
+      if (stale()) return;
       status.value = 'ready';
 
       const data = await resolveShelfTapes(route.query, import.meta.dev, scope);
-      if (unmounted || !library) return;
+      if (stale() || !library) return;
       tapes.value = data.tapes;
       // Synchronously up to the tape it takes off the shelf; the spines load after.
       const loading = library.setTapes(data.tapes, data.initial);
@@ -161,12 +220,73 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         missingTape: !!data.missingTape,
         owner: data.owner ?? null,
       };
+      if (!quality.value.forced) {
+        stopProbe = runProbe(sceneHandle, heroTape, q, (tier, medianMs) => {
+          const qv = quality.value!;
+          quality.value = { ...qv, tier, probes: [...qv.probes, { from: qv.tier, to: tier, medianMs }] };
+        });
+      }
       await loading;
     } catch (err) {
+      if (stale()) return;
       console.error('[cassette3d] Failed to start the 3D scene', err);
+      reportError(err, 'start');
       status.value = 'error';
     }
-  });
+  }
+
+  /** Free everything the scene holds (unmount, or before a rebuild). */
+  function teardown() {
+    build++;
+    stopProbe?.();
+    stopProbe = null;
+    sounds?.dispose();
+    sounds = null;
+    library?.dispose();
+    library = null;
+    // The scene first: it frees GPU resources three.js only reaches through live materials.
+    handle?.dispose();
+    handle = null;
+    hero?.dispose();
+    hero = null;
+    // After dispose, so the debug hook can record what the renderer still holds.
+    debugCleanup?.();
+    debugCleanup = null;
+  }
+
+  /**
+   * Context loss: everything on the GPU is gone. When the browser gives the context
+   * back (or after CONTEXT_WAIT_MS, with a fresh canvas), the whole scene is torn
+   * down and built again; the URL's ?tape= brings the tape that was out back out.
+   * If the GPU keeps dropping out, it gives up with the error notice.
+   */
+  function onSceneStatus(next: 'ready' | 'contextLost' | 'contextRestored') {
+    if (next === 'ready') return;
+    if (next === 'contextLost') {
+      status.value = 'contextLost';
+      reportError('WebGL context lost', 'contextLost', 'warning', { tier: quality.value?.tier });
+      if (contextTimer) clearTimeout(contextTimer);
+      contextTimer = setTimeout(rebuild, CONTEXT_WAIT_MS);
+      return;
+    }
+    rebuild();
+  }
+
+  function rebuild() {
+    if (contextTimer) clearTimeout(contextTimer);
+    contextTimer = null;
+    if (unmounted) return;
+    const now = Date.now();
+    while (rebuilds.length && now - rebuilds[0]! > 60_000) rebuilds.shift();
+    rebuilds.push(now);
+    teardown();
+    if (rebuilds.length > MAX_REBUILDS_PER_MINUTE) {
+      reportError('WebGL context kept getting lost; gave up', 'contextLost');
+      status.value = 'error';
+      return;
+    }
+    void start();
+  }
 
   // The URL names the tape that's off the shelf (?tape=<mixtape id>), so a reload or a
   // shared link comes back to it. Replaced, not pushed: Back leaves the library.
@@ -205,22 +325,15 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
 
   onBeforeUnmount(() => {
     unmounted = true;
-    sounds?.dispose();
-    sounds = null;
-    library?.dispose();
-    library = null;
-    // The scene first: it frees GPU resources three.js only reaches through live materials.
-    handle?.dispose();
-    handle = null;
-    hero?.dispose();
-    hero = null;
-    // After dispose, so the debug hook can record what the renderer still holds.
-    debugCleanup?.();
-    debugCleanup = null;
+    if (contextTimer) clearTimeout(contextTimer);
+    teardown();
+    setErrorReporter(null);
+    Sentry.setTag('feature', undefined);
   });
 
   return {
     status,
+    quality,
     textureStatus,
     tape,
     shelf,
@@ -273,4 +386,58 @@ function hasWebGL2(): boolean {
   } catch {
     return false;
   }
+}
+
+function first(value: unknown): string | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  return typeof v === 'string' ? v : null;
+}
+
+/**
+ * Frame-time probe (Stage 7): once the scene runs, the median frame interval over
+ * a short timed window (after a warm-up) decides whether to step the tier down;
+ * after a step it measures again, up to PROBE.maxSteps times. Returns a stop function.
+ */
+function runProbe(
+  handle: CassetteScene,
+  hero: Hero,
+  q: typeof import('~/lib/cassette3d/quality'),
+  onStep: (tier: QualityTier, medianMs: number) => void,
+): () => void {
+  const P = q.PROBE;
+  let intervals: number[] = [];
+  let phaseStart = performance.now();
+  let warm = false;
+  let last = -1;
+  let steps = 0;
+  const off = handle.onFrame(() => {
+    const now = performance.now();
+    const interval = last < 0 ? 0 : now - last;
+    last = now;
+    if (!warm) {
+      if (now - phaseStart < P.warmupMs) return;
+      warm = true;
+      phaseStart = now;
+      return;
+    }
+    intervals.push(interval);
+    const done = (now - phaseStart >= P.sampleMs && intervals.length >= P.minFrames) || intervals.length >= P.maxFrames;
+    if (!done) return;
+    const ms = q.median(intervals);
+    intervals = [];
+    const tier = handle.getQuality().tier;
+    if (ms <= P.slowMs || tier === 'low') {
+      off();
+      return;
+    }
+    const next = q.lowerTier(tier);
+    handle.setQuality(q.TIER_SETTINGS[next]);
+    hero.setQuality(q.TIER_SETTINGS[next]);
+    onStep(next, Math.round(ms));
+    steps++;
+    warm = false;
+    phaseStart = now;
+    if (steps >= P.maxSteps) off();
+  });
+  return off;
 }

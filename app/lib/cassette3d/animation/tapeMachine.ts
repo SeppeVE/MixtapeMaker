@@ -6,6 +6,7 @@ import type { CassetteScene } from '../scene';
 import type { TapeModel } from '../objects/tape';
 import type { SoundCue } from '../audio';
 import { ANIM } from './config';
+import { TAPE_STATES, type TapeState } from './states';
 
 /**
  * The tape state machine: the only thing that moves tape objects once a tape
@@ -23,29 +24,10 @@ import { ANIM } from './config';
  * poses are worked out in world space and converted back into the lid's frame.
  */
 
-export const TAPE_STATES = [
-  'onShelf',
-  'pulledOut',
-  'presented',
-  'lidOpen',
-  'cassetteOut',
-  'jcardOut',
-  'jcardUnfolded',
-] as const;
-
-export type TapeState = (typeof TAPE_STATES)[number];
-
-export function isTapeState(value: unknown): value is TapeState {
-  return typeof value === 'string' && (TAPE_STATES as readonly string[]).includes(value);
-}
-
-/** The states from 'presented' on: the tape is off the shelf. */
-export const HERO_STATES = ['presented', 'lidOpen', 'cassetteOut', 'jcardOut', 'jcardUnfolded'] as const;
-export type HeroState = (typeof HERO_STATES)[number];
-
-export function isHeroState(value: unknown): value is HeroState {
-  return typeof value === 'string' && (HERO_STATES as readonly string[]).includes(value);
-}
+// The state names live in a three-free module, so pages can check a ?debugState=
+// without pulling three.js in (Stage 7 bundle check).
+export { TAPE_STATES, HERO_STATES, isTapeState, isHeroState } from './states';
+export type { TapeState, HeroState } from './states';
 
 interface Params {
   turn: number;

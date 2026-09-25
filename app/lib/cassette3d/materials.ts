@@ -7,11 +7,13 @@ import {
   FrontSide,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  NormalBlending,
   Vector2,
   type Material,
   type Texture,
 } from 'three';
 import { CASSETTE, JCARD } from './dimensions';
+import type { PlasticMode } from './quality';
 import { PAPER_TILE_CM, SCUFF_TILE_CM, type PaperGrain } from './textures/surfaceTextures';
 
 /**
@@ -133,20 +135,31 @@ function addCaseScuffs(material: MeshPhysicalMaterial, scuffs: Texture) {
           : (scuffAbs.x >= scuffAbs.y ? vScuffPos.zy : vScuffPos.xz);
         // The back of the tray gets a different patch of the mask than the lid.
         scuffUv += scuffDir.z < -0.5 ? vec2(3.7, 5.1) : vec2(0.0);
-        float scuff = texture2D(roughnessMap, scuffUv / ${SCUFF_TILE_CM.toFixed(1)} + 0.5).g;
+        #ifdef NO_SCUFFS
+          float scuff = 0.0;
+        #else
+          float scuff = texture2D(roughnessMap, scuffUv / ${SCUFF_TILE_CM.toFixed(1)} + 0.5).g;
+        #endif
         float roughnessFactor = mix(roughness, scuffRoughness, scuff);
       `)
       // Scattered light from the environment and the key light, added on top: on a clear
       // material the diffuse term is replaced by what's seen through it.
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        #ifndef NO_SCUFFS
         {
           // Both as irradiance / π, like a Lambertian surface would return.
           vec3 scatterLight = iblIrradiance * RECIPROCAL_PI;
           #if NUM_DIR_LIGHTS > 0
             scatterLight += directionalLights[0].color * saturate(dot(normal, directionalLights[0].direction)) * RECIPROCAL_PI;
           #endif
+          #ifdef BLENDED_PLASTIC
+            // Without transmission nothing behind is blurred by the scratch, and its light
+            // lands straight on the card: a lighter touch reads the same.
+            scatterLight *= 0.4;
+          #endif
           reflectedLight.indirectSpecular += scuff * scuffScatter * scatterLight;
         }
+        #endif
       `);
   };
   material.customProgramCacheKey = () => 'casePlasticScuffs';
@@ -197,6 +210,8 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
     thickness: 0.12,
     ior: 1.5,
     // Toned down at the Stage 6 checkpoint: a showroom-glossy case didn't fit the wear.
+    // (envMapIntensity only counts with the material's own envMap: the hero sets it
+    // to the scene's environment.)
     specularIntensity: 0.8,
     envMapIntensity: 0.75,
     // Every plastic part is a closed solid, so front faces are enough. Double-sided
@@ -233,6 +248,38 @@ export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
     blendDst: OneMinusSrcAlphaFactor,
     side: FrontSide,
   });
+}
+
+/**
+ * How the hero case's plastic is drawn, by quality tier (Stage 7):
+ *
+ *  - transmission: the real thing. three renders the scene behind it into a
+ *    texture (an extra pass) and refracts it; smoke tints through attenuation.
+ *  - blended: no transmission pass. Like the shelf's plastic, it adds its
+ *    reflections on top of what's behind and dims that a little through its
+ *    alpha (more for smoke). Scratches stay.
+ *  - plain: blended, without the scratches.
+ */
+export function configureCasePlastic(material: MeshPhysicalMaterial, tint: CaseTint, mode: PlasticMode) {
+  const blended = mode !== 'transmission';
+  material.transmission = blended ? 0 : 1;
+  material.transparent = blended;
+  material.depthWrite = !blended;
+  material.blending = blended ? CustomBlending : NormalBlending;
+  material.blendSrc = OneFactor;
+  material.blendDst = OneMinusSrcAlphaFactor;
+  if (blended) {
+    material.color = new Color('#000000');
+    material.opacity = tint === 'smoke' ? 0.45 : 0.1;
+  } else {
+    material.opacity = 1;
+    applyCaseTint(material, tint);
+  }
+  const { NO_SCUFFS: _n, BLENDED_PLASTIC: _b, ...defines } = material.defines ?? {};
+  if (mode === 'plain') defines.NO_SCUFFS = '';
+  if (blended) defines.BLENDED_PLASTIC = '';
+  material.defines = defines;
+  material.needsUpdate = true;
 }
 
 export function applyCaseTint(material: MeshPhysicalMaterial, tint: CaseTint) {

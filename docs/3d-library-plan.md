@@ -103,6 +103,7 @@ app/lib/cassette3d/
     spineAtlas.ts     # every spine in one texture, a cell per tape
   animation/
     config.ts         # every duration, ease and pose of the tape machine (live-editable in ?debug=1)
+    states.ts         # the state names, three-free (Stage 7)
     tapeMachine.ts    # TAPE_STATES + the state machine (Stage 3)
   interaction/
     picking.ts        # hover glow + click actions on case / cassette / J-card
@@ -129,8 +130,11 @@ app/lib/cassette3d/
     cassette.ts       # cassette shell, window, hubs, tape, screws, labels
     jcard.ts          # J-card as hinged panels
     tape.ts           # case + cassette + J-card assembled
-  quality.ts          # (Stage 7)
+  quality.ts          # quality tiers: detection, settings table, frame-time probe (Stage 7)
+  dof.ts              # depth of field for the high tier: one pass over the scene's depth (Stage 7)
+  report.ts           # error reporting hook; the page plugs Sentry in (Stage 7)
 scripts/screenshot-3d.mjs                 # Playwright screenshots + leak check
+scripts/check-bundle-3d.mjs               # after a build: three.js stays out of the entry, 3D code within budget (Stage 7)
 ```
 
 ### Tape state machine
@@ -483,25 +487,79 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Stage 7: Performance and robustness
 
-- [ ] quality.ts tiers (GPU info, DPR, memory, frame-time probe):
+- [x] quality.ts tiers (GPU info, DPR, memory, frame-time probe):
 
 | Setting | High | Mid | Low |
 | --- | --- | --- | --- |
-| Case plastic | full transmission | cheaper physical | plain transparent |
-| Shadows | on | reduced | off |
-| J-card texture | 2048 px | smaller | smaller |
-| Pixel ratio cap | 2 | lower | lower |
+| Case plastic | full transmission | cheaper physical (no transmission pass, reflections blended over the card) | plain transparent (as mid, no scratches) |
+| Shadows | on (2048 map) | reduced (1024 map) | off |
+| Contact shadows | on | on | off |
+| J-card texture | ≤ 4096 px ⚠ | ≤ 2048 px | ≤ 1024 px |
+| Pixel ratio cap | 2 | 1.5 | 1 |
 | DOF | on | off | off |
 
-- [ ] Full-res J-card textures only on selection; free on deselect.
-- [ ] Rebuild the scene on context loss; no WebGL → redirect to 2D with a notice.
-- [ ] Sentry errors tagged `feature: library3d`.
-- [ ] Leak test: 20 enter/leave cycles, memory back to baseline (`CYCLES=20 npm run screenshot:3d`).
-- [ ] Bundle size check.
+  - **Picking a tier** (`chooseTier`). Start from high, then each rule can only lower it:
+    - software renderer (SwiftShader, llvmpipe, Microsoft Basic Render) → low
+    - old mobile GPUs (Mali-4xx/T6xx/T7xx/G31–G52, Adreno ≤ 5xx, PowerVR SGX…) → low
+    - older Intel HD graphics → mid
+    - `deviceMemory` ≤ 2 GB or ≤ 2 cores → low; ≤ 4 GB → mid
+    - touch device (coarse pointer, no hover) → mid at most, so **phones and tablets never get high** (and never DOF: "desktop high tier only")
+  - **Frame-time probe.** Once the shelf is up it waits 1.5 s, then takes the median frame interval over 2.5 s (at least 5 frames). Slower than 40 ms (under 25 fps) steps the tier down, live, and it measures once more. The windows are timed rather than counted, so a device at 2 fps is helped after seconds, not minutes.
+  - **`?tier=high|mid|low`** forces a tier and turns the probe off (works in production too). Dev only: `?probeFrom=high` starts on a tier with the probe still on (the test uses it).
+  - Changing tier live: shadows switch through `castShadow` (materials recompile), a new map size gets a new shadow map, the plastic switches mode, and the J-card textures are remade at the new size from the snapshot already in memory.
+  - ⚠ **Deviation from the table: high's J-card limit is 4096 px, not 2048.** A 2-flap card at 300 dpi is ~1970 px wide and fits either way, but a 6-flap card is ~4900 px. At 2048 its unfolded text would drop to ~105 dpi, visibly soft on a 1440p screen. At 4096 a face is ≤ ~20 MB of GPU memory with mipmaps, fine for a desktop GPU. Mid keeps 2048, as the table says. Say if you'd rather have 2048.
+  - **Depth of field** (`dof.ts`, high tier only, while a tape is off the shelf; it fades in as the camera leaves the shelf):
+    - The scene renders once into a multisampled half-float target with a depth texture. One full-screen pass then blurs each pixel by its distance from the focus: a 16-tap disc, nothing within 4 cm of the focus, at most 5 px at 1080p. It focuses on what the camera looks at (the case, or the unfolded card).
+    - It doesn't use three's BokehPass, which renders the whole scene a second time for depth.
+    - The pass applies the canvas's tone mapping and sRGB itself. Found on the way: going through the tone curve (as three's OutputPass would), the background colour came out near black. For this render the background is swapped for the colour ACES maps back to the real one (an inverse of three's ACES curve), so the floor matches the other tiers pixel for pixel (`#1b1714`).
+- [x] Full-res J-card textures only on selection; free on deselect. Once a tape is back at rest in its slot, the hero drops its J-card and label textures (the shelf shows the spine from the atlas). Taking it out again rebuilds them from the in-memory snapshot cache (~40 ms). The test checks that textures go down on the shelf and that round trips settle on the same numbers (17 → 15 → 18 → 15 → 18 at high: the first mount holds one texture fewer than later ones, and the counts are stable after that).
+- [x] Rebuild the scene on context loss; no WebGL → redirect to 2D with a notice.
+  - **Context loss:**
+    - The page shows "The graphics card dropped out. Restarting the 3D view…".
+    - When the browser gives the context back, or after 3 s without it (then with a fresh canvas), the whole scene is torn down and built again. The URL's `?tape=` brings the tape that was out back to `presented`. Search/sort go back to their defaults.
+    - It gives up with the error notice after 3 rebuilds in a minute.
+    - Dev hook: `__cassette3d.loseContext(ms | null)`.
+  - **No WebGL 2:** straight on to `/library?view=2d` (or the profile, on a public shelf), with a toast: "Your browser can't show the 3D library (no WebGL 2), so here's the regular one." The remembered view goes back to 2D.
+- [x] Sentry errors tagged `feature: library3d`.
+  - While the 3D page is open, the Sentry scope carries `feature: library3d`, so any error on it is tagged, the overlay's included. The tag is removed on leaving.
+  - Failures the scene handles itself are also sent, with `library3dArea`: `start`, `textures`, `loadTapes`, `loadPublicTapes`, plus warnings for `contextLost` and `environment` (HDRI fallback). They go through `lib/cassette3d/report.ts` (framework-free), which the page connects to Sentry.
+  - Not verifiable here (no DSN in dev). The dev hook `__cassette3d.reportedErrors()` shows what would be sent.
+- [x] Leak test: 20 enter/leave cycles, memory back to baseline (`CYCLES=20 npm run screenshot:3d`, or just that part: `ONLY=leak CYCLES=20`). Each cycle checks that leaving frees every geometry and texture, and that returning matches the first mount. New: the JS heap after a forced GC must end within 10 % + 3 MB of where it was after the first return.
+  - **Result:** 20/20 cycles pass. Leaving frees every geometry and texture (0 left; see the DFG LUT fix below), and returning matches the first mount (54 geometries, 17 textures).
+  - The heap goes 41.4 → 44.5 MB over 20 cycles. A heap-snapshot diff shows what's left is V8 compiled code (the JIT optimising hot functions) and the dev build's performance marks. No renderer, context or canvas is kept.
+- [x] Bundle size check: `npm run build && npm run check:bundle-3d` (new, `scripts/check-bundle-3d.mjs`) follows the built chunks' imports. It checks that three.js is not in the app entry's static imports, and that the 3D view loads it only when it mounts. It also keeps the 3D view's own code within a gzip budget.
+  - **Result (production build):** three.js (614 kB raw / 159 kB gzip) is in no static import of the entry, nor of the 3D view's chunk: it loads when the view mounts.
+  - The 3D view's own code is 309 kB gzip (budget 350, `BUDGET_KB=`), 938 kB raw. That includes three.js, GSAP 26 kB, OrbitControls 17 kB, and the sample tapes 55 kB, which only load for the samples (signed out) and include an inlined font.
+  - Listed apart: pdf-lib (180 kB gzip) loads only for Print, and the 2D export shares it. The studio HDRI is 108 kB.
 
 **Acceptance:** leak test passes; `?tier=low` forces a tier.
 
-**Human checkpoint:** real devices (mid-range Android, iPhone, desktop Safari/Chrome/Firefox).
+- [x] Leak test passes (20 cycles, above), and `?tier=low` forces the low tier: the Stage 7 checks read every setting back from the scene for all three tiers.
+- `npm run screenshot:3d` has a Stage 7 part (`ONLY=quality`):
+  - `?tier=high|mid|low` each read back from the scene (pixel ratio, shadow map, contact shadows, plastic mode, scratches, J-card texture size, DOF on or off)
+  - SwiftShader picked as low
+  - the probe stepping high → mid → low
+  - textures freed and rebuilt
+  - both context-loss rebuilds
+  - no WebGL (a browser started with `--disable-3d-apis`) → redirected to 2D with the note
+
+  Shots: `quality-{high,mid,low}.png`, `quality-{high,low}-unfolded.png`, `quality-after-context-loss*.png`, `quality-no-webgl.png`.
+- The Stage 1–6 checks now run at `?tier=high` (`TIER=` to change it): SwiftShader would otherwise pick low, and the checks should cover the full pipeline. `test:library3d` still runs on auto (so low), which covers the low tier's app side.
+
+**Fixed on the way:**
+- **Every renderer we ever made stayed in memory**, ~0.2 MB per visit to the 3D page, found by the new heap check.
+  - three shares one module-level lookup texture (the DFG LUT) between renderers. Each renderer adds a `dispose` listener to it, and nothing ever disposes it, so those listeners kept each old renderer's WebGL context and canvas reachable.
+  - `scene.ts` now disposes the LUT on unmount (taken from a material's uniforms, since it's private to three's bundle). That releases them, and the next renderer re-uploads it.
+  - A heap snapshot after 4 visits shows 1 WebGL context instead of 5. The leak check now allows **0** leftover textures (it allowed 1, "three's shared LUT", since Stage 0).
+- **Stage 6's "less reflective case" only half worked.** three ignores a material's `envMapIntensity` when it lights from `scene.environment`, so the 0.75 did nothing (only the lower specular did). The hero case now takes the scene's environment as its own env map (like the shelf's plastic), so the 0.75 applies. The case is a bit less reflective than what you saw at the Stage 6 checkpoint, in the direction you asked for.
+- **three.js core loaded before the 3D view mounted.** `useHeroTapeData` imported `isTapeState` from `tapeMachine.ts`, and the chunk that module landed in (with OrbitControls) imports three. The state names now live in three-free `animation/states.ts`.
+- `renderer.info` counted only the last render call of a frame (the DOF pass). It now resets once per frame, so the draw-call numbers add up over the frame (DOF, contact shadows).
+
+**Human checkpoint:** real devices (mid-range Android, iPhone, desktop Safari/Chrome/Firefox). Things to look at:
+- Which tier each device gets and how smooth it is: `?debug=1` shows the fps, and `?tier=` compares tiers. (`__cassette3d.quality()` only exists in the dev build.)
+- The mid and low plastic (no transmission): does the case still read as clear plastic over the card?
+- DOF on desktop: subtle enough?
+- The 4096 px J-card limit on high (above).
 
 ## Stage 8: Launch
 
@@ -522,6 +580,21 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-25 · Stage 7 built** (details under Stage 7):
+  - quality tiers with detection, `?tier=` and a timed frame-time probe
+  - depth of field on the high tier
+  - J-card textures freed on the shelf
+  - full scene rebuild on context loss, and the no-WebGL redirect with a note
+  - Sentry tagging
+  - 20-cycle leak test with a heap check, and a bundle check (`npm run check:bundle-3d`)
+
+  Fixed on the way:
+  - a three.js leak (every old renderer kept alive by the shared DFG LUT)
+  - the Stage 6 case-reflection setting that didn't apply
+  - three.js core loading before the 3D view mounted
+
+  Deviation to confirm: the J-card limit on high is 4096 px, not 2048. **Waiting on the human checkpoint** (real devices).
 
 - **2026-09-25 · Stage 6 approved.** Sound on by default, and the synthesised sounds are the final ones: the MP3 lookup is now opt-in (`SOUND_OVERRIDES`), so no more 404s for missing files. Stage 7 starts in a new session.
 

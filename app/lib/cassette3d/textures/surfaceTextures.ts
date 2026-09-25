@@ -180,9 +180,9 @@ function drawScuffs(): HTMLCanvasElement {
   // Hairline scratches, mostly along the case's length (sliding in and out of a shelf),
   // some across, a few anywhere. Each is a faint, slightly curved stroke.
   const families = [
-    { count: 45, angle: Math.PI / 2, spread: 0.25 },
-    { count: 20, angle: 0.15, spread: 0.3 },
-    { count: 15, angle: 0, spread: Math.PI },
+    { count: 30, angle: Math.PI / 2, spread: 0.25 },
+    { count: 12, angle: 0.15, spread: 0.3 },
+    { count: 10, angle: 0, spread: Math.PI },
   ];
   for (const fam of families) {
     for (let i = 0; i < fam.count; i++) {
@@ -193,7 +193,7 @@ function drawScuffs(): HTMLCanvasElement {
       const bend = (rand() - 0.5) * 0.25 * len;
       const dx = Math.cos(angle) * len;
       const dy = Math.sin(angle) * len;
-      ctx.strokeStyle = `rgba(255,255,255,${0.35 + rand() * 0.55})`;
+      ctx.strokeStyle = `rgba(255,255,255,${0.3 + rand() * 0.4})`;
       ctx.lineWidth = 0.9 + rand() * 1.1;
       ctx.beginPath();
       ctx.moveTo(x, y);

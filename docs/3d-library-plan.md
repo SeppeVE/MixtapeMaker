@@ -433,7 +433,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
     - the wood keeps 30 % of its reflections: the studio's overhead lights turned the board tops white at a glancing angle
 - [x] Scratches/fingerprint roughness map on the case. `surfaceTextures.ts` draws a 1024² mask on a canvas covering 12 cm: hairline scratches (most along the case's length, as from sliding in and out of a shelf), tiny scuffs, and two fingerprints near the open edge.
   - The case parts' UVs don't agree with each other, so the shader projects the mask along each face's main axis in object space instead.
-  - Where the mask is on, roughness goes up to 0.5. Roughness alone left the scratches invisible on clear plastic, so they also scatter back a little light (2.5 % of a matte white surface). So they catch the light and show against dark backgrounds, and barely show elsewhere.
+  - Where the mask is on, roughness goes up to 0.5. Roughness alone left the scratches invisible on clear plastic, so they also scatter back a little light (1.8 % of a matte white surface). So they catch the light and show against dark backgrounds, and barely show elsewhere.
+  - **Checkpoint tweak:** fewer and fainter scratches (52 instead of 80), and the hero case is less reflective (env reflections 1.2 → 0.75, specular 1 → 0.8), since a showroom-glossy case didn't fit the wear.
   - Tunable in `SURFACE` (materials.ts) and in `?debug=1`.
 - [x] Paper grain (normal + roughness) on the J-card. A tileable 512² height field (noise plus ~2600 short fibres), as a normal map and a roughness map (0.74–0.92), 3 cm per tile. Each J-card panel and both labels get their own repeat, all sharing one upload. Visible in close-ups and on the unfolded card.
 - [x] Contact shadows; faked AO on the shelf (no SSAO on mobile).
@@ -456,6 +457,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
     - J-card slides out / in
     - each crease as it opens or closes
     - card turned over
+  - **Checkpoint tweak:** the stand-ins for sliding and (un)folding were swooshes (filtered noise). They're now short taps and ticks like the other sounds.
   - **Files:** each cue plays `public/3d/sounds/<name>.mp3` (names and levels in `SOUND_FILES`, list in `public/3d/CREDITS.md`). **Waiting on the human's CC0 audio.** Until then a synthesised stand-in plays for each (resonant clicks and knocks, filtered-noise paper), so every hook can be heard and timed.
   - The audio starts on the first click or key press (browser autoplay rules). A cue repeated within 45 ms plays once, and at most 8 play at a time (spamming the buttons).
   - **Mute:** a 🔊 / 🔇 button in the shelf toolbar and at the end of the tape's action buttons (`aria-pressed`). Remembered in localStorage as `library3d-sound` (on by default).
@@ -478,7 +480,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - **Sounds are stand-ins.** Please pick CC0 recordings for the 8 files in `public/3d/CREDITS.md`, or tell me where to get them; the sandbox can't browse freesound etc. Also: should sound be **on by default** (as now) or off?
 - **Cost:** contact shadows re-render the hero tape (another ~150 draw calls) on frames where it moves, e.g. while it auto-spins or animates. Stage 7's tiers can turn them off on low-end devices.
 
-**Human checkpoint.**
+**Human checkpoint.** Answered 2026-09-25: scratches OK but a bit less; the plastic is too shiny for scratches; the slide and (un)fold swooshes should be short pings like the other sounds. All three done. The contact-shadow cost waits for Stage 7. (Still open: the CC0 sound files, and whether sound starts on.)
 
 ## Stage 7: Performance and robustness
 
@@ -521,6 +523,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-25 · Stage 6 checkpoint answers applied:** fewer, fainter scratches; less reflective case plastic; slide and (un)fold stand-in sounds are short ticks now. Stage 7 later.
 
 - **2026-09-24 · Stage 6 built** (details under Stage 6): studio HDRI, case scuffs and fingerprints, paper grain, contact shadows, shelf AO, sound cues with stand-in sounds and a remembered mute switch. The two optional items aren't done: paper curl isn't needed, and DOF moves to Stage 7. No side-by-side with vhs.texs.org (unreachable): there are before/after pairs against Stage 5 instead. **Waiting on the human checkpoint** and the CC0 sound files.
 

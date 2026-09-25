@@ -30,7 +30,7 @@ export const SURFACE = {
    * Scratches and prints show because their broken surface catches light from all
    * round, which roughness alone doesn't give a clear material.
    */
-  scuffScatter: 0.025,
+  scuffScatter: 0.018,
   /** Strength of the paper grain's normal map. */
   paperNormal: 0.35,
 };
@@ -196,8 +196,9 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
     transmission: 1,
     thickness: 0.12,
     ior: 1.5,
-    specularIntensity: 1,
-    envMapIntensity: 1.2,
+    // Toned down at the Stage 6 checkpoint: a showroom-glossy case didn't fit the wear.
+    specularIntensity: 0.8,
+    envMapIntensity: 0.75,
     // Every plastic part is a closed solid, so front faces are enough. Double-sided
     // transmission would sample the J-card twice (through the back face, then again
     // through the front) and blur it.

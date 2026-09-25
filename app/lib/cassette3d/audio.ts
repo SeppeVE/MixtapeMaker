@@ -39,9 +39,9 @@ export const SOUND_FILES: Record<SoundCue, { file: string; gain: number; rate?: 
   cassetteOut: { file: 'cassette-clack', gain: 0.7 },
   cassetteIn: { file: 'cassette-clack', gain: 0.75, rate: 0.94 },
   cassetteDown: { file: 'cassette-down', gain: 0.6 },
-  paperSlide: { file: 'paper-slide', gain: 0.5 },
-  crease: { file: 'paper-unfold', gain: 0.45 },
-  flip: { file: 'paper-flip', gain: 0.45 },
+  paperSlide: { file: 'paper-slide', gain: 0.4 },
+  crease: { file: 'paper-unfold', gain: 0.35 },
+  flip: { file: 'paper-flip', gain: 0.4 },
 };
 
 export const SOUND_BASE_URL = '/3d/sounds/';
@@ -168,8 +168,8 @@ export function createTapeSounds(options: { muted: boolean }): TapeSounds {
 
 /**
  * Stand-in sounds, built sample by sample: plastic clicks and knocks are short
- * resonant decays plus a noise transient, paper is filtered noise with a
- * crackle. They're placeholders for the real recordings, tuned only to sit at
+ * resonant decays plus a noise transient, paper is a short, higher tick.
+ * They're placeholders for the real recordings, tuned only to sit at
  * about the right level and length.
  */
 function synthesize(ctx: AudioContext, file: string): AudioBuffer | null {
@@ -205,27 +205,6 @@ function synthesize(ctx: AudioContext, file: string): AudioBuffer | null {
     }
   };
 
-  /** Band-limited noise with an envelope, for paper and sliding plastic. */
-  const noise = (
-    data: Float32Array, rand: () => number, at: number, seconds: number,
-    lowHz: number, highHz: number, level: number, envelope: (t: number) => number,
-  ) => {
-    const start = Math.floor(at * rate);
-    const n = Math.min(data.length - start, Math.floor(seconds * rate));
-    const aHigh = Math.exp((-2 * Math.PI * lowHz) / rate);
-    const aLow = Math.exp((-2 * Math.PI * highHz) / rate);
-    let lp = 0;
-    let slow = 0;
-    for (let i = 0; i < n; i++) {
-      const x = rand() * 2 - 1;
-      lp = aLow * lp + (1 - aLow) * x;
-      slow = aHigh * slow + (1 - aHigh) * lp;
-      data[start + i] = data[start + i]! + level * (lp - slow) * envelope(i / n);
-    }
-  };
-
-  const swell = (t: number) => Math.sin(Math.PI * Math.min(1, t)) ** 1.5;
-
   switch (file) {
     case 'case-open':
       return make(0.12, (d, r) => {
@@ -247,16 +226,21 @@ function synthesize(ctx: AudioContext, file: string): AudioBuffer | null {
         click(d, r, 0, 620, 0.05, 1);
         click(d, r, 0.03, 1300, 0.02, 0.35);
       });
+    // Short taps and ticks rather than swooshes (Stage 6 checkpoint): the noise-based
+    // slides and unfolds sounded wrong next to the clicks.
     case 'case-slide':
-      return make(0.32, (d, r) => noise(d, r, 0, 0.32, 300, 2200, 1, swell));
+      return make(0.12, (d, r) => {
+        click(d, r, 0, 780, 0.03, 1);
+        click(d, r, 0.01, 1900, 0.012, 0.4);
+      });
     case 'paper-slide':
-      return make(0.42, (d, r) => noise(d, r, 0, 0.42, 1500, 7000, 1, swell));
+      return make(0.08, (d, r) => click(d, r, 0, 2600, 0.01, 1));
     case 'paper-unfold':
+      return make(0.07, (d, r) => click(d, r, 0, 3400, 0.007, 1));
     case 'paper-flip':
-      return make(0.3, (d, r) => {
-        noise(d, r, 0, 0.3, 900, 5500, 0.7, swell);
-        // Crackle: a few tiny ticks as the fibres at the crease give.
-        for (let k = 0; k < 6; k++) click(d, r, 0.02 + r() * 0.22, 3000 + r() * 3000, 0.004, 0.25 + r() * 0.2);
+      return make(0.1, (d, r) => {
+        click(d, r, 0, 2900, 0.008, 1);
+        click(d, r, 0.03, 3600, 0.006, 0.6);
       });
   }
   return null;

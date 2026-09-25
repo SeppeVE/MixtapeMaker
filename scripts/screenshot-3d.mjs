@@ -342,7 +342,7 @@ async function polishTests(page) {
   });
 
   // Sound: walk the tape with the overlay's buttons (real clicks, so the audio can start)
-  // and check every step was heard. With no files in public/3d/sounds/ the stand-ins play.
+  // and check every step was heard (synthesised, or a recording where one is set up).
   const clickAndWait = async (name) => {
     await page.getByRole('button', { name }).click();
     await idle();
@@ -364,7 +364,7 @@ async function polishTests(page) {
   for (const c of cues) if (c === expected[matched]) matched++;
   const inOrder = matched === expected.length;
   check(inOrder && heard.every((h) => h.source !== 'silent'), 'sound cues on every step, audible', cues.join(' '));
-  check(heard.some((h) => h.source === 'synth' || h.source === 'file'), 'sounds come from files or the stand-ins', [...new Set(heard.map((h) => h.source))].join(', '));
+  check(heard.some((h) => h.source === 'synth' || h.source === 'file'), 'sounds are synthesised or recordings', [...new Set(heard.map((h) => h.source))].join(', '));
 
   // The mute switch: silences the cues and survives a reload.
   await page.getByRole('button', { name: 'Sound effects' }).first().click();

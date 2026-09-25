@@ -2,10 +2,10 @@
  * Sound for the tape machine (Stage 6), on the Web Audio API.
  *
  * The machine calls `play(cue)` at the moment something happens (the lid
- * unlatches, the cassette comes off the spindles, a crease opens). Each cue
- * plays a sound file from public/3d/sounds/ when there is one; until the real
- * CC0 recordings are in, a short synthesised stand-in plays instead, so every
- * hook can be heard and timed.
+ * unlatches, the cassette comes off the spindles, a crease opens). The sounds
+ * are synthesised here, sample by sample (kept as the real ones at the Stage 6
+ * checkpoint). A sound can still be swapped for a recording: list its name in
+ * SOUND_OVERRIDES and put the MP3 in public/3d/sounds/.
  *
  * Browsers only allow audio after a user gesture: the context is created (or
  * resumed) on the first pointer or key press, and cues before that are dropped.
@@ -28,8 +28,8 @@ export const SOUND_CUES = [
 export type SoundCue = (typeof SOUND_CUES)[number];
 
 /**
- * The file each cue plays (in public/3d/sounds/, MP3 so every browser can play it)
- * and its level. Several cues can share a file; `rate` shifts its pitch a little.
+ * The sound each cue plays and its level. Several cues share a sound; `rate`
+ * shifts its pitch a little.
  */
 export const SOUND_FILES: Record<SoundCue, { file: string; gain: number; rate?: number }> = {
   shelfOut: { file: 'case-slide', gain: 0.5 },
@@ -45,6 +45,11 @@ export const SOUND_FILES: Record<SoundCue, { file: string; gain: number; rate?: 
 };
 
 export const SOUND_BASE_URL = '/3d/sounds/';
+/**
+ * Sounds played from a recording (public/3d/sounds/<name>.mp3) instead of being
+ * synthesised. Empty: every sound is synthesised, and no files are fetched.
+ */
+export const SOUND_OVERRIDES: ReadonlySet<string> = new Set<string>([]);
 
 export interface TapeSounds {
   play: (cue: SoundCue) => void;
@@ -94,14 +99,18 @@ export function createTapeSounds(options: { muted: boolean }): TapeSounds {
     let entry = buffers.get(file);
     if (!entry) {
       const c = ctx!;
-      entry = fetch(`${SOUND_BASE_URL}${file}.mp3`)
-        .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(String(res.status)))))
-        .then((data) => c.decodeAudioData(data))
-        .then((buffer) => ({ buffer, source: 'file' as const }))
-        .catch(() => {
-          const synth = synthesize(c, file);
-          return synth ? { buffer: synth, source: 'synth' as const } : null;
-        });
+      const synth = () => {
+        const buffer = synthesize(c, file);
+        return buffer ? { buffer, source: 'synth' as const } : null;
+      };
+      entry = SOUND_OVERRIDES.has(file)
+        ? fetch(`${SOUND_BASE_URL}${file}.mp3`)
+          .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(String(res.status)))))
+          .then((data) => c.decodeAudioData(data))
+          .then((buffer) => ({ buffer, source: 'file' as const }))
+          // A recording that won't load falls back to the synthesised sound.
+          .catch(synth)
+        : Promise.resolve(synth());
       buffers.set(file, entry);
     }
     return entry;
@@ -164,13 +173,11 @@ export function createTapeSounds(options: { muted: boolean }): TapeSounds {
   };
 }
 
-// --- Synthesised stand-ins ---------------------------------------------------------------
+// --- Synthesised sounds -------------------------------------------------------------------
 
 /**
- * Stand-in sounds, built sample by sample: plastic clicks and knocks are short
+ * The sounds, built sample by sample: plastic clicks and knocks are short
  * resonant decays plus a noise transient, paper is a short, higher tick.
- * They're placeholders for the real recordings, tuned only to sit at
- * about the right level and length.
  */
 function synthesize(ctx: AudioContext, file: string): AudioBuffer | null {
   const rate = ctx.sampleRate;

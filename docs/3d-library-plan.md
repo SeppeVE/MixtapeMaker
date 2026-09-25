@@ -91,11 +91,10 @@ app/components/cassette3d/TapePanel.vue   # the selected tape's details + action
 app/components/cassette3d/LibraryViewToggle.vue  # 2D | 3D switch, remembered in localStorage
 scripts/test-library3d-app.mjs            # Stage 5 end to end against a mocked Supabase
 public/3d/hdri/studio.exr                 # CC0 studio HDRI, 512 × 256 EXR (Stage 6); public/3d/CREDITS.md
-public/3d/sounds/                         # the CC0 sound files, once chosen (Stage 6; see CREDITS.md)
 app/lib/cassette3d/
   scene.ts            # renderer, camera, lights, HDRI env map, shadow focus, resize, render loop, dispose
   contactShadows.ts   # soft contact shadows under the hero tape (Stage 6)
-  audio.ts            # sound cues on Web Audio: files from public/3d/sounds/, synthesised stand-ins (Stage 6)
+  audio.ts            # sound cues on Web Audio, sounds synthesised in code (Stage 6)
   library.ts          # shelf + hero: selection, search/sort, hover, camera blend, spines (Stage 4)
   shelf/
     layout.ts         # where every case stands: bays of 4 rows, filled top-left first
@@ -457,10 +456,10 @@ Build the geometry procedurally in code, so every dimension stays editable in di
     - J-card slides out / in
     - each crease as it opens or closes
     - card turned over
-  - **Checkpoint tweak:** the stand-ins for sliding and (un)folding were swooshes (filtered noise). They're now short taps and ticks like the other sounds.
-  - **Files:** each cue plays `public/3d/sounds/<name>.mp3` (names and levels in `SOUND_FILES`, list in `public/3d/CREDITS.md`). **Waiting on the human's CC0 audio.** Until then a synthesised stand-in plays for each (resonant clicks and knocks, filtered-noise paper), so every hook can be heard and timed.
+  - **The sounds are synthesised** in `audio.ts`, sample by sample: resonant clicks and knocks for the plastic, short higher ticks for the paper. **Decided (human, 2026-09-25): keep them**, no recordings. The slide and (un)fold sounds were swooshes (filtered noise) at first and became short ticks at the checkpoint.
+  - Swapping one for a recording stays possible: put the MP3 in `public/3d/sounds/` and add its name to `SOUND_OVERRIDES` (names in `public/3d/CREDITS.md`). With none listed, nothing is fetched.
   - The audio starts on the first click or key press (browser autoplay rules). A cue repeated within 45 ms plays once, and at most 8 play at a time (spamming the buttons).
-  - **Mute:** a 🔊 / 🔇 button in the shelf toolbar and at the end of the tape's action buttons (`aria-pressed`). Remembered in localStorage as `library3d-sound` (on by default).
+  - **Mute:** a 🔊 / 🔇 button in the shelf toolbar and at the end of the tape's action buttons (`aria-pressed`). Remembered in localStorage as `library3d-sound`. **On by default** (human, 2026-09-25).
 
 **Acceptance:** side-by-side screenshots against vhs.texs.org.
 
@@ -477,10 +476,10 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 **For the checkpoint (look and sound):**
 - **Scratch strength** is a matter of taste. Right now the case looks lightly used, and the scratches show most against the dark background (e.g. the open case behind the J-card). `?debug=1` → Case plastic → scuff roughness, or `SURFACE.scuffScatter`, to taste. Fingerprints are subtle and only show in a highlight.
 - **Board tops** read lighter than before: the studio HDRI lights them from above. Say if you'd like them darker.
-- **Sounds are stand-ins.** Please pick CC0 recordings for the 8 files in `public/3d/CREDITS.md`, or tell me where to get them; the sandbox can't browse freesound etc. Also: should sound be **on by default** (as now) or off?
+- **Sounds are stand-ins.** Please pick CC0 recordings for the 8 files in `public/3d/CREDITS.md`, or tell me where to get them; the sandbox can't browse freesound etc. Also: should sound be **on by default** (as now) or off? *(Answered: keep the synthesised sounds, on by default.)*
 - **Cost:** contact shadows re-render the hero tape (another ~150 draw calls) on frames where it moves, e.g. while it auto-spins or animates. Stage 7's tiers can turn them off on low-end devices.
 
-**Human checkpoint.** Answered 2026-09-25: scratches OK but a bit less; the plastic is too shiny for scratches; the slide and (un)fold swooshes should be short pings like the other sounds. All three done. The contact-shadow cost waits for Stage 7. (Still open: the CC0 sound files, and whether sound starts on.)
+**Human checkpoint.** Answered 2026-09-25: scratches OK but a bit less; the plastic is too shiny for scratches; the slide and (un)fold swooshes should be short pings like the other sounds. All three done. The contact-shadow cost waits for Stage 7. Sound stays on by default, and the synthesised sounds stay (no recordings). ✅ Approved 2026-09-25.
 
 ## Stage 7: Performance and robustness
 
@@ -523,6 +522,8 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 - Launch decisions (Stage 8).
 
 ## Progress log
+
+- **2026-09-25 · Stage 6 approved.** Sound on by default, and the synthesised sounds are the final ones: the MP3 lookup is now opt-in (`SOUND_OVERRIDES`), so no more 404s for missing files. Stage 7 starts in a new session.
 
 - **2026-09-25 · Stage 6 checkpoint answers applied:** fewer, fainter scratches; less reflective case plastic; slide and (un)fold stand-in sounds are short ticks now. Stage 7 later.
 

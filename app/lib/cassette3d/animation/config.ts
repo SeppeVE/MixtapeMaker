@@ -32,12 +32,22 @@ export const ANIM = {
     lidEase: 'back.out(1.6)',
   },
   cassetteOut: {
-    duration: 1.2,
+    duration: 1.5,
     ease: 'power2.inOut',
-    /** First lift straight out of the lid by this much (cm), over this share of the move... */
+    /**
+     * First slide away from the hinge until the cassette clears the J-card's back
+     * flap (folded under it), over this share of the move, plus this margin (cm)...
+     */
+    slideShare: 0.22,
+    slideMargin: 0.25,
+    /** ...then lift straight out of the lid by this much (cm), until this share of the move... */
     lift: 2.2,
-    liftShare: 0.28,
-    /** ...then fly to the reading pose on a gentle arc (cm). */
+    liftShare: 0.45,
+    /** ...then fly to the reading pose, not turning for this share of the flight... */
+    turnDelay: 0.2,
+    /** ...bowing out from the lid by this much (cm), so it doesn't swing back into the card... */
+    bulge: 1.5,
+    /** ...on a gentle arc upwards (cm). */
     arc: 1.5,
     position: { x: 0.3, y: 0.4, z: 6.5 },
     rotationDeg: { x: -6, y: 10, z: 0 },

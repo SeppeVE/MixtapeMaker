@@ -1,6 +1,6 @@
 import { gsap } from 'gsap';
 import { Euler, MathUtils, Matrix4, Quaternion, Vector3 } from 'three';
-import { CASE_LAYOUT, JCARD, SHELF } from '../dimensions';
+import { CASE_LAYOUT, CASSETTE, JCARD, SHELF } from '../dimensions';
 import { defaultRig, HERO_CENTRE_Y, type HeroView } from '../heroView';
 import type { CassetteScene } from '../scene';
 import type { TapeModel } from '../objects/tape';
@@ -425,23 +425,38 @@ export function createTapeMachine(
     return out.compose(_pos, _quat, _scale);
   }
 
-  /** Blend two world matrices along "lift out, then arc across" (t in 0–1). */
-  function flight(home: Matrix4, away: Matrix4, t: number, lift: number, liftShare: number, arc: number, liftDir: Vector3, out: Matrix4) {
+  /**
+   * Blend two world matrices along "slide clear (optional), lift out, then arc
+   * across" (t in 0–1). The slide takes t up to `slide.share`, the lift up to `liftShare`;
+   * `slide.turnDelay` holds the turn back for that share of the arc, and `slide.bulge`
+   * bows the arc away from the lid by that much (cm), so it turns clear of the card.
+   */
+  function flight(
+    home: Matrix4, away: Matrix4, t: number, lift: number, liftShare: number, arc: number, liftDir: Vector3, out: Matrix4,
+    slide: { offset: Vector3; share: number; turnDelay: number; bulge: number } | null = null,
+  ) {
     const hp = new Vector3();
     const hq = new Quaternion();
     const ap = new Vector3();
     const aq = new Quaternion();
     home.decompose(hp, hq, _scale);
     away.decompose(ap, aq, _scale);
-    const lifted = hp.clone().addScaledVector(liftDir, lift);
-    if (t <= liftShare) {
-      _pos.lerpVectors(hp, lifted, liftShare > 0 ? t / liftShare : 1);
+    const slideShare = slide ? Math.min(slide.share, liftShare) : 0;
+    const slid = slide ? hp.clone().add(slide.offset) : hp;
+    const lifted = slid.clone().addScaledVector(liftDir, lift);
+    if (slideShare > 0 && t <= slideShare) {
+      _pos.lerpVectors(hp, slid, smooth(t / slideShare));
+      _quat.copy(hq);
+    } else if (t <= liftShare) {
+      _pos.lerpVectors(slid, lifted, liftShare > slideShare ? (t - slideShare) / (liftShare - slideShare) : 1);
       _quat.copy(hq);
     } else {
       const u = (t - liftShare) / (1 - liftShare);
       _pos.lerpVectors(lifted, ap, u);
       _pos.y += Math.sin(Math.PI * u) * arc;
-      _quat.slerpQuaternions(hq, aq, u);
+      if (slide) _pos.addScaledVector(liftDir, Math.sin(Math.PI * u) * slide.bulge);
+      const delay = slide?.turnDelay ?? 0;
+      _quat.slerpQuaternions(hq, aq, delay > 0 ? smooth(MathUtils.clamp((u - delay) / (1 - delay), 0, 1)) : u);
     }
     _scale.set(1, 1, 1);
     return out.compose(_pos, _quat, _scale);
@@ -464,6 +479,7 @@ export function createTapeMachine(
 
   const lidWorld = new Matrix4();
   const liftDir = new Vector3();
+  const cassetteSlide = { offset: new Vector3(), share: 0, turnDelay: 0, bulge: 0 };
   const home = new Matrix4();
   const a1 = new Matrix4();
   const a2 = new Matrix4();
@@ -519,7 +535,14 @@ export function createTapeMachine(
     home.multiplyMatrices(lidWorld, cassetteHome);
     const c = ANIM.cassetteOut;
     targetMatrix(c.position, c.rotationDeg, a1);
-    flight(home, a1, params.cassette, c.lift, c.liftShare, c.arc, liftDir, world);
+    // Its hinge-side edge sits on the J-card's back flap: slide it off (away from the hinge, the lid's +X) first.
+    const backTip = CASE_LAYOUT.jcard.x + (getTape().jcard.panels.find((p) => p.name === 'back')?.width ?? JCARD.backFull);
+    const slide = Math.max(0, backTip - (CASE_LAYOUT.cassette.x - CASSETTE.height / 2) + c.slideMargin);
+    cassetteSlide.offset.set(1, 0, 0).transformDirection(lidWorld).multiplyScalar(slide);
+    cassetteSlide.share = c.slideShare;
+    cassetteSlide.turnDelay = c.turnDelay;
+    cassetteSlide.bulge = c.bulge;
+    flight(home, a1, params.cassette, c.lift, c.liftShare, c.arc, liftDir, world, cassetteSlide);
     if (params.cassetteAside > 0) {
       targetMatrix(ANIM.jcardOut.cassetteAside, ANIM.jcardOut.cassetteAsideRotationDeg, a2);
       glide(world.clone(), a2, params.cassetteAside, 1.0, world);

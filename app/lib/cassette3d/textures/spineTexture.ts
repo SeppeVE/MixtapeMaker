@@ -44,9 +44,9 @@ function luminance(color: string): number | null {
   return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
 }
 
-/** Font families a drawn spine needs, so they can be loaded once for the whole shelf. */
+/** Font families a drawn spine (and cover) needs, so they can be loaded once for the whole shelf. */
 export function spineFonts(content: JCardContent): string[] {
-  const fonts = [content.spineTopContent, content.spineCenterContent, content.spineBottomContent]
+  const fonts = [content.spineTopContent, content.spineCenterContent, content.spineBottomContent, content.flapContents?.[0]]
     .map((h) => readSpineHtml(h ?? '').font)
     .filter((f): f is string => !!f);
   return fonts.length ? fonts : [FALLBACK_FONT];
@@ -106,6 +106,35 @@ export function drawSpine(content: JCardContent, fallbackTitle: string, height =
   draw(centre, 'center', H / 2, length * 0.4);
   draw(bottom, 'right', H - margin, length * (1 - share) - (top.text ? 2 * px : 0));
   ctx.restore();
+  return canvas;
+}
+
+/**
+ * A stand-in J-card cover (flap 1), `height` px tall, for the shelf's row-end cases
+ * until the real render is in: the card's colour and the cover's text, centred.
+ */
+export function drawCover(content: JCardContent, fallbackTitle: string, height = 256): HTMLCanvasElement {
+  const H = Math.round(height);
+  const W = Math.max(1, Math.round((H * JCARD.flaps[0]!) / JCARD.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const bg = content.backgroundColor || '#e4dfd3';
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const cover = readSpineHtml(content.flapContents?.[0] ?? '');
+  const text = cover.text || fallbackTitle;
+  if (!text) return canvas;
+  const l = luminance(bg);
+  ctx.font = `${Math.round(W * 0.12)}px "${(cover.font ?? FALLBACK_FONT).replace(/"/g, '')}", "${FALLBACK_FONT}", sans-serif`;
+  ctx.fillStyle = cover.color ?? (l !== null && l < 0.35 ? '#f5efe2' : '#1e1a1c');
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(fitText(ctx, text, W * 0.84), W / 2, H * 0.3);
   return canvas;
 }
 

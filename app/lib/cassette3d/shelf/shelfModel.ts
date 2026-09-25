@@ -22,6 +22,7 @@ import { CASE, SHELF } from '../dimensions';
 import { createShelfPlasticMaterial } from '../materials';
 import { createWoodTexture, WOOD_TILE_CM } from '../textures/woodTexture';
 import { bayLeft, computeShelfLayout, SHELF_HEIGHT, type ShelfLayout } from './layout';
+import { createCoverAtlas, type CoverAtlas } from './coverAtlas';
 import { createSpineAtlas, type SpineAtlas, type SpineFace } from './spineAtlas';
 
 /**
@@ -32,7 +33,9 @@ import { createSpineAtlas, type SpineAtlas, type SpineFace } from './spineAtlas'
  *   contents     one InstancedMesh: a block standing in for the J-card and
  *                cassette inside each case. Its spine face shows the tape's
  *                cell of the spine atlas through a per-instance UV rect
- *                (onBeforeCompile); the other faces take the card's colour.
+ *                (onBeforeCompile). The last case of each row, the only one
+ *                whose lid shows, wears its J-card cover there from the cover
+ *                atlas; the other faces take the card's colour.
  *   plastic      one InstancedMesh of the clear case, same instance matrices, in a
  *                cheaper plastic than the hero's (no transmission pass).
  *
@@ -51,6 +54,11 @@ export interface Shelf {
   root: Group;
   layout: ShelfLayout;
   atlas: SpineAtlas;
+  covers: CoverAtlas;
+  /** Give a tape's case its J-card cover, shown while it's the last on its row. */
+  setCover: (index: number, cover: HTMLCanvasElement) => void;
+  /** Tapes whose lid shows: the last one standing on each row. */
+  rowEnds: () => number[];
   /** Put these tapes (indices) on the shelf in this order; everything else is hidden. */
   setOrder: (order: number[], animate?: boolean) => void;
   /** The tape currently off the shelf (its instance hidden), or null. */
@@ -112,6 +120,8 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   };
   const face: SpineFace = { zMin: inner.z0, zMax: inner.z1, yMin: -inner.y, yMax: inner.y };
   const atlas = createSpineAtlas(Math.max(count, 1), face, renderer);
+  const rowCount = layout.bays * SHELF.rows;
+  const covers = createCoverAtlas(rowCount, { xMin: inner.x0, xMax: inner.x1, yMin: -inner.y, yMax: inner.y }, renderer);
 
   const contentsGeometry = new BoxGeometry(inner.x1 - inner.x0, inner.y * 2, inner.z1 - inner.z0);
   contentsGeometry.translate((inner.x0 + inner.x1) / 2, 0, (inner.z0 + inner.z1) / 2);
@@ -119,17 +129,23 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   const FACE_SHADE = [0.28, 1, 0.42, 0.42, 1, 0.78];
   const shade = new Float32Array(24 * 3);
   const mask = new Float32Array(24);
+  const coverMask = new Float32Array(24);
   for (let f = 0; f < 6; f++) {
     for (let v = 0; v < 4; v++) {
       shade.set([FACE_SHADE[f]!, FACE_SHADE[f]!, FACE_SHADE[f]!], (f * 4 + v) * 3);
       mask[f * 4 + v] = f === 1 ? 1 : 0;
+      coverMask[f * 4 + v] = f === 4 ? 1 : 0;
     }
   }
   contentsGeometry.setAttribute('color', new BufferAttribute(shade, 3));
   contentsGeometry.setAttribute('aSpineMask', new BufferAttribute(mask, 1));
+  contentsGeometry.setAttribute('aCoverMask', new BufferAttribute(coverMask, 1));
   const rects = new Float32Array(Math.max(count, 1) * 4);
   for (let i = 0; i < count; i++) rects.set(atlas.cellRect(i), i * 4);
   contentsGeometry.setAttribute('aSpineRect', new InstancedBufferAttribute(rects, 4));
+  // The cover atlas cell of a row-end case; all zero (no cover) for the rest.
+  const coverAttr = new InstancedBufferAttribute(new Float32Array(Math.max(count, 1) * 4), 4);
+  contentsGeometry.setAttribute('aCoverRect', coverAttr);
   // How far each case is slid out (0–1 of the hover distance): the hovered one also glows a little.
   const hoverAttr = new InstancedBufferAttribute(new Float32Array(Math.max(count, 1)), 1);
   contentsGeometry.setAttribute('aHover', hoverAttr);
@@ -142,14 +158,15 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     metalness: 0,
   });
   contentsMaterial.onBeforeCompile = (shader) => {
+    shader.uniforms.coverMap = { value: covers.texture };
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 aSpineRect;\nattribute float aSpineMask;\nattribute float aHover;\nvarying float vSpineMask;\nvarying float vHover;')
-      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv = vMapUv * aSpineRect.zw + aSpineRect.xy;\nvSpineMask = aSpineMask;\nvHover = aHover;')
-      // The spine shows the atlas as drawn; the other faces take the instance (card) colour.
-      .replace('#include <color_vertex>', '#include <color_vertex>\nvColor = mix(vColor, vec4(1.0), aSpineMask);');
+      .replace('#include <common>', '#include <common>\nattribute vec4 aSpineRect;\nattribute float aSpineMask;\nattribute vec4 aCoverRect;\nattribute float aCoverMask;\nattribute float aHover;\nvarying float vSpineMask;\nvarying float vCover;\nvarying vec2 vCoverUv;\nvarying float vHover;')
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv = vMapUv * aSpineRect.zw + aSpineRect.xy;\nvSpineMask = aSpineMask;\nvCover = aCoverMask * step(1e-6, aCoverRect.z);\nvCoverUv = uv * aCoverRect.zw + aCoverRect.xy;\nvHover = aHover;')
+      // The spine (and a row-end lid) shows its atlas as drawn; the other faces take the instance (card) colour.
+      .replace('#include <color_vertex>', '#include <color_vertex>\nvColor = mix(vColor, vec4(1.0), max(aSpineMask, vCover));');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vSpineMask;\nvarying float vHover;')
-      .replace('#include <map_fragment>', 'diffuseColor *= mix(vec4(1.0), texture2D(map, vMapUv), vSpineMask);')
+      .replace('#include <common>', '#include <common>\nuniform sampler2D coverMap;\nvarying float vSpineMask;\nvarying float vCover;\nvarying vec2 vCoverUv;\nvarying float vHover;')
+      .replace('#include <map_fragment>', 'diffuseColor *= mix(vec4(1.0), texture2D(map, vMapUv), vSpineMask);\ndiffuseColor *= mix(vec4(1.0), texture2D(coverMap, vCoverUv), vCover);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, 0.95, 0.85) * (0.32 * vHover) * diffuseColor.rgb;');
     // Faked occlusion (Stage 6): darker where the case stands on the board, a little under
     // the board above, and deeper into the shelf. Hovered cases slide out into the light.
@@ -201,6 +218,34 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
 
   const shown = (i: number) => slotOf[i]! >= 0 && i !== taken;
 
+  // --- Covers on the row ends -----------------------------------------------------------
+  const coverOf: (HTMLCanvasElement | undefined)[] = [];
+  /** Tape standing last on each row (−1: empty row), and what each row's cell holds. */
+  const rowEnd = new Int32Array(rowCount).fill(-1);
+  const cellHolds: (HTMLCanvasElement | undefined)[] = [];
+  const noCover = [0, 0, 0, 0];
+
+  function refreshCovers() {
+    rowEnd.fill(-1);
+    for (let i = 0; i < count; i++) {
+      if (!shown(i)) continue;
+      const row = Math.floor(slotOf[i]! / layout.perRow);
+      const end = rowEnd[row]!;
+      if (row < rowCount && (end < 0 || slotOf[end]! < slotOf[i]!)) rowEnd[row] = i;
+    }
+    for (let i = 0; i < count; i++) coverAttr.set(noCover, i * 4);
+    rowEnd.forEach((i, row) => {
+      const cover = i >= 0 ? coverOf[i] : undefined;
+      if (!cover) return;
+      if (cellHolds[row] !== cover) {
+        covers.setCover(row, cover, tapes[i]!.color);
+        cellHolds[row] = cover;
+      }
+      coverAttr.set(covers.cellRect(row), i * 4);
+    });
+    coverAttr.needsUpdate = true;
+  }
+
   function writeMatrix(i: number) {
     p.copy(cur[i]!);
     p.z += hoverCur[i]!;
@@ -225,6 +270,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     contents.instanceMatrix.needsUpdate = true;
     contents.computeBoundingSphere();
     plastic.boundingSphere = contents.boundingSphere;
+    refreshCovers();
   }
   setOrder(Array.from({ length: count }, (_, i) => i), false);
 
@@ -232,12 +278,22 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     root,
     layout,
     atlas,
+    covers,
+    setCover(index, cover) {
+      if (index < 0 || index >= count) return;
+      coverOf[index] = cover;
+      if (rowEnd.includes(index)) refreshCovers();
+    },
+    rowEnds: () => [...rowEnd].filter((i) => i >= 0),
     setOrder,
     setTaken(index) {
       const before = taken;
+      if (before === index) return;
       taken = index;
       for (const i of [before, index]) if (i !== null && i < count) writeMatrix(i);
       contents.instanceMatrix.needsUpdate = true;
+      // A tape taken off the end of a row uncovers its neighbour's lid.
+      refreshCovers();
     },
     setHovered(index) {
       if (hovered !== null) moving.add(hovered);
@@ -302,6 +358,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
       contents.dispose();
       plastic.dispose();
       atlas.dispose();
+      covers.dispose();
     },
   };
 }

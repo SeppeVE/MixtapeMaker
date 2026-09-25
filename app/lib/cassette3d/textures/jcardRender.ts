@@ -62,6 +62,12 @@ export function spineFromSnapshot(snapshot: JCardSnapshot, height = 256): HTMLCa
   return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
 }
 
+/** The outside cover (flap 1) of a snapshot, `height` px tall (the shelf's row-end cases). */
+export function coverFromSnapshot(snapshot: JCardSnapshot, height = 256): HTMLCanvasElement | null {
+  const rect = snapshot.outside.panels.flap1;
+  return rect ? cropPanel(snapshot.outside.canvas, rect, height) : null;
+}
+
 /** Copy one panel's columns out of a face canvas, scaled to `height` px. */
 export function cropPanel(source: HTMLCanvasElement, rect: PanelRect, height: number): HTMLCanvasElement {
   const scale = height / source.height;
@@ -98,6 +104,14 @@ export async function loadStoredSpine(url: string): Promise<HTMLCanvasElement> {
   canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
   bitmap.close();
   return canvas;
+}
+
+/** Download a stored render's outside face and crop its cover, `height` px tall. The face itself is dropped. */
+export async function loadStoredCover(render: JCardRender, height = 256): Promise<HTMLCanvasElement | null> {
+  const face = await loadFace(render.outside);
+  const cover = coverFromSnapshot({ outside: face, pxPerMm: render.pxPerMm, fonts: [], images: [], ms: 0 }, height);
+  face.canvas.width = face.canvas.height = 0;
+  return cover;
 }
 
 /**

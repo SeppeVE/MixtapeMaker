@@ -12,7 +12,7 @@ import { JCARD } from '../dimensions';
 import { applyPaperGrain, cloneGrain } from '../materials';
 import type { JCardModel, JCardPanel } from '../objects/jcard';
 import type { FaceSnapshot, JCardSnapshot } from './jcardSnapshot';
-import { spineFromSnapshot } from './jcardRender';
+import { coverFromSnapshot, spineFromSnapshot } from './jcardRender';
 
 /**
  * Turns a J-card snapshot into textures on the hinged 3D card.
@@ -36,6 +36,8 @@ export interface JCardTextureSet {
   materials: Material[];
   /** Low-resolution crop of the outside spine, for the shelf (Stage 4). Made on first call. */
   spineThumbnail: (height?: number) => HTMLCanvasElement | null;
+  /** Low-resolution crop of the outside cover, for the shelf's row-end cases. */
+  coverThumbnail: (height?: number) => HTMLCanvasElement | null;
   dispose: () => void;
 }
 
@@ -94,6 +96,7 @@ export function applyJCardTextures(
   return {
     materials: owned,
     spineThumbnail: (height = 256) => spineFromSnapshot(snapshot, height),
+    coverThumbnail: (height = 256) => coverFromSnapshot(snapshot, height),
     dispose() {
       for (const t of textures) t.dispose();
       for (const m of owned) m.dispose();

@@ -86,6 +86,8 @@ export interface Hero {
   setTape: (data: TapeData, options?: { spine?: HTMLCanvasElement }) => Promise<void>;
   /** The current tape's real spine, cropped from its J-card render (null until it's in). */
   spineThumbnail: (height?: number) => HTMLCanvasElement | null;
+  /** The current tape's real cover, cropped from its J-card render (null until it's in). */
+  coverThumbnail: (height?: number) => HTMLCanvasElement | null;
   getTextureReport: () => TextureReport;
   /**
    * Free the J-card and label textures (Stage 7: full-resolution textures only
@@ -309,6 +311,7 @@ export function createHero(
       }
     },
     spineThumbnail: (height) => (report.status === 'ready' ? jcardTextures?.spineThumbnail(height) ?? null : null),
+    coverThumbnail: (height) => (report.status === 'ready' ? jcardTextures?.coverThumbnail(height) ?? null : null),
     getTextureReport: () => report,
     onTextureStatus(fn) {
       statusListener = fn;

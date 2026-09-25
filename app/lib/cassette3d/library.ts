@@ -7,9 +7,9 @@ import { createShelf, type Shelf } from './shelf/shelfModel';
 import { createShelfView, type ShelfView } from './shelf/shelfView';
 import type { CassetteScene } from './scene';
 import type { TapeData } from './tapeData';
-import { jcardRenderVersion, loadStoredSpine, spineFromSnapshot, trustedSpineUrl } from './textures/jcardRender';
+import { coverFromSnapshot, isTrustedRender, jcardRenderVersion, loadStoredCover, loadStoredSpine, spineFromSnapshot, trustedSpineUrl } from './textures/jcardRender';
 import { getSnapshot, isSnapshotCached } from './textures/snapshotCache';
-import { drawSpine, loadSpineFonts, spineFonts } from './textures/spineTexture';
+import { drawCover, drawSpine, loadSpineFonts, spineFonts } from './textures/spineTexture';
 import { registerCustomFonts } from '~/utils/fontManager';
 import type { CustomFont } from '~/types';
 
@@ -23,7 +23,8 @@ import type { CustomFont } from '~/types';
  * Also owns: hover (the case slides out a little), search and sort (the shelf
  * re-flows), the camera blend between the shelf and the hero view, the shadow
  * focus, and the spines (drawn at once, upgraded to real renders when this tab
- * has them).
+ * has them). The last case on each row shows its cover side too: drawn at first,
+ * then cropped from the card's render, fetched only for the cases at a row's end.
  */
 
 export type ShelfSort = 'updated' | 'created' | 'title';
@@ -90,6 +91,11 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   let best: (HTMLCanvasElement | undefined)[] = [];
   /** Tapes whose atlas cell already holds the real spine. */
   let real = new Set<number>();
+  /** Tapes whose case has its real cover, or is fetching it. */
+  let realCovers = new Set<number>();
+  let coverLoads = new Set<number>();
+  /** Tapes wearing a drawn cover (redrawn once the fonts are in). */
+  let drawnCovers = new Set<number>();
 
   // --- Camera blend + shadow focus ------------------------------------------------------
   const shelfPos = new Vector3();
@@ -105,6 +111,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   const offFrame = handle.onFrame((dt) => {
     shelf?.update(dt);
     shelf?.atlas.flush();
+    shelf?.covers.flush();
     // The environment is rebuilt after a context loss; keep the shelf on the current one.
     shelf?.setEnvironment(handle.scene.environment as Texture | null);
     const k = machine.shelfBlend();
@@ -131,6 +138,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     const resting = s.state === 'onShelf' && s.target === 'onShelf';
     hero.view.turntable.visible = !resting && selected !== null;
     shelf?.setTaken(resting ? null : selected);
+    requestCovers();
     const shelfMode = onShelfStates.has(s.state) && onShelfStates.has(s.target);
     shelfView.setEnabled(shelfMode);
     if (!shelfMode) setHovered(null);
@@ -159,6 +167,11 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     void hero.setTape(tape, { spine: best[index] ?? drawn[index] }).then(() => {
       if (disposed || gen !== generation || selected !== index) return;
       upgradeSpine(index, hero.spineThumbnail(shelf?.atlas.spineHeight));
+      const cover = hero.coverThumbnail(shelf?.covers.coverHeight);
+      if (cover && shelf) {
+        shelf.setCover(index, cover);
+        realCovers.add(index);
+      }
     });
     machine.request('presented');
   }
@@ -168,6 +181,45 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelf.atlas.setSpine(index, canvas);
     real.add(index);
     best[index] = canvas;
+  }
+
+  /**
+   * Real covers for the cases at the row ends: from the snapshot cache, else the
+   * stored render's outside face (a full download, so only for these few cases).
+   * Until then they wear a drawn cover.
+   */
+  function requestCovers() {
+    if (!shelf) return;
+    const gen = generation;
+    const height = shelf.covers.coverHeight;
+    for (const i of shelf.rowEnds()) {
+      if (realCovers.has(i) || coverLoads.has(i)) continue;
+      if (!drawnCovers.has(i)) {
+        shelf.setCover(i, drawCover(tapes[i]!.jcard.content, tapes[i]!.mixtape.title, height));
+        drawnCovers.add(i);
+      }
+      coverLoads.add(i);
+      void (async () => {
+        const { jcard } = tapes[i]!;
+        try {
+          const version = await jcardRenderVersion(jcard.content);
+          const key = `${jcard.id}:${version}`;
+          let cover: HTMLCanvasElement | null = null;
+          if (isSnapshotCached(key)) {
+            cover = coverFromSnapshot((await getSnapshot(key, () => Promise.reject(new Error('not cached')))).snapshot, height);
+          } else if (jcard.render?.version === version && isTrustedRender(jcard.render, options.supabaseUrl ?? '')) {
+            cover = await loadStoredCover(jcard.render, height);
+          }
+          if (disposed || gen !== generation || !cover || realCovers.has(i)) return;
+          shelf?.setCover(i, cover);
+          realCovers.add(i);
+        } catch (err) {
+          console.warn('[cassette3d] Could not load a cover; keeping the drawn one', err);
+        } finally {
+          if (gen === generation) coverLoads.delete(i);
+        }
+      })();
+    }
   }
 
   // --- Picking on the shelf ----------------------------------------------------------------
@@ -269,6 +321,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   function applyOrder(next: number[], animate: boolean) {
     order = next;
     shelf?.setOrder(order, animate);
+    requestCovers();
     options.onOrder?.(order);
   }
 
@@ -281,6 +334,9 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     options.onSelect?.(null);
     setHovered(null);
     real = new Set();
+    realCovers = new Set();
+    coverLoads = new Set();
+    drawnCovers = new Set();
     best = [];
     shelf?.dispose();
     shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer);
@@ -288,14 +344,19 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelfView.setLayout(shelf.layout);
     applyOrder(computeOrder('', 'updated'), false);
 
-    // Spines: drawn now with whatever fonts are ready, again once they've loaded.
+    // Spines (and covers): drawn now with whatever fonts are ready, again once they've loaded.
     const height = shelf.atlas.spineHeight;
+    const coverHeight = shelf.covers.coverHeight;
     const drawAll = () => {
       drawn = tapes.map((t, i) => {
         const canvas = drawSpine(t.jcard.content, t.mixtape.title, height);
         if (!real.has(i)) shelf?.atlas.setSpine(i, canvas);
         return canvas;
       });
+      for (const i of drawnCovers) {
+        const t = tapes[i]!;
+        if (!realCovers.has(i)) shelf?.setCover(i, drawCover(t.jcard.content, t.mixtape.title, coverHeight));
+      }
     };
     drawAll();
 

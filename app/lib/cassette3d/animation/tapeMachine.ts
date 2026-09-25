@@ -297,6 +297,7 @@ export function createTapeMachine(
 
   function arrive(index: number) {
     settled = index;
+    anim?.tl.kill();
     anim = null;
     // Back on the shelf: next time it comes off, it lands facing you again.
     if (index === 0) presentedRest = shelfArrival();
@@ -342,8 +343,15 @@ export function createTapeMachine(
     tl.eventCallback('onComplete', () => arrive(a + 1));
     tl.eventCallback('onReverseComplete', () => arrive(a));
     if (forward) tl.play(0);
-    // Suppress events on the jump to the end, or it would fire onComplete right away.
-    else tl.progress(1, true).reverse();
+    else {
+      // A tween played back past its start puts back the values it found when it first
+      // rendered. Going backwards, that first render is the jump to the end: let it find
+      // the step's start values, or a delayed part (the lid, the J-card) snaps back out
+      // for the rest of the step once the playhead passes its start, as if undone.
+      Object.assign(params, restParams(TAPE_STATES[a]!));
+      // Suppress events on the jump to the end, or it would fire onComplete right away.
+      tl.progress(1, true).reverse();
+    }
     emit();
   }
 

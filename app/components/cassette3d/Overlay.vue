@@ -260,13 +260,13 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
         <button type="button" class="btn btn-primary" @click="$router.go(0)">↻ Try again</button>
       </template>
       <template v-else-if="isCommunity">
-        <p>No public mixtapes with a public J-card yet.</p>
-        <p class="lib3d-empty-sub">This shelf shows the newest public mixtapes that have a public J-card linked to them.</p>
+        <p>No public mixtapes yet.</p>
+        <p class="lib3d-empty-sub">This shelf shows the newest public mixtapes. Ones without a J-card come in plain paper.</p>
         <NuxtLink to="/explore" class="btn">Explore in 2D</NuxtLink>
       </template>
       <template v-else-if="isPublic && owner">
-        <p>{{ owner.isYou ? 'You have' : `@${owner.username} has` }} no public mixtapes with a public J-card yet.</p>
-        <p class="lib3d-empty-sub">The public shelf shows public mixtapes that have a public J-card linked to them.</p>
+        <p>{{ owner.isYou ? 'You have' : `@${owner.username} has` }} no public mixtapes yet.</p>
+        <p class="lib3d-empty-sub">The public shelf shows public mixtapes. Ones without a J-card come in plain paper.</p>
         <NuxtLink :to="profileLink" class="btn">Back to the profile</NuxtLink>
       </template>
       <template v-else-if="shelf.hasMixtapes">
@@ -303,8 +303,8 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
     <div class="lib3d-bottom">
       <!-- Signed out: the samples -->
       <div v-if="onShelf && shelf.status === 'ready' && shelf.missingTape" class="lib3d-note" role="status">
-        <template v-if="isCommunity">That tape isn't on this shelf. It shows the newest public mixtapes with a public J-card.</template>
-        <template v-else-if="isPublic">That tape isn't on this shelf. It shows public mixtapes with a public J-card.</template>
+        <template v-if="isCommunity">That tape isn't on this shelf. It shows the newest public mixtapes.</template>
+        <template v-else-if="isPublic">That tape isn't on this shelf. It shows public mixtapes.</template>
         <template v-else-if="shelf.signedIn">That tape isn't on your shelf. The shelf shows your mixtapes that have a J-card.</template>
         <template v-else>Sign in to open that tape.</template>
       </div>

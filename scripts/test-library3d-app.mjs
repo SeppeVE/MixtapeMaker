@@ -3,7 +3,8 @@
 // Supabase: the tape panel's details and actions (edit, J-card, PDF, share,
 // public, delete), the 2D/3D switch and its remembered choice, the ?tape= deep
 // link following the selection, the unsaved-draft note, a user's public
-// shelf (/user/{username}/3d), and Explore's community shelf (/explore/3d).
+// shelf (/user/{username}/3d), and Explore's community shelf (/explore/3d), where
+// public tapes without a J-card stand in a plain paper one.
 //
 // Needs the dev server started with the dummy project URL the mock listens on:
 //   NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NUXT_PUBLIC_SUPABASE_ANON_KEY=dummy npm run dev
@@ -326,16 +327,16 @@ try {
   check(/New mixtape/.test(items) && /New J-card/.test(items) && /All J-cards/.test(items), 'New menu: mixtape, J-card, all J-cards', items.replace(/\n/g, ' | '));
   await page.screenshot({ path: `${OUT_DIR}app-menu.png` });
 
-  // 11. A user's public shelf: their public tapes that have a public J-card.
+  // 11. A user's public shelf: their public tapes, in a plain paper card where they have no public J-card.
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`${BASE_URL}/user/maker/3d?3d=1`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.lib3d-toolbar', { timeout: 60_000 });
   info = await page.evaluate(() => window.__cassette3d.getShelfInfo());
-  check(info.count === 1 && info.ids[0] === TAPE_D, 'public shelf: only public tapes with a public J-card', JSON.stringify(info.ids));
+  check(JSON.stringify(info.ids) === JSON.stringify([TAPE_D, TAPE_E]), 'public shelf: only public tapes, with or without a J-card', JSON.stringify(info.ids));
   check(await page.locator('.lib3d-owner').innerText() === '◀ @maker' && !(await page.locator('.lib3d-menu').count()) && !(await page.locator('.lib3d-toolbar .lib-view-toggle').count()),
     'public shelf: toolbar links back to the profile, no New menu or 2D/3D switch');
   await page.screenshot({ path: `${OUT_DIR}app-public-shelf.png` });
-  await takeOut(0);
+  await takeOut(info.ids.indexOf(TAPE_D));
   const pub = await panelText();
   check(/Night Bus/.test(pub) && /By @maker/.test(pub) && /Copy tape to my library/.test(pub) && /Copy J-card to my library/.test(pub) && /Tape page/.test(pub) && /Print J-card/.test(pub),
     'public shelf: the panel offers copy, tape page and print', pub.replace(/\n/g, ' | '));
@@ -379,8 +380,8 @@ try {
     check(new URL(page.url()).pathname === '/user/maker/3d', 'public shelf: flag on, opens without ?3d=1', page.url());
   }
 
-  // 13. Explore's community shelf: everyone's public tapes that have a public J-card
-  // (Summer Drive is public with a public card since step 11; Rainy Sunday's card isn't).
+  // 13. Explore's community shelf: everyone's public tapes (Summer Drive is public with a
+  // public card since step 11, Night Bus has one, No Card Public has none; Rainy Sunday is deleted).
   await page.goto(`${BASE_URL}/explore?3d=1`, { waitUntil: 'networkidle' });
   const exploreToggle = page.locator('.lib-header .lib-view-toggle');
   check(flagOn === (await exploreToggle.count() > 0), `explore: 2D/3D switch ${flagOn ? 'shown' : 'hidden'} with the flag ${flagOn ? 'on' : 'off'}`);
@@ -389,7 +390,7 @@ try {
     await page.waitForURL((u) => u.pathname === '/explore/3d', { timeout: 30_000 });
     await page.waitForSelector('.lib3d-toolbar', { timeout: 60_000 });
     info = await page.evaluate(() => window.__cassette3d.getShelfInfo());
-    check(JSON.stringify(info.ids) === JSON.stringify([TAPE_A, TAPE_D]), 'community shelf: public tapes with a public J-card, newest first', JSON.stringify(info.ids));
+    check(JSON.stringify(info.ids) === JSON.stringify([TAPE_A, TAPE_D, TAPE_E]), 'community shelf: every public tape, newest first', JSON.stringify(info.ids));
     check(await page.locator('.lib3d-toolbar .lib-view-toggle').count() === 1 && !(await page.locator('.lib3d-menu').count()) && !(await page.locator('.lib3d-owner').count()),
       'community shelf: 2D/3D switch, no New menu');
     await page.screenshot({ path: `${OUT_DIR}app-community-shelf.png` });
@@ -399,6 +400,14 @@ try {
       'community shelf: someone else\'s tape shows its author, copy and tape page', theirs.replace(/\n/g, ' | '));
     check(query().get('tape') === TAPE_D, 'community shelf: ?tape= follows the selection');
     await page.screenshot({ path: `${OUT_DIR}app-community-panel.png` });
+    await page.getByRole('button', { name: 'Back to the shelf' }).click();
+    await idle();
+    await takeOut(info.ids.indexOf(TAPE_E));
+    const plain = await panelText();
+    check(/No Card Public/.test(plain) && /plain paper/.test(plain) && /Copy tape to my library/.test(plain) && !/Copy J-card|Print J-card/.test(plain),
+      'community shelf: a tape without a J-card comes in plain paper, with nothing to copy or print of the card', plain.replace(/\n/g, ' | '));
+    await page.waitForFunction(() => window.__cassette3d.getTextureReport?.().status === 'ready', null, { timeout: 30_000 }).catch(() => undefined);
+    await page.screenshot({ path: `${OUT_DIR}app-community-plain.png` });
     await page.getByRole('button', { name: 'Back to the shelf' }).click();
     await idle();
     await takeOut(info.ids.indexOf(TAPE_A));

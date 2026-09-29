@@ -11,7 +11,7 @@ import { reportError } from '~/lib/cassette3d/report';
 
 const AUTH_TIMEOUT_MS = 5000;
 const MAX_SEED = 2000;
-/** Explore's shelf: this many of the newest public mixtapes (those with a public J-card stand on it). */
+/** Explore's shelf: this many of the newest public mixtapes. */
 const COMMUNITY_TAPES = 150;
 
 export interface ShelfData {
@@ -19,12 +19,13 @@ export interface ShelfData {
   /**
    * cloud: your mixtapes that have a J-card; samples: the built-in samples (signed
    * out, or ?fixture=); seed: generated tapes (dev, ?seed=<n>); public: one
-   * user's public mixtapes that have a public J-card (their profile's shelf);
-   * community: everyone's, the newest public mixtapes with a public J-card (Explore).
+   * user's public mixtapes (their profile's shelf); community: everyone's, the
+   * newest public mixtapes (Explore). On the public shelves a mixtape without a
+   * public J-card wears a plain paper one.
    */
   source: 'cloud' | 'samples' | 'seed' | 'public' | 'community';
   signedIn: boolean;
-  /** Signed in with mixtapes, none of which has a J-card yet (for the empty state). */
+  /** Signed in with mixtapes, none of which has a J-card yet (for the empty state; the public shelves: any public mixtapes). */
   hasMixtapes: boolean;
   /** Take this tape off the shelf straight away (deep link / debug), no animation. */
   initial: { index: number; state: TapeState } | null;
@@ -125,7 +126,7 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, sc
 
 /**
  * A user's public shelf, as their profile page lists it: public, non-copy mixtapes
- * paired with their public J-cards. A private profile is empty unless it's yours
+ * with their public J-cards (plain paper ones where they have none). A private profile is empty unless it's yours
  * (the profile page shows its owner their own public items the same way).
  */
 async function resolvePublicShelf(
@@ -145,7 +146,7 @@ async function resolvePublicShelf(
     const owner: PublicShelfOwner = { username: profile.username, status: 'ok', isYou };
     if (profile.isPrivate && !isYou) return empty({ ...owner, status: 'private' });
     const [mixtapes, jcards] = await Promise.all([loadPublicMixtapesByUser(profile.id), listPublicJCardsByUser(profile.id)]);
-    const tapes = pairTapes(mixtapes, jcards);
+    const tapes = pairTapes(mixtapes, jcards, { plain: true });
     const { index, missingTape } = findWanted(tapes, query);
     return {
       tapes, source: 'public', signedIn: !!viewerId, hasMixtapes: mixtapes.length > 0, initial: initialFor(index), missingTape, owner,
@@ -158,8 +159,9 @@ async function resolvePublicShelf(
 }
 
 /**
- * Explore's shelf: the newest public mixtapes, as the Explore grid lists them, that
- * have a public J-card, with their authors' usernames for the bylines.
+ * Explore's shelf: the newest public mixtapes, as the Explore grid lists them, with
+ * their public J-cards (plain paper ones where they have none) and their authors'
+ * usernames for the bylines.
  */
 async function resolveCommunityShelf(
   query: LocationQuery,
@@ -169,7 +171,7 @@ async function resolveCommunityShelf(
   try {
     const { mixtapes } = await searchPublicMixtapes('', COMMUNITY_TAPES, 0);
     const jcards = await listPublicJCardsForMixtapes(mixtapes.map((m) => m.id));
-    const tapes = pairTapes(mixtapes, jcards);
+    const tapes = pairTapes(mixtapes, jcards, { plain: true });
     // Bylines are best-effort, as on the Explore grid.
     const profiles = await loadProfilesByIds(tapes.map((t) => t.mixtape.userId ?? '')).catch(() => new Map());
     const authors = Object.fromEntries([...profiles].map(([id, p]) => [id, p.username]));
@@ -189,7 +191,7 @@ function findWanted(tapes: TapeData[], query: LocationQuery): { index: number | 
   const wanted = firstParam(query.tape);
   if (!wanted) return { index: null, missingTape: false };
   const index = tapes.findIndex((t) => t.mixtape.id === wanted);
-  if (index < 0) console.warn(`[cassette3d] Mixtape ${wanted} not found, or it has no J-card`);
+  if (index < 0) console.warn(`[cassette3d] Mixtape ${wanted} is not on this shelf`);
   return { index: index < 0 ? null : index, missingTape: index < 0 };
 }
 

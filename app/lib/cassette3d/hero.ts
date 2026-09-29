@@ -15,6 +15,7 @@ import { applyJCardTextures, type JCardTextureSet } from './textures/jcardTextur
 import type { ImageCheck } from './textures/jcardSnapshot';
 import { applyLabelTextures, labelStyleFor, type LabelTextureSet } from './textures/labelTexture';
 import { createCaseScuffs, createPaperGrain } from './textures/surfaceTextures';
+import { plainSnapshot } from './textures/plainCard';
 import { createSnapshotSource, type SnapshotResult, type SnapshotSource, type WriteBackStatus } from './textures/snapshotSource';
 
 /**
@@ -256,7 +257,10 @@ export function createHero(
       relayout({ flaps: jcard.content.flaps, shortBack: jcard.content.shortBack });
       if (setOptions.spine) setPlaceholderSpine(setOptions.spine);
       try {
-        const result = await snapshotSource(jcard);
+        // A tape without a J-card wears a plain paper one, drawn here (nothing to store).
+        const result: SnapshotResult = data.plain
+          ? { snapshot: await plainSnapshot(mixtape), origin: 'runtime', version: 'plain', writeBack: Promise.resolve('skipped') }
+          : await snapshotSource(jcard);
         const { snapshot } = result;
         if (disposed || gen !== generation) return;
         clearPlaceholder();

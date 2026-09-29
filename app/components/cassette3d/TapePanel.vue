@@ -17,6 +17,8 @@ import { registerCustomFonts } from '~/utils/fontManager';
 // (as Explore does), open its public page, print; your own public tapes can also be
 // edited from there. The same goes for Explore's community shelf, where each tape's
 // author stands in for the owner. Sample tapes (signed out) can only be printed.
+// A tape in a plain paper card has no J-card to edit, copy or print; on your own
+// you can design one instead.
 const props = defineProps<{
   tape: TapeData;
   source: ShelfInfo['source'];
@@ -36,6 +38,8 @@ const owned = computed(() => props.source === 'cloud' || props.source === 'seed'
 const isPublic = computed(() => props.source === 'public' || props.source === 'community');
 /** Your own tape on a public shelf. */
 const editable = computed(() => owned.value || (isPublic.value && !!props.owner?.isYou));
+/** No J-card of its own (the shelf drew it a plain paper one). */
+const plain = computed(() => !!props.tape.plain);
 const { copying, requestCopyJCard, requestCopyMixtape } = useCopyToLibrary();
 const sides = computed(() => (
   [['Side A', mixtape.value.sideA], ['Side B', mixtape.value.sideB]] as const
@@ -67,7 +71,7 @@ function editTape() {
 }
 
 function editCard() {
-  store.openDesigner(props.tape.jcard);
+  store.openDesigner(plain.value ? null : props.tape.jcard);
 }
 
 // As the J-card library's Print button.
@@ -169,22 +173,25 @@ const remove = () => run('delete', async () => {
         <template v-else-if="isPublic">Updated {{ updated }}</template>
         <template v-else>A sample tape</template>
       </p>
+      <p v-if="plain" class="lib3d-panel-note">
+        No J-card yet, so it's wrapped in plain paper.
+      </p>
       <p v-if="mixtape.isCopy" class="lib3d-panel-note">
         An unedited copy of another mixtape. It won't show up on the explore page.
       </p>
       <div class="lib3d-panel-actions" role="toolbar" aria-label="Tape actions">
         <template v-if="editable">
           <button type="button" class="btn" @click="editTape">Edit tape</button>
-          <button type="button" class="btn" @click="editCard">Edit J-card</button>
+          <button type="button" class="btn" @click="editCard">{{ plain ? 'Design a J-card' : 'Edit J-card' }}</button>
         </template>
         <template v-if="isPublic && !owner?.isYou">
           <button type="button" class="btn" @click="requestCopyMixtape(mixtape)">Copy tape to my library</button>
-          <button type="button" class="btn" :disabled="copying" @click="requestCopyJCard(tape.jcard.id)">
+          <button v-if="!plain" type="button" class="btn" :disabled="copying" @click="requestCopyJCard(tape.jcard.id)">
             {{ copying ? 'Copying…' : 'Copy J-card to my library' }}
           </button>
         </template>
         <NuxtLink v-if="isPublic" :to="`/explore/${mixtape.id}`" class="btn">Tape page</NuxtLink>
-        <button type="button" class="btn" :disabled="busy === 'pdf'" @click="printCard">
+        <button v-if="!plain" type="button" class="btn" :disabled="busy === 'pdf'" @click="printCard">
           {{ busy === 'pdf' ? 'Exporting…' : 'Print J-card (PDF)' }}
         </button>
         <template v-if="owned">

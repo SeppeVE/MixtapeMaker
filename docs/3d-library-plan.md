@@ -622,6 +622,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Explore on a 3D shelf:** `/explore/3d` shows the newest 150 public mixtapes that have a public J-card, each with its author (copy / tape page / print, or edit on your own). Explore's header has the 2D | 3D switch (not remembered, unlike the library's).
   - The header 2D | 3D switch (library and Explore) is restyled: its "3D" half was dark on the dark header, practically invisible.
   - `test:library3d` checks the community shelf too (48 checks).
+  - **Plain paper cards on the public shelves:** Explore's and each profile's shelf also take public mixtapes without a public J-card. They wear a home-made card drawn in `textures/plainCard.ts`: coloured paper (six stocks, picked from the mixtape id), the title in marker and the running time circled on the spine with a song between them, the title, a cassette doodle, music notes and the first songs in pen on the cover, the tracklist on the back. Drawn in mm from a seeded random, so the shelf spine, the row-end cover and the hero's full card match and never change. Nothing is stored; the panel offers no J-card copy / print for them (your own: "Design a J-card"). Your own library still shows only tapes with a J-card.
 
 - **2026-09-25 · Stage 7: the 4096 px J-card limit on high confirmed** (human). **Stage 8 built:** debug code dev-only (checked in the bundle), flag on for everyone with 2D as the default (human decision), What's new draft, README and ARCHITECTURE.md. **Waiting on final sign-off.**
 

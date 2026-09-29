@@ -10,6 +10,7 @@ import type { TapeData } from './tapeData';
 import { coverFromSnapshot, isTrustedRender, jcardRenderVersion, loadStoredCover, loadStoredSpine, spineFromSnapshot, trustedSpineUrl } from './textures/jcardRender';
 import { getSnapshot, isSnapshotCached } from './textures/snapshotCache';
 import { drawCover, drawSpine, loadSpineFonts, spineFonts } from './textures/spineTexture';
+import { drawPlainCover, drawPlainSpine, loadPlainFonts } from './textures/plainCard';
 import { registerCustomFonts } from '~/utils/fontManager';
 import type { CustomFont } from '~/types';
 
@@ -195,9 +196,11 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     for (const i of shelf.rowEnds()) {
       if (realCovers.has(i) || coverLoads.has(i)) continue;
       if (!drawnCovers.has(i)) {
-        shelf.setCover(i, drawCover(tapes[i]!.jcard.content, tapes[i]!.mixtape.title, height));
+        shelf.setCover(i, coverFor(tapes[i]!, height));
         drawnCovers.add(i);
       }
+      // A plain paper card's drawn cover is the real thing.
+      if (tapes[i]!.plain) continue;
       coverLoads.add(i);
       void (async () => {
         const { jcard } = tapes[i]!;
@@ -349,13 +352,13 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     const coverHeight = shelf.covers.coverHeight;
     const drawAll = () => {
       drawn = tapes.map((t, i) => {
-        const canvas = drawSpine(t.jcard.content, t.mixtape.title, height);
+        const canvas = t.plain ? drawPlainSpine(t.mixtape, height) : drawSpine(t.jcard.content, t.mixtape.title, height);
         if (!real.has(i)) shelf?.atlas.setSpine(i, canvas);
         return canvas;
       });
       for (const i of drawnCovers) {
         const t = tapes[i]!;
-        if (!realCovers.has(i)) shelf?.setCover(i, drawCover(t.jcard.content, t.mixtape.title, coverHeight));
+        if (!realCovers.has(i)) shelf?.setCover(i, coverFor(t, coverHeight));
       }
     };
     drawAll();
@@ -370,12 +373,13 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     const families = new Set<string>();
     const custom: CustomFont[] = [];
     for (const t of tapes) {
+      if (t.plain) continue;
       const fonts = spineFonts(t.jcard.content);
       fonts.forEach((f) => families.add(f));
       custom.push(...(t.jcard.content.customFonts ?? []).filter((f) => fonts.includes(f.name)));
     }
     await registerCustomFonts(custom).catch(() => undefined);
-    await loadSpineFonts(families);
+    await Promise.all([loadSpineFonts(families), tapes.some((t) => t.plain) ? loadPlainFonts() : undefined]);
     if (disposed || gen !== generation) return;
     drawAll();
 
@@ -383,7 +387,8 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     // small spine stored with the card's render, if it's still for this content.
     const toFetch: { index: number; url: string }[] = [];
     for (let i = 0; i < tapes.length; i++) {
-      const { jcard } = tapes[i]!;
+      const { jcard, plain } = tapes[i]!;
+      if (plain) continue;
       const version = await jcardRenderVersion(jcard.content);
       if (disposed || gen !== generation) return;
       if (real.has(i)) continue;
@@ -456,6 +461,11 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
       shelf = null;
     },
   };
+}
+
+/** A stand-in cover for a row-end case: the plain paper card's own, else one drawn from the card's content. */
+function coverFor(t: TapeData, height: number): HTMLCanvasElement {
+  return t.plain ? drawPlainCover(t.mixtape, height) : drawCover(t.jcard.content, t.mixtape.title, height);
 }
 
 /** The card's background colour if it's a plain hex colour, else card-stock white. */

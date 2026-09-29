@@ -3,6 +3,7 @@ import type { TapeState } from './animation/tapeMachine';
 import { SHELF } from './dimensions';
 import type { Hero } from './hero';
 import { computeShelfLayout } from './shelf/layout';
+import { createRoom, type Room } from './shelf/room';
 import { createShelf, type Shelf } from './shelf/shelfModel';
 import { createShelfView, type ShelfView } from './shelf/shelfView';
 import type { CassetteScene } from './scene';
@@ -26,6 +27,7 @@ import type { CustomFont } from '~/types';
  * focus, and the spines (drawn at once, upgraded to real renders when this tab
  * has them). The last case on each row shows its cover side too: drawn at first,
  * then cropped from the card's render, fetched only for the cases at a row's end.
+ * The bookcase stands in a room (shelf/room.ts): wall, floor, fairy lights, plants, a lamp.
  */
 
 export type ShelfSort = 'updated' | 'created' | 'title';
@@ -79,6 +81,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   const machine = hero.machine;
   let tapes: TapeData[] = [];
   let shelf: Shelf | null = null;
+  let room: Room | null = null;
   const shelfView = createShelfView(handle, computeShelfLayout(0));
   let order: number[] = [];
   let selected: number | null = null;
@@ -115,11 +118,14 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelf?.covers.flush();
     // The environment is rebuilt after a context loss; keep the shelf on the current one.
     shelf?.setEnvironment(handle.scene.environment as Texture | null);
+    room?.setEnvironment(handle.scene.environment as Texture | null);
     const k = machine.shelfBlend();
     // Depth of field (high tier) on the tape, fading in as the camera leaves the shelf.
     handle.setDofFocus(hero.view.turntable.visible ? hero.view.focusDistance() : null, 1 - k);
     // With a tape off the shelf, the shelf steps back into the dark behind it.
     shelf?.setDim(SHELF_DIM + (1 - SHELF_DIM) * k);
+    room?.setDim(SHELF_DIM + (1 - SHELF_DIM) * k);
+    room?.update(dt);
     const { width, height } = shelfView.visibleSize();
     const pan = shelfView.getPan();
     const shelfHalf = (Math.max(width, height) / 2) * 1.1;
@@ -344,6 +350,9 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelf?.dispose();
     shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer);
     handle.scene.add(shelf.root);
+    room?.dispose();
+    room = createRoom(shelf.layout, renderer);
+    handle.scene.add(room.root);
     shelfView.setLayout(shelf.layout);
     applyOrder(computeOrder('', 'updated'), false);
 
@@ -459,6 +468,8 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
       shelfView.dispose();
       shelf?.dispose();
       shelf = null;
+      room?.dispose();
+      room = null;
     },
   };
 }

@@ -105,7 +105,7 @@ npm run dev
 `/library/3d` shows the library as cassette cases on a shelf, `/user/{username}/3d` a
 profile's public tapes, and `/explore/3d` the newest public tapes from everyone (Explore's
 2D | 3D switch). On those public shelves, tapes without a J-card come in a handwritten
-plain paper one. It's switched on for everyone (`NUXT_PUBLIC_LIBRARY3D=false`
+plain paper one. The bookcase stands in a small room: wallpaper, fairy lights, plants and a lamp. It's switched on for everyone (`NUXT_PUBLIC_LIBRARY3D=false`
 switches it off; `?3d=1` then still opens it for one visit). The library opens in 2D
 until someone flips the 2D | 3D switch, which is remembered in `localStorage`.
 

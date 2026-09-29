@@ -4,11 +4,15 @@ import { useRoute, useRouter } from 'vue-router';
 import { useSeoMeta } from '#app';
 import IconCassette from '~icons/ph/cassette-tape';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
+import { isLibrary3DEnabled } from '~/utils/featureFlags';
 
 type Tab = 'mixtapes' | 'jcards';
 
 const route = useRoute();
 const router = useRouter();
+
+// The mixtapes on a 3D shelf (/explore/3d), while the library3d flag is on.
+const show3DToggle = computed(() => isLibrary3DEnabled(useRuntimeConfig().public.library3d, route.query));
 
 const activeTab = computed<Tab>(() => (route.query.tab === 'jcards' ? 'jcards' : 'mixtapes'));
 function setTab(tab: Tab) {
@@ -39,6 +43,7 @@ useSeoMeta({
             <div class="lib-page-eyebrow">{{ activeTab === 'jcards' ? '◆ COMMUNITY J-CARDS' : '◆ COMMUNITY MIXTAPES' }}</div>
             <h1 class="lib-page-title">Explore</h1>
           </div>
+          <LibraryViewToggle v-if="show3DToggle" area="explore" current="2d" class="lib-view-toggle-2d" />
           <div class="lib-tabs">
             <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
               <IconCassette class="icon-inline" aria-hidden="true" /> Mixtapes

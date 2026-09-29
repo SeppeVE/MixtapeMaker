@@ -57,6 +57,8 @@ export interface ShelfInfo {
   missingTape: boolean;
   /** A user's public shelf: whose it is. */
   owner: PublicShelfOwner | null;
+  /** The community shelf: each tape's author (user id → username). */
+  authors: Record<string, string>;
 }
 
 /**
@@ -75,7 +77,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
   const tape = ref<TapeMachineStatus>({ state: 'presented', target: 'presented', animating: false });
   const shelf = shallowRef<ShelfInfo>({
     status: 'loading', source: null, signedIn: false, hasMixtapes: false, error: false, entries: [], order: [],
-    mixtapeIds: [], missingTape: false, owner: null,
+    mixtapeIds: [], missingTape: false, owner: null, authors: {},
   });
   /** Sound effects off (remembered in localStorage). */
   const muted = ref(getLibrarySoundMuted());
@@ -224,6 +226,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         mixtapeIds: data.mixtapeIds ?? [],
         missingTape: !!data.missingTape,
         owner: data.owner ?? null,
+        authors: data.authors ?? {},
       };
       if (!quality.value.forced) {
         stopProbe = runProbe(sceneHandle, heroTape, q, (tier, medianMs) => {

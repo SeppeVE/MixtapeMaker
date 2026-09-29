@@ -15,7 +15,8 @@ import { registerCustomFonts } from '~/utils/fontManager';
 // tape card can do (the same store / database calls), plus editing and printing
 // its J-card. On a user's public shelf: copy the tape or the card to your library
 // (as Explore does), open its public page, print; your own public tapes can also be
-// edited from there. Sample tapes (signed out) can only be printed.
+// edited from there. The same goes for Explore's community shelf, where each tape's
+// author stands in for the owner. Sample tapes (signed out) can only be printed.
 const props = defineProps<{
   tape: TapeData;
   source: ShelfInfo['source'];
@@ -32,8 +33,8 @@ const ui = useUiStore();
 const mixtape = computed(() => props.tape.mixtape);
 /** Your own library (dev: the seeded shelf pretends to be yours). */
 const owned = computed(() => props.source === 'cloud' || props.source === 'seed');
-const isPublic = computed(() => props.source === 'public');
-/** Your own tape on your own public shelf. */
+const isPublic = computed(() => props.source === 'public' || props.source === 'community');
+/** Your own tape on a public shelf. */
 const editable = computed(() => owned.value || (isPublic.value && !!props.owner?.isYou));
 const { copying, requestCopyJCard, requestCopyMixtape } = useCopyToLibrary();
 const sides = computed(() => (
@@ -162,7 +163,10 @@ const remove = () => run('delete', async () => {
           </span>
           · updated {{ updated }}
         </template>
-        <template v-else-if="isPublic && owner">By @{{ owner.username }} · updated {{ updated }}</template>
+        <template v-else-if="isPublic && owner">
+          By <NuxtLink :to="`/user/${owner.username}`" class="lib3d-panel-author">@{{ owner.username }}</NuxtLink> · updated {{ updated }}
+        </template>
+        <template v-else-if="isPublic">Updated {{ updated }}</template>
         <template v-else>A sample tape</template>
       </p>
       <p v-if="mixtape.isCopy" class="lib3d-panel-note">
@@ -202,6 +206,9 @@ const remove = () => run('delete', async () => {
 </template>
 
 <style scoped>
+.lib3d-panel-author {
+  color: inherit;
+}
 .lib3d-panel {
   position: absolute;
   top: 12px;

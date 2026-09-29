@@ -93,6 +93,7 @@ Rendering mode is set per route in `nuxt.config.ts` → `routeRules`.
 | `/library/3d` | `pages/library/3d.vue` | client | The 3D library: the shelf of cassette cases (see README → 3D library, and `docs/3d-library-plan.md`). |
 | `/cards/designer` | `pages/cards/designer.vue` | client | J-card designer; wraps `<JCardView>` with the store's `activeCard`. Measures whether the previews fit above the footer and, if not, pushes the footer below the fold. |
 | `/explore` | `pages/explore/index.vue` | SSR | Two tabs (`?tab=jcards`), one component each: public mixtapes and public J-cards, with title search + pagination and author bylines. Tab, query and page all live in the URL so Back from a detail page restores the view. |
+| `/explore/3d` | `pages/explore/3d.vue` | client | The newest public mixtapes that have a public J-card, on a 3D shelf, with author bylines. Explore's 2D \| 3D switch leads here. |
 | `/explore/:id` | `pages/explore/[id].vue` | SSR | One public mixtape + author + public J-cards linked to it. 404 if private. |
 | `/share/:token` | `pages/share/[token].vue` | SSR | A mixtape by share token, public or not. Same view component as explore. |
 | `/user/:username` | `pages/user/[username]/index.vue` | SSR | Public profile: avatar, bio, public mixtapes and J-cards, or the "private" notice. |

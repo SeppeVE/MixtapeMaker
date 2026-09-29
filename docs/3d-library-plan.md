@@ -615,6 +615,14 @@ Build the geometry procedurally in code, so every dimension stays editable in di
 
 ## Progress log
 
+- **2026-09-29 · After launch: tweaks and a community shelf** (human requests).
+  - The last case on each shelf row shows its J-card cover on its lid (a one-cell-per-row cover atlas: drawn at once, then the real render).
+  - The cassette slides off the J-card's back flap before it lifts out, and turns clear of it (checked frame by frame against every panel).
+  - Fixed: at the end of a backward step (closing the case, putting the J-card away) the lid or card snapped back to where the step started, as if undone.
+  - **Explore on a 3D shelf:** `/explore/3d` shows the newest 150 public mixtapes that have a public J-card, each with its author (copy / tape page / print, or edit on your own). Explore's header has the 2D | 3D switch (not remembered, unlike the library's).
+  - The header 2D | 3D switch (library and Explore) is restyled: its "3D" half was dark on the dark header, practically invisible.
+  - `test:library3d` checks the community shelf too (48 checks).
+
 - **2026-09-25 · Stage 7: the 4096 px J-card limit on high confirmed** (human). **Stage 8 built:** debug code dev-only (checked in the bundle), flag on for everyone with 2D as the default (human decision), What's new draft, README and ARCHITECTURE.md. **Waiting on final sign-off.**
 
 - **2026-09-25 · Stage 7 built** (details under Stage 7):

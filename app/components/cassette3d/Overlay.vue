@@ -56,7 +56,18 @@ interface Action {
 const go = (state: TapeState) => () => emit('request', state);
 /** A user's public shelf (their profile), not your library. */
 const isPublic = computed(() => props.shelf.source === 'public');
+/** Everyone's public tapes (Explore). */
+const isCommunity = computed(() => props.shelf.source === 'community');
+/** Someone else's tapes (or yours as others see them): no New menu, no draft. */
+const othersShelf = computed(() => isPublic.value || isCommunity.value);
 const owner = computed(() => props.shelf.owner);
+/** Whose the tape off the shelf is: the shelf's owner, or on the community shelf its author. */
+const tapeOwner = computed(() => {
+  if (!isCommunity.value) return props.shelf.owner ?? undefined;
+  const userId = props.selectedTape?.mixtape.userId;
+  const username = userId ? props.shelf.authors[userId] : undefined;
+  return username ? { username, status: 'ok' as const, isYou: userId === auth.user?.id } : undefined;
+});
 const route = useRoute();
 /** The owner's profile, keeping a per-visit ?3d=1. */
 const profileLink = computed(() => ({
@@ -120,7 +131,7 @@ const announcement = computed(() => {
   if (props.tape.animating) return '';
   const s = props.tape.state;
   if (s === 'onShelf') {
-    const whose = isPublic.value && owner.value ? `@${owner.value.username}'s shelf` : 'The shelf';
+    const whose = isCommunity.value ? 'The community shelf' : isPublic.value && owner.value ? `@${owner.value.username}'s shelf` : 'The shelf';
     return `${whose}, ${props.shelf.order.length} tapes.`;
   }
   if (s === 'pulledOut') return `${selectedTitle.value}, ${ANNOUNCE.pulledOut}`;
@@ -155,7 +166,7 @@ const countLabel = computed(() => {
 const draft = computed(() => store.mixtape);
 const draftIsUnsaved = computed(() => {
   const d = draft.value;
-  if (!props.shelf.source || props.shelf.source === 'seed' || props.shelf.source === 'public') return false;
+  if (!props.shelf.source || props.shelf.source === 'seed' || othersShelf.value) return false;
   return (d.sideA.length > 0 || d.sideB.length > 0) && !props.shelf.mixtapeIds.includes(d.id);
 });
 async function saveDraft() {
@@ -188,7 +199,8 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
 
     <!-- Shelf toolbar -->
     <div v-if="onShelf && shelf.status === 'ready'" class="lib3d-toolbar">
-      <LibraryViewToggle v-if="!isPublic" current="3d" dark />
+      <LibraryViewToggle v-if="isCommunity" area="explore" current="3d" dark />
+      <LibraryViewToggle v-else-if="!isPublic" current="3d" dark />
       <NuxtLink v-else-if="owner" :to="profileLink" class="lib3d-owner">◀ @{{ owner.username }}</NuxtLink>
       <div v-if="hasTapes" class="lib3d-toolbar-search" role="search">
         <input
@@ -203,7 +215,7 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
         </select>
         <span class="lib3d-count">{{ countLabel }}</span>
       </div>
-      <details v-if="!isPublic" ref="menu" class="lib3d-menu">
+      <details v-if="!othersShelf" ref="menu" class="lib3d-menu">
         <summary class="lib3d-menu-button">＋ New</summary>
         <div class="lib3d-menu-items" @click="closeMenu">
           <button type="button" @click="store.newMixtape()">New mixtape</button>
@@ -229,7 +241,7 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
       :key="selectedTape.mixtape.id"
       :tape="selectedTape"
       :source="shelf.source"
-      :owner="shelf.owner"
+      :owner="tapeOwner"
       @updated="emit('updated', $event)"
       @deleted="emit('deleted', $event)"
     />
@@ -244,8 +256,13 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
         <p>@{{ owner.username }} has set their profile to private.</p>
       </template>
       <template v-else-if="shelf.error">
-        <p>{{ isPublic ? 'These tapes couldn\'t be loaded.' : 'Your tapes couldn\'t be loaded.' }}</p>
+        <p>{{ othersShelf ? 'These tapes couldn\'t be loaded.' : 'Your tapes couldn\'t be loaded.' }}</p>
         <button type="button" class="btn btn-primary" @click="$router.go(0)">↻ Try again</button>
+      </template>
+      <template v-else-if="isCommunity">
+        <p>No public mixtapes with a public J-card yet.</p>
+        <p class="lib3d-empty-sub">This shelf shows the newest public mixtapes that have a public J-card linked to them.</p>
+        <NuxtLink to="/explore" class="btn">Explore in 2D</NuxtLink>
       </template>
       <template v-else-if="isPublic && owner">
         <p>{{ owner.isYou ? 'You have' : `@${owner.username} has` }} no public mixtapes with a public J-card yet.</p>
@@ -286,7 +303,8 @@ useEventListener(window, 'keydown', (e: KeyboardEvent) => {
     <div class="lib3d-bottom">
       <!-- Signed out: the samples -->
       <div v-if="onShelf && shelf.status === 'ready' && shelf.missingTape" class="lib3d-note" role="status">
-        <template v-if="isPublic">That tape isn't on this shelf. It shows public mixtapes with a public J-card.</template>
+        <template v-if="isCommunity">That tape isn't on this shelf. It shows the newest public mixtapes with a public J-card.</template>
+        <template v-else-if="isPublic">That tape isn't on this shelf. It shows public mixtapes with a public J-card.</template>
         <template v-else-if="shelf.signedIn">That tape isn't on your shelf. The shelf shows your mixtapes that have a J-card.</template>
         <template v-else>Sign in to open that tape.</template>
       </div>

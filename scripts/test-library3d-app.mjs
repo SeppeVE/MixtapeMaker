@@ -2,8 +2,8 @@
 // Stage 5 (app integration) of the 3D library, end to end against a mocked
 // Supabase: the tape panel's details and actions (edit, J-card, PDF, share,
 // public, delete), the 2D/3D switch and its remembered choice, the ?tape= deep
-// link following the selection, the unsaved-draft note, and a user's public
-// shelf (/user/{username}/3d).
+// link following the selection, the unsaved-draft note, a user's public
+// shelf (/user/{username}/3d), and Explore's community shelf (/explore/3d).
 //
 // Needs the dev server started with the dummy project URL the mock listens on:
 //   NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NUXT_PUBLIC_SUPABASE_ANON_KEY=dummy npm run dev
@@ -88,11 +88,12 @@ const profileRow = (id, username, isPrivate = false) => ({
 });
 const profiles = [profileRow(USER_ID, 'tester'), profileRow(OTHER_USER, 'maker'), profileRow(PRIVATE_USER, 'hidden', true)];
 
-/** PostgREST `col=eq.value` filters, as the app sends them. */
+/** PostgREST `col=eq.value` and `col=in.(a,b)` filters, as the app sends them. */
 function matches(row, params) {
   for (const [key, value] of params) {
-    if (!value.startsWith('eq.') || !(key in row)) continue;
-    if (String(row[key]) !== value.slice(3)) return false;
+    if (!(key in row)) continue;
+    if (value.startsWith('eq.') && String(row[key]) !== value.slice(3)) return false;
+    if (value.startsWith('in.(') && !value.slice(4, -1).split(',').includes(String(row[key]))) return false;
   }
   return true;
 }
@@ -376,6 +377,42 @@ try {
   } else {
     await page.goto(`${BASE_URL}/user/maker/3d`, { waitUntil: 'networkidle' });
     check(new URL(page.url()).pathname === '/user/maker/3d', 'public shelf: flag on, opens without ?3d=1', page.url());
+  }
+
+  // 13. Explore's community shelf: everyone's public tapes that have a public J-card
+  // (Summer Drive is public with a public card since step 11; Rainy Sunday's card isn't).
+  await page.goto(`${BASE_URL}/explore?3d=1`, { waitUntil: 'networkidle' });
+  const exploreToggle = page.locator('.lib-header .lib-view-toggle');
+  check(flagOn === (await exploreToggle.count() > 0), `explore: 2D/3D switch ${flagOn ? 'shown' : 'hidden'} with the flag ${flagOn ? 'on' : 'off'}`);
+  if (flagOn) {
+    await exploreToggle.locator('.lib-view-toggle-btn', { hasText: '3D' }).click();
+    await page.waitForURL((u) => u.pathname === '/explore/3d', { timeout: 30_000 });
+    await page.waitForSelector('.lib3d-toolbar', { timeout: 60_000 });
+    info = await page.evaluate(() => window.__cassette3d.getShelfInfo());
+    check(JSON.stringify(info.ids) === JSON.stringify([TAPE_A, TAPE_D]), 'community shelf: public tapes with a public J-card, newest first', JSON.stringify(info.ids));
+    check(await page.locator('.lib3d-toolbar .lib-view-toggle').count() === 1 && !(await page.locator('.lib3d-menu').count()) && !(await page.locator('.lib3d-owner').count()),
+      'community shelf: 2D/3D switch, no New menu');
+    await page.screenshot({ path: `${OUT_DIR}app-community-shelf.png` });
+    await takeOut(info.ids.indexOf(TAPE_D));
+    const theirs = await panelText();
+    check(/By @maker/.test(theirs) && /Copy tape to my library/.test(theirs) && /Tape page/.test(theirs) && !/Edit tape|Delete/.test(theirs),
+      'community shelf: someone else\'s tape shows its author, copy and tape page', theirs.replace(/\n/g, ' | '));
+    check(query().get('tape') === TAPE_D, 'community shelf: ?tape= follows the selection');
+    await page.screenshot({ path: `${OUT_DIR}app-community-panel.png` });
+    await page.getByRole('button', { name: 'Back to the shelf' }).click();
+    await idle();
+    await takeOut(info.ids.indexOf(TAPE_A));
+    const own = await panelText();
+    check(/By @tester/.test(own) && /Edit tape/.test(own) && !/Copy tape/.test(own), 'community shelf: your own tape can be edited', own.replace(/\n/g, ' | '));
+    await page.getByRole('button', { name: 'Back to the shelf' }).click();
+    await idle();
+    await page.locator('.lib3d-toolbar .lib-view-toggle-btn', { hasText: '2D' }).click();
+    await page.waitForURL((u) => u.pathname === '/explore', { timeout: 30_000 });
+    check(new URL(page.url()).pathname === '/explore', 'community shelf: 2D goes back to the Explore grid');
+  } else {
+    await page.goto(`${BASE_URL}/explore/3d`, { waitUntil: 'commit' });
+    await page.waitForURL((u) => u.pathname === '/explore', { timeout: 30_000 }).catch(() => undefined);
+    check(new URL(page.url()).pathname === '/explore', 'community shelf: flag off → the Explore grid', page.url());
   }
 
   // 12. Phone: the panel starts folded.

@@ -68,9 +68,35 @@
 }
 
 /* ── Tabs ── */
-/* 2D ↔ 3D switch (only while the 3D library flag is on). */
-.lib-view-toggle-2d {
+/* 2D ↔ 3D switch (only while the 3D library flag is on), in the header's colours:
+   the component's default dark ink didn't show on the dark header. */
+.lib-header .lib-view-toggle.lib-view-toggle-2d {
   align-self: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  color: var(--color-paper);
+  border: 2px solid var(--color-paper);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+@media (min-width: 720px) {
+  .lib-header .lib-view-toggle.lib-view-toggle-2d {
+    margin-left: 24px;
+  }
+}
+.lib-header .lib-view-toggle-2d .lib-view-toggle-btn.lib-view-toggle-btn {
+  padding: 8px 14px 6px;
+  color: var(--color-sage);
+  opacity: 1;
+}
+.lib-header .lib-view-toggle-2d .lib-view-toggle-btn.lib-view-toggle-btn:hover {
+  color: var(--color-paper);
+  background: rgba(255, 255, 255, 0.12);
+}
+.lib-header .lib-view-toggle-2d .lib-view-toggle-btn.lib-view-toggle-btn--on {
+  color: var(--color-text);
+  background: var(--color-paper);
 }
 
 .lib-tabs {

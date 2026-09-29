@@ -26,7 +26,7 @@ A retro-styled web application for creating cassette mixtapes using the Spotify 
 - ⧉ Copy any public mixtape or J-card into your own library and make it yours
 - 🖨️ Export any public J-card to a print-ready PDF (A4, US Letter or fit-to-card)
 - ★ "What's new" notifications for signed-in users, posted from the `/admin` panel
-- 📼 3D library: your mixtapes as cassette cases on a wooden shelf. Take one out, open the case, slide the cassette out and unfold your J-card in 3D; a public shelf on every profile too (`/library/3d`, `/user/{username}/3d`)
+- 📼 3D library: your mixtapes as cassette cases on a wooden shelf. Take one out, open the case, slide the cassette out and unfold your J-card in 3D; a public shelf on every profile and a community shelf on Explore too (`/library/3d`, `/user/{username}/3d`, `/explore/3d`)
 
 ## Setup
 
@@ -102,8 +102,9 @@ npm run dev
 
 ## 3D library
 
-`/library/3d` shows the library as cassette cases on a shelf, and `/user/{username}/3d` a
-profile's public tapes. It's switched on for everyone (`NUXT_PUBLIC_LIBRARY3D=false`
+`/library/3d` shows the library as cassette cases on a shelf, `/user/{username}/3d` a
+profile's public tapes, and `/explore/3d` the newest public tapes from everyone (Explore's
+2D | 3D switch). It's switched on for everyone (`NUXT_PUBLIC_LIBRARY3D=false`
 switches it off; `?3d=1` then still opens it for one visit). The library opens in 2D
 until someone flips the 2D | 3D switch, which is remembered in `localStorage`.
 

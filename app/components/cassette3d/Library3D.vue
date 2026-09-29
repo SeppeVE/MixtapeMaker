@@ -12,17 +12,21 @@ import Overlay from './Overlay.vue';
 const props = defineProps<{
   /** Show this user's public shelf instead of your library. */
   username?: string;
+  /** Show everyone's public tapes (Explore) instead of your library. */
+  community?: boolean;
 }>();
 const container = useTemplateRef<HTMLElement>('canvasHost');
 const {
   status, textureStatus, tape, shelf, hovered, selected, selectedTape,
   request, step, flip, select, highlight, setShelfView, updateMixtape, removeTape, addMixtapeId, muted, setMuted,
-} = useCassetteScene(container, { username: props.username });
+} = useCassetteScene(container, { username: props.username, community: props.community });
 
 // Where to go when the 3D view can't run.
 const fallback = props.username
   ? { to: `/user/${props.username}`, label: 'Open the profile page' }
-  : { to: { path: '/library', query: { view: '2d' } }, label: 'Open the regular library' };
+  : props.community
+    ? { to: '/explore', label: 'Open Explore' }
+    : { to: { path: '/library', query: { view: '2d' } }, label: 'Open the regular library' };
 
 // No WebGL 2 here: straight on to the 2D view (or the profile), with a note saying
 // why, and /library stops sending this browser to the 3D view.
@@ -30,8 +34,8 @@ const router = useRouter();
 const ui = useUiStore();
 watch(status, (s) => {
   if (s !== 'unsupported') return;
-  setLibraryView('2d');
-  ui.showToast('Your browser can\'t show the 3D library (no WebGL 2), so here\'s the regular one.', 'info');
+  if (!props.username && !props.community) setLibraryView('2d');
+  ui.showToast('Your browser can\'t show the 3D shelf (no WebGL 2), so here\'s the regular view.', 'info');
   void router.replace(fallback.to);
 });
 </script>
@@ -59,7 +63,7 @@ watch(status, (s) => {
       @mute="setMuted"
     />
     <div v-if="status === 'ready' && shelf.status === 'loading'" class="lib3d-hint" role="status">
-      {{ props.username ? `Fetching @${props.username}'s tapes…` : 'Fetching your tapes…' }}
+      {{ props.username ? `Fetching @${props.username}'s tapes…` : props.community ? 'Fetching the public tapes…' : 'Fetching your tapes…' }}
     </div>
     <div v-else-if="status === 'ready' && textureStatus === 'loading' && tape.target !== 'onShelf'" class="lib3d-hint" role="status">Printing the J-card…</div>
     <div v-if="status !== 'ready'" class="lib3d-notice" role="status">

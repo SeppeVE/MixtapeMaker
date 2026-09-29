@@ -69,6 +69,16 @@ export async function listPublicJCardsForMixtape(mixtapeId: string): Promise<JCa
   return (data as DbJCard[]).map(dbToJCard);
 }
 
+/** Public cards linked to any of these mixtapes (Explore's 3D shelf). */
+export async function listPublicJCardsForMixtapes(mixtapeIds: string[]): Promise<JCard[]> {
+  if (!mixtapeIds.length) return [];
+  const { data, error } = await supabase
+    .from('jcards').select('*').in('mixtape_id', mixtapeIds).eq('is_public', true).eq('is_copy', false)
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data as DbJCard[]).map(dbToJCard);
+}
+
 /**
  * Custom font payloads for a page of public cards, keyed by card id. The
  * preview view strips these (they're large base64 blobs), so the Explore grid

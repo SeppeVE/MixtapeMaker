@@ -2,24 +2,27 @@ import { watch } from 'vue';
 import type { LocationQuery } from 'vue-router';
 import { useAuthStore } from '~/stores/auth';
 import { useJCardLibraryStore } from '~/stores/jcardLibrary';
-import { loadMixtapes, loadPublicMixtapesByUser } from '~/utils/database';
-import { listPublicJCardsByUser } from '~/utils/jcardDatabase';
-import { loadProfileByUsername } from '~/utils/profileDatabase';
+import { loadMixtapes, loadPublicMixtapesByUser, searchPublicMixtapes } from '~/utils/database';
+import { listPublicJCardsByUser, listPublicJCardsForMixtapes } from '~/utils/jcardDatabase';
+import { loadProfileByUsername, loadProfilesByIds } from '~/utils/profileDatabase';
 import { pairTapes, type TapeData } from '~/lib/cassette3d/tapeData';
 import { isTapeState, type TapeState } from '~/lib/cassette3d/animation/states';
 import { reportError } from '~/lib/cassette3d/report';
 
 const AUTH_TIMEOUT_MS = 5000;
 const MAX_SEED = 2000;
+/** Explore's shelf: this many of the newest public mixtapes (those with a public J-card stand on it). */
+const COMMUNITY_TAPES = 150;
 
 export interface ShelfData {
   tapes: TapeData[];
   /**
    * cloud: your mixtapes that have a J-card; samples: the built-in samples (signed
    * out, or ?fixture=); seed: generated tapes (dev, ?seed=<n>); public: one
-   * user's public mixtapes that have a public J-card (their profile's shelf).
+   * user's public mixtapes that have a public J-card (their profile's shelf);
+   * community: everyone's, the newest public mixtapes with a public J-card (Explore).
    */
-  source: 'cloud' | 'samples' | 'seed' | 'public';
+  source: 'cloud' | 'samples' | 'seed' | 'public' | 'community';
   signedIn: boolean;
   /** Signed in with mixtapes, none of which has a J-card yet (for the empty state). */
   hasMixtapes: boolean;
@@ -33,6 +36,8 @@ export interface ShelfData {
   missingTape?: boolean;
   /** The public shelf's owner. */
   owner?: PublicShelfOwner;
+  /** The community shelf: each tape's author (user id → username), where known. */
+  authors?: Record<string, string>;
 }
 
 export interface PublicShelfOwner {
@@ -43,9 +48,10 @@ export interface PublicShelfOwner {
   isYou: boolean;
 }
 
-/** Which shelf to show: your library, or a user's public tapes (/user/{username}/3d). */
+/** Which shelf to show: your library, a user's public tapes (/user/{username}/3d), or everyone's (/explore/3d). */
 export interface ShelfScope {
   username?: string;
+  community?: boolean;
 }
 
 /**
@@ -89,6 +95,7 @@ export async function resolveShelfTapes(query: LocationQuery, isDev: boolean, sc
   const auth = useAuthStore();
   await waitFor(() => !auth.loading, AUTH_TIMEOUT_MS);
   if (scope.username) return resolvePublicShelf(scope.username, query, initialFor, auth.user?.id ?? null);
+  if (scope.community) return resolveCommunityShelf(query, initialFor, auth.user?.id ?? null);
   if (auth.user) {
     try {
       const jcards = useJCardLibraryStore();
@@ -147,6 +154,33 @@ async function resolvePublicShelf(
     console.error(`[cassette3d] Could not load @${name}'s public tapes`, err);
     reportError(err, 'loadPublicTapes');
     return empty({ username: name, status: 'ok', isYou: false }, true);
+  }
+}
+
+/**
+ * Explore's shelf: the newest public mixtapes, as the Explore grid lists them, that
+ * have a public J-card, with their authors' usernames for the bylines.
+ */
+async function resolveCommunityShelf(
+  query: LocationQuery,
+  initialFor: (index: number | null) => ShelfData['initial'],
+  viewerId: string | null,
+): Promise<ShelfData> {
+  try {
+    const { mixtapes } = await searchPublicMixtapes('', COMMUNITY_TAPES, 0);
+    const jcards = await listPublicJCardsForMixtapes(mixtapes.map((m) => m.id));
+    const tapes = pairTapes(mixtapes, jcards);
+    // Bylines are best-effort, as on the Explore grid.
+    const profiles = await loadProfilesByIds(tapes.map((t) => t.mixtape.userId ?? '')).catch(() => new Map());
+    const authors = Object.fromEntries([...profiles].map(([id, p]) => [id, p.username]));
+    const { index, missingTape } = findWanted(tapes, query);
+    return {
+      tapes, source: 'community', signedIn: !!viewerId, hasMixtapes: mixtapes.length > 0, initial: initialFor(index), missingTape, authors,
+    };
+  } catch (err) {
+    console.error('[cassette3d] Could not load the public tapes', err);
+    reportError(err, 'loadCommunityTapes');
+    return { tapes: [], source: 'community', signedIn: !!viewerId, hasMixtapes: false, initial: null, error: true };
   }
 }
 

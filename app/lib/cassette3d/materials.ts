@@ -223,13 +223,16 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
   return material;
 }
 
+/** Brightest a shelf case's reflections may get (linear, before tone mapping). */
+const SHELF_REFLECTION_CAP = 0.045;
+
 /**
  * Cheaper case plastic for the shelf's many cases: no transmission pass. It adds
  * the plastic's reflections on top of what's behind (black base colour, additive
  * source) and dims that a touch through its alpha, like thin clear plastic.
  */
 export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
-  return new MeshPhysicalMaterial({
+  const material = new MeshPhysicalMaterial({
     name: 'shelfPlastic',
     color: '#000000',
     metalness: 0,
@@ -248,6 +251,19 @@ export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
     blendDst: OneMinusSrcAlphaFactor,
     side: FrontSide,
   });
+  // Where the studio's softbox lines up with the camera (the right end of a row, seen
+  // from the front) its reflection washed whole spines out to white. Cap how bright the
+  // reflections get: the plastic keeps a sheen and the spine under it stays readable.
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      `#include <lights_fragment_end>
+      reflectedLight.indirectSpecular = min(reflectedLight.indirectSpecular, vec3(${SHELF_REFLECTION_CAP.toFixed(3)}));
+      reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(${SHELF_REFLECTION_CAP.toFixed(3)}));`,
+    );
+  };
+  material.customProgramCacheKey = () => 'shelfPlastic';
+  return material;
 }
 
 /**

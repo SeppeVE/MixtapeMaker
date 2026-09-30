@@ -81,11 +81,15 @@ export function createTapeMaterials(tint: CaseTint = 'clear', surfaces?: Surface
     const labelGrain = { normal: plain.normal.clone(), roughness: plain.roughness.clone() };
     applyPaperGrain(label, labelGrain, CASSETTE.label.width, CASSETTE.label.top - CASSETTE.label.bottom, false);
   }
+  // The satin black shell showed the studio's softbox across its whole face and read
+  // as silver; its reflections are capped like the case's.
+  const shell = withReflectionCap(new MeshStandardMaterial({ name: 'shell', color: '#141414', roughness: 0.5, metalness: 0 }), SHELL_REFLECTION_CAP);
+  const shellGloss = withReflectionCap(new MeshStandardMaterial({ name: 'shellGloss', color: '#161616', roughness: 0.32, metalness: 0 }), SHELL_REFLECTION_CAP);
   return {
     casePlastic,
-    shell: new MeshStandardMaterial({ name: 'shell', color: '#141414', roughness: 0.5, metalness: 0 }),
-    shellGloss: new MeshStandardMaterial({ name: 'shellGloss', color: '#161616', roughness: 0.32, metalness: 0 }),
-    windowPane: new MeshPhysicalMaterial({
+    shell,
+    shellGloss,
+    windowPane: withReflectionCap(new MeshPhysicalMaterial({
       name: 'windowPane',
       color: '#d8d4cc',
       roughness: 0.08,
@@ -95,7 +99,7 @@ export function createTapeMaterials(tint: CaseTint = 'clear', surfaces?: Surface
       depthWrite: false,
       side: DoubleSide,
       specularIntensity: 1,
-    }),
+    }), CASE_REFLECTION_CAP),
     hub: new MeshStandardMaterial({ name: 'hub', color: '#e9e6df', roughness: 0.45, metalness: 0 }),
     tape: new MeshStandardMaterial({ name: 'tape', color: '#3a2317', roughness: 0.35, metalness: 0.1 }),
     screw: new MeshStandardMaterial({ name: 'screw', color: '#8d8d8f', roughness: 0.35, metalness: 1 }),
@@ -120,7 +124,10 @@ function addCaseScuffs(material: MeshPhysicalMaterial, scuffs: Texture) {
     scuffRoughness.value = SURFACE.scuffRoughness;
     scuffScatter.value = SURFACE.scuffScatter;
   };
-  material.onBeforeCompile = (shader) => {
+  const capCaseReflections = material.onBeforeCompile.bind(material);
+  material.onBeforeCompile = (shader, renderer) => {
+    // First, so the scuffs' scatter is added before the cap (see createCasePlasticMaterial).
+    capCaseReflections(shader, renderer);
     shader.uniforms.scuffRoughness = scuffRoughness;
     shader.uniforms.scuffScatter = scuffScatter;
     shader.vertexShader = shader.vertexShader
@@ -220,11 +227,31 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
     side: FrontSide,
   });
   applyCaseTint(material, tint);
+  // As on the shelf: a softbox caught in the lid could wash the J-card behind it out
+  // to white. Capped, the reflections stay a sheen over the card.
+  return withReflectionCap(material, CASE_REFLECTION_CAP);
+}
+
+/** Brightest the reflections may get (linear, before tone mapping): hero case and panes, shelf cases, cassette shell. */
+const CASE_REFLECTION_CAP = 0.12;
+const SHELF_REFLECTION_CAP = 0.045;
+const SHELL_REFLECTION_CAP = 0.05;
+
+/** Cap a material's reflections at `cap` (see capReflections). */
+function withReflectionCap<T extends MeshStandardMaterial>(material: T, cap: number): T {
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = capReflections(shader.fragmentShader, cap);
+  };
+  material.customProgramCacheKey = () => `reflectionCap-${cap}`;
   return material;
 }
 
-/** Brightest a shelf case's reflections may get (linear, before tone mapping). */
-const SHELF_REFLECTION_CAP = 0.045;
+/** Clamp a lit material's specular (its reflections) at `cap`, once every light is in. */
+function capReflections(fragmentShader: string, cap: number): string {
+  return fragmentShader.replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+    reflectedLight.indirectSpecular = min(reflectedLight.indirectSpecular, vec3(${cap.toFixed(3)}));
+    reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(${cap.toFixed(3)}));`);
+}
 
 /**
  * Cheaper case plastic for the shelf's many cases: no transmission pass. It adds
@@ -254,16 +281,7 @@ export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
   // Where the studio's softbox lines up with the camera (the right end of a row, seen
   // from the front) its reflection washed whole spines out to white. Cap how bright the
   // reflections get: the plastic keeps a sheen and the spine under it stays readable.
-  material.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <lights_fragment_end>',
-      `#include <lights_fragment_end>
-      reflectedLight.indirectSpecular = min(reflectedLight.indirectSpecular, vec3(${SHELF_REFLECTION_CAP.toFixed(3)}));
-      reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(${SHELF_REFLECTION_CAP.toFixed(3)}));`,
-    );
-  };
-  material.customProgramCacheKey = () => 'shelfPlastic';
-  return material;
+  return withReflectionCap(material, SHELF_REFLECTION_CAP);
 }
 
 /**

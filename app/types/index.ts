@@ -144,6 +144,8 @@ export interface JCardRender {
   inside?: JCardRenderFace | null;
   /** The outside spine on its own, small, for the 3D library's shelf. Absent on renders stored before it existed. */
   spine?: { url: string; height: number } | null;
+  /** The outside cover (flap 1) on its own, small, for the shelf's hovered and row-end cases. Absent on renders stored before it existed. */
+  cover?: { url: string; height: number } | null;
 }
 
 export interface JCard {

@@ -2,8 +2,10 @@ import { supabase } from './supabase';
 import type { JCard, JCardRender, JCardRenderFace } from '../types';
 import type { JCardSnapshot } from '../lib/cassette3d/textures/jcardSnapshot';
 import {
+  COVER_RENDER_HEIGHT,
   RENDER_BUCKET,
   SPINE_RENDER_HEIGHT,
+  coverFromSnapshot,
   encodeFace,
   jcardRenderVersion,
   loadStoredSnapshot,
@@ -15,10 +17,11 @@ import {
  *
  * After the editor saves a card to the cloud, the card is rendered once its
  * edits have settled and the images go to the `jcard-renders` bucket under
- * {user_id}/{card_id}/{version}-{outside|inside|spine}.webp. The row's `render`
- * column records the URLs, the panel layout and the content hash (`version`)
- * they belong to. The spine is a small separate crop for the 3D library's shelf,
- * which shows every card's spine at once.
+ * {user_id}/{card_id}/{version}-{outside|inside|spine|cover}.webp. The row's
+ * `render` column records the URLs, the panel layout and the content hash
+ * (`version`) they belong to. The spine and the cover are small separate crops for
+ * the 3D library's shelf, which shows every card's spine at once and the cover of
+ * the case you hover (and of the last case on each row).
  * The 3D view uses them while the hash still matches the card's content, and
  * otherwise renders in the browser (and, for your own cards, uploads the result).
  */
@@ -31,7 +34,7 @@ const CACHE_SECONDS = '31536000';
 type RenderableCard = Pick<JCard, 'id' | 'userId' | 'content'>;
 
 /** Upload one image of a card's render; returns its public URL. */
-async function uploadImage(folder: string, version: string, name: 'outside' | 'inside' | 'spine', canvas: HTMLCanvasElement): Promise<string> {
+async function uploadImage(folder: string, version: string, name: 'outside' | 'inside' | 'spine' | 'cover', canvas: HTMLCanvasElement): Promise<string> {
   const blob = await encodeFace(canvas);
   const ext = blob.type === 'image/webp' ? 'webp' : 'png';
   const path = `${folder}/${version}-${name}.${ext}`;
@@ -49,6 +52,11 @@ async function uploadSpine(folder: string, version: string, snapshot: JCardSnaps
   return canvas ? { url: await uploadImage(folder, version, 'spine', canvas), height: canvas.height } : null;
 }
 
+async function uploadCover(folder: string, version: string, snapshot: JCardSnapshot): Promise<JCardRender['cover']> {
+  const canvas = coverFromSnapshot(snapshot, COVER_RENDER_HEIGHT);
+  return canvas ? { url: await uploadImage(folder, version, 'cover', canvas), height: canvas.height } : null;
+}
+
 /** Upload a card's snapshot and point the row at it. Returns the stored render. */
 export async function uploadJCardRender(card: RenderableCard, snapshot: JCardSnapshot, version: string): Promise<JCardRender> {
   const folder = `${card.userId}/${card.id}`;
@@ -61,6 +69,7 @@ export async function uploadJCardRender(card: RenderableCard, snapshot: JCardSna
     outside: await face('outside', snapshot.outside.canvas, toPanels(snapshot.outside.panels)),
     inside: snapshot.inside ? await face('inside', snapshot.inside.canvas, toPanels(snapshot.inside.panels)) : null,
     spine: await uploadSpine(folder, version, snapshot),
+    cover: await uploadCover(folder, version, snapshot),
   };
   const { error } = await supabase.from('jcards').update({ render }).eq('id', card.id);
   if (error) throw error;
@@ -69,12 +78,17 @@ export async function uploadJCardRender(card: RenderableCard, snapshot: JCardSna
 }
 
 /**
- * Add the spine to a render stored before spines were (same version, so the
- * faces stay). `snapshot` is that render, loaded back. Returns the updated render.
+ * Add the spine and/or cover crop to a render stored before they were (same
+ * version, so the faces stay). `snapshot` is that render, loaded back. Returns the
+ * updated render.
  */
-export async function uploadJCardSpine(card: RenderableCard, render: JCardRender, snapshot: JCardSnapshot): Promise<JCardRender> {
-  const spine = await uploadSpine(`${card.userId}/${card.id}`, render.version, snapshot);
-  const next: JCardRender = { ...render, spine };
+export async function uploadJCardThumbnails(card: RenderableCard, render: JCardRender, snapshot: JCardSnapshot): Promise<JCardRender> {
+  const folder = `${card.userId}/${card.id}`;
+  const next: JCardRender = {
+    ...render,
+    spine: render.spine ?? await uploadSpine(folder, render.version, snapshot),
+    cover: render.cover ?? await uploadCover(folder, render.version, snapshot),
+  };
   const { error } = await supabase.from('jcards').update({ render: next }).eq('id', card.id);
   if (error) throw error;
   return next;
@@ -143,8 +157,8 @@ async function renderAndStore(card: RenderableCard) {
   if (rendered.get(card.id) === version) return;
   const stored = await storedRender(card.id);
   if (stored?.version === version) {
-    // Stored before spines were: add one from the stored images (no re-render).
-    if (!stored.spine) await uploadJCardSpine(card, stored, await loadStoredSnapshot(stored));
+    // Stored before spines or covers were: add them from the stored images (no re-render).
+    if (!stored.spine || !stored.cover) await uploadJCardThumbnails(card, stored, await loadStoredSnapshot(stored));
     rendered.set(card.id, version);
     return;
   }

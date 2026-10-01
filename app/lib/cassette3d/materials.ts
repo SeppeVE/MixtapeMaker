@@ -235,22 +235,28 @@ export function createCasePlasticMaterial(tint: CaseTint = 'clear'): MeshPhysica
 /** Brightest the reflections may get (linear, before tone mapping): hero case and panes, shelf cases, cassette shell. */
 const CASE_REFLECTION_CAP = 0.12;
 const SHELF_REFLECTION_CAP = 0.045;
+/**
+ * The shelf cases' highlights from the lamps (the room's point lights, the key light):
+ * capped lower. A shelf case adds its light on top of the spine or cover under it, and
+ * at 0.045 a fairy light still left a pale spot on a hovered, turned case's cover.
+ */
+const SHELF_HIGHLIGHT_CAP = 0.008;
 const SHELL_REFLECTION_CAP = 0.05;
 
-/** Cap a material's reflections at `cap` (see capReflections). */
-function withReflectionCap<T extends MeshStandardMaterial>(material: T, cap: number): T {
+/** Cap a material's reflections at `cap`, and its highlights from lights at `directCap` (see capReflections). */
+function withReflectionCap<T extends MeshStandardMaterial>(material: T, cap: number, directCap = cap): T {
   material.onBeforeCompile = (shader) => {
-    shader.fragmentShader = capReflections(shader.fragmentShader, cap);
+    shader.fragmentShader = capReflections(shader.fragmentShader, cap, directCap);
   };
-  material.customProgramCacheKey = () => `reflectionCap-${cap}`;
+  material.customProgramCacheKey = () => `reflectionCap-${cap}-${directCap}`;
   return material;
 }
 
-/** Clamp a lit material's specular (its reflections) at `cap`, once every light is in. */
-function capReflections(fragmentShader: string, cap: number): string {
+/** Clamp a lit material's specular, once every light is in: reflections of the surroundings at `cap`, highlights from lights at `directCap`. */
+function capReflections(fragmentShader: string, cap: number, directCap = cap): string {
   return fragmentShader.replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
     reflectedLight.indirectSpecular = min(reflectedLight.indirectSpecular, vec3(${cap.toFixed(3)}));
-    reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(${cap.toFixed(3)}));`);
+    reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(${directCap.toFixed(3)}));`);
 }
 
 /**
@@ -281,7 +287,7 @@ export function createShelfPlasticMaterial(): MeshPhysicalMaterial {
   // Where the studio's softbox lines up with the camera (the right end of a row, seen
   // from the front) its reflection washed whole spines out to white. Cap how bright the
   // reflections get: the plastic keeps a sheen and the spine under it stays readable.
-  return withReflectionCap(material, SHELF_REFLECTION_CAP);
+  return withReflectionCap(material, SHELF_REFLECTION_CAP, SHELF_HIGHLIGHT_CAP);
 }
 
 /**

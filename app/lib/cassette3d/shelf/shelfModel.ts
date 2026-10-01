@@ -35,7 +35,9 @@ import { createSpineAtlas, type SpineAtlas, type SpineFace } from './spineAtlas'
  *                cell of the spine atlas through a per-instance UV rect
  *                (onBeforeCompile). The last case of each row, the only one
  *                whose lid shows, wears its J-card cover there from the cover
- *                atlas; the other faces take the card's colour.
+ *                atlas, and so does the hovered case (one more cell), which
+ *                turns its lid towards the viewer; the other faces take the
+ *                card's colour.
  *   plastic      one InstancedMesh of the clear case, same instance matrices, in a
  *                cheaper plastic than the hero's (no transmission pass).
  *
@@ -55,8 +57,11 @@ export interface Shelf {
   layout: ShelfLayout;
   atlas: SpineAtlas;
   covers: CoverAtlas;
-  /** Give a tape's case its J-card cover, shown while it's the last on its row. */
-  setCover: (index: number, cover: HTMLCanvasElement) => void;
+  /**
+   * Give a tape's case its J-card cover (undefined forgets it), shown while it's the
+   * last on its row or hovered.
+   */
+  setCover: (index: number, cover: HTMLCanvasElement | undefined) => void;
   /** Tapes whose lid shows: the last one standing on each row. */
   rowEnds: () => number[];
   /** Put these tapes (indices) on the shelf in this order; everything else is hidden. */
@@ -82,6 +87,7 @@ export interface Shelf {
   dispose: () => void;
 }
 
+const Y_AXIS = new Vector3(0, 1, 0);
 /** Spine out: the case frame's −X (the hinge edge) faces the viewer. */
 const SPINE_OUT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2);
 /** Exponential easing rates (1/s) for moving between slots and sliding out on hover. */
@@ -121,7 +127,9 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   const face: SpineFace = { zMin: inner.z0, zMax: inner.z1, yMin: -inner.y, yMax: inner.y };
   const atlas = createSpineAtlas(Math.max(count, 1), face, renderer);
   const rowCount = layout.bays * SHELF.rows;
-  const covers = createCoverAtlas(rowCount, { xMin: inner.x0, xMax: inner.x1, yMin: -inner.y, yMax: inner.y }, renderer);
+  // One cell per row, and one for the hovered case.
+  const hoverCell = rowCount;
+  const covers = createCoverAtlas(rowCount + 1, { xMin: inner.x0, xMax: inner.x1, yMin: -inner.y, yMax: inner.y }, renderer);
 
   const contentsGeometry = new BoxGeometry(inner.x1 - inner.x0, inner.y * 2, inner.z1 - inner.z0);
   contentsGeometry.translate((inner.x0 + inner.x1) / 2, 0, (inner.z0 + inner.z1) / 2);
@@ -180,7 +188,12 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
         ao *= mix(0.8, 1.0, smoothstep(${f(inner.y)}, ${f(inner.y - 1.2)}, vCaseLocal.y));
         ao *= mix(0.55, 1.0, smoothstep(${f(inner.x1)}, ${f(inner.x0)}, vCaseLocal.x));
         ao = mix(ao, 1.0, vHover * 0.6);
-      `));
+      `))
+      // Card stock: no bright highlights, or a hovered cover turned towards the
+      // fairy lights catches a white spot right over its art.
+      .replace('#include <aomap_fragment>', `#include <aomap_fragment>
+        reflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(0.03));
+        reflectedLight.indirectSpecular = min(reflectedLight.indirectSpecular, vec3(0.03));`);
   };
   contentsMaterial.customProgramCacheKey = () => 'shelfContents';
 
@@ -210,7 +223,13 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   const slotOf = new Int32Array(count).fill(-1);
   let taken: number | null = null;
   let hovered: number | null = null;
+  /** The case last hovered, while it's still turned. */
+  let leaving: number | null = null;
   const moving = new Set<number>();
+  const turn = new Quaternion();
+  const turned = new Quaternion();
+  const pivot = new Vector3();
+  const maxTurn = (SHELF.hoverTurnDeg * Math.PI) / 180;
   const m = new Matrix4();
   const one = new Vector3(1, 1, 1);
   const zero = new Vector3(0, 0, 0);
@@ -220,10 +239,17 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
 
   // --- Covers on the row ends -----------------------------------------------------------
   const coverOf: (HTMLCanvasElement | undefined)[] = [];
-  /** Tape standing last on each row (−1: empty row), and what each row's cell holds. */
+  /** Tape standing last on each row (−1: empty row), and what each cell (rows, then the hover cell) holds. */
   const rowEnd = new Int32Array(rowCount).fill(-1);
   const cellHolds: (HTMLCanvasElement | undefined)[] = [];
   const noCover = [0, 0, 0, 0];
+  const fillCell = (cell: number, i: number, cover: HTMLCanvasElement) => {
+    if (cellHolds[cell] !== cover) {
+      covers.setCover(cell, cover, tapes[i]!.color);
+      cellHolds[cell] = cover;
+    }
+    coverAttr.set(covers.cellRect(cell), i * 4);
+  };
 
   function refreshCovers() {
     rowEnd.fill(-1);
@@ -236,20 +262,32 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     for (let i = 0; i < count; i++) coverAttr.set(noCover, i * 4);
     rowEnd.forEach((i, row) => {
       const cover = i >= 0 ? coverOf[i] : undefined;
-      if (!cover) return;
-      if (cellHolds[row] !== cover) {
-        covers.setCover(row, cover, tapes[i]!.color);
-        cellHolds[row] = cover;
-      }
-      coverAttr.set(covers.cellRect(row), i * 4);
+      if (cover) fillCell(row, i, cover);
     });
+    // The hovered case, unless it's a row end and has its cover already.
+    // While it eases back after the hover ends it keeps the cell, so the cover doesn't pop off mid-turn.
+    const h = hovered ?? leaving;
+    if (h !== null && shown(h) && !rowEnd.includes(h) && coverOf[h]) fillCell(hoverCell, h, coverOf[h]!);
     coverAttr.needsUpdate = true;
   }
 
   function writeMatrix(i: number) {
     p.copy(cur[i]!);
     p.z += hoverCur[i]!;
-    m.compose(p, SPINE_OUT, shown(i) ? one : zero);
+    const k = hoverCur[i]! / SHELF.hoverPull;
+    if (k > 1e-4) {
+      // Turn the lid (+X in world, cover side) towards the viewer about the front
+      // corner on the other side, so nothing swings into the left neighbour.
+      const a = maxTurn * k;
+      turn.setFromAxisAngle(Y_AXIS, -a);
+      turned.multiplyQuaternions(turn, SPINE_OUT);
+      // Pivot: the front (spine) edge on the −X side, relative to the case centre.
+      pivot.set(-CASE.depth / 2, 0, CASE.width / 2);
+      p.add(pivot).sub(pivot.applyQuaternion(turn));
+      m.compose(p, turned, shown(i) ? one : zero);
+    } else {
+      m.compose(p, SPINE_OUT, shown(i) ? one : zero);
+    }
     contents.setMatrixAt(i, m);
   }
 
@@ -282,7 +320,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
     setCover(index, cover) {
       if (index < 0 || index >= count) return;
       coverOf[index] = cover;
-      if (rowEnd.includes(index)) refreshCovers();
+      if (rowEnd.includes(index) || index === hovered || index === leaving) refreshCovers();
     },
     rowEnds: () => [...rowEnd].filter((i) => i >= 0),
     setOrder,
@@ -296,9 +334,14 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
       refreshCovers();
     },
     setHovered(index) {
-      if (hovered !== null) moving.add(hovered);
+      if (index === hovered) return;
+      if (hovered !== null) {
+        moving.add(hovered);
+        leaving = hovered;
+      }
       hovered = index;
       if (index !== null) moving.add(index);
+      refreshCovers();
     },
     slotMatrix(index, out) {
       if (index < 0 || index >= count || slotOf[index]! < 0) return null;
@@ -329,6 +372,10 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
           c.copy(target[i]!);
           hoverCur[i] = wanted;
           moving.delete(i);
+          if (i === leaving && wanted === 0) {
+            leaving = null;
+            refreshCovers();
+          }
         }
         writeMatrix(i);
         hoverAttr.setX(i, hoverCur[i]! / SHELF.hoverPull);

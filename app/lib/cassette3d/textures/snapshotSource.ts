@@ -28,8 +28,8 @@ export interface SnapshotSourceDeps {
   /** Upload a render of a card the viewer may write to. Absent or resolving false: skip. */
   canWriteBack?: (jcard: JCard) => boolean;
   writeBack?: (jcard: JCard, snapshot: JCardSnapshot, version: string) => Promise<unknown>;
-  /** Add the shelf's spine crop to a stored render of a card the viewer may write to (older renders lack it). */
-  writeSpine?: (jcard: JCard, render: JCardRender, snapshot: JCardSnapshot) => Promise<unknown>;
+  /** Add the shelf's spine and cover crops to a stored render of a card the viewer may write to (older renders lack them). */
+  writeThumbnails?: (jcard: JCard, render: JCardRender, snapshot: JCardSnapshot) => Promise<unknown>;
 }
 
 export type SnapshotSource = (jcard: JCard) => Promise<SnapshotResult>;
@@ -46,11 +46,11 @@ export function createSnapshotSource(deps: SnapshotSourceDeps): SnapshotSource {
       if (stored?.version === version && isTrustedRender(stored, deps.supabaseUrl)) {
         try {
           const snapshot = await loadStoredSnapshot(stored);
-          if (!stored.spine && deps.writeSpine && deps.canWriteBack?.(jcard)) {
-            writeBack = deps.writeSpine(jcard, stored, snapshot).then(
+          if ((!stored.spine || !stored.cover) && deps.writeThumbnails && deps.canWriteBack?.(jcard)) {
+            writeBack = deps.writeThumbnails(jcard, stored, snapshot).then(
               () => 'stored' as const,
               (err) => {
-                console.warn('[cassette3d] Could not store the J-card spine', err);
+                console.warn('[cassette3d] Could not store the J-card spine / cover', err);
                 return 'failed' as const;
               },
             );

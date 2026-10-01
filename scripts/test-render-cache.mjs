@@ -219,6 +219,9 @@ try {
   const spineKey = `jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`;
   check(files.has(spineKey) && patch?.spine?.url?.endsWith(`${report.version}-spine.webp`) && patch?.spine?.height === 512,
     'spine crop stored beside the faces, row.render.spine points at it', `${files.get(spineKey)?.body.length} bytes, ${JSON.stringify(patch?.spine)}`);
+  const coverKey = `jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-cover.webp`;
+  check(files.has(coverKey) && patch?.cover?.url?.endsWith(`${report.version}-cover.webp`) && patch?.cover?.height === 384,
+    'cover crop stored beside the faces, row.render.cover points at it', `${files.get(coverKey)?.body.length} bytes, ${JSON.stringify(patch?.cover)}`);
   const firstVersion = report.version;
 
   // 1b. The shelf in a fresh tab: the card's spine comes from the stored spine file, not a render.
@@ -231,6 +234,16 @@ try {
     shelfSpine ? `real spines ${JSON.stringify(shelfSpine.realSpines)}` : 'none within 30 s');
   check(!log.downloads.some((k) => k.endsWith('-outside.webp')), 'shelf: without downloading the full render');
   await page.screenshot({ path: `${OUT_DIR}render-cache-1b-shelf.png` });
+  // Hovering the case turns its cover towards you: the real cover comes from the small cover file.
+  // (A single tape is also the row's last case, so its cover may already be loading.)
+  const at = await page.evaluate(() => window.__cassette3d.spineScreenPosition(0));
+  await page.mouse.move(at.x, at.y);
+  const coverLoaded = await waitFor(() => log.downloads.includes(coverKey), 10_000);
+  check(!!coverLoaded, 'shelf: the hovered case\'s cover is loaded from the stored cover file');
+  check(!log.downloads.some((k) => k.endsWith('-outside.webp')), 'shelf: still without downloading the full render');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT_DIR}render-cache-1b-hover.png` });
+  await page.mouse.move(5, 5);
 
   // 2. Fresh tab (empty memory cache): the stored render is used.
   report = await openViewer('2-stored');
@@ -243,16 +256,19 @@ try {
   check(report.version !== firstVersion, 'new content, new hash');
   check(report.origin === 'runtime' && report.writeBack === 'stored', 'stale stored render: re-rendered and replaced', `${report.origin}/${report.writeBack}`);
   check(log.removed.some((p) => p.includes(firstVersion)), 'the old version\'s files are deleted', log.removed.join(', '));
-  check(files.size === 2 && [...files.keys()].every((k) => k.includes(report.version)), 'only the new version\'s files are left (outside + spine)', [...files.keys()].join(', '));
+  check(files.size === 3 && [...files.keys()].every((k) => k.includes(report.version)), 'only the new version\'s files are left (outside + spine + cover)', [...files.keys()].join(', '));
 
-  // 3b. A render stored before spines existed: the viewer adds the spine from the stored images.
-  const { spine: _dropped, ...noSpine } = jcardRow.render;
-  jcardRow.render = noSpine;
+  // 3b. A render stored before spines and covers existed: the viewer adds them from the stored images.
+  const { spine: _dropped, cover: _droppedCover, ...noThumbs } = jcardRow.render;
+  jcardRow.render = noThumbs;
   files.delete(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`);
+  files.delete(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-cover.webp`);
   report = await openViewer('3b-backfill');
-  check(report.origin === 'stored' && report.writeBack === 'stored', 'old render without a spine: loaded, spine added', `${report.origin}/${report.writeBack}`);
+  check(report.origin === 'stored' && report.writeBack === 'stored', 'old render without a spine or cover: loaded, both added', `${report.origin}/${report.writeBack}`);
   check(files.has(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-spine.webp`) && !!jcardRow.render.spine && jcardRow.render.version === report.version,
     'spine uploaded and added to the same render version', JSON.stringify(jcardRow.render.spine));
+  check(files.has(`jcard-renders/${USER_ID}/${JCARD_ID}/${report.version}-cover.webp`) && !!jcardRow.render.cover,
+    'cover uploaded and added to the same render version', JSON.stringify(jcardRow.render.cover));
 
   // 4. Somebody else's card: rendered, never uploaded.
   jcardRow.user_id = OTHER_USER;
@@ -288,6 +304,7 @@ try {
   check(!!stored, 'editor: the render is stored after the save settles', stored ? `${Math.round((Date.now() - start) / 1000)} s after saving, version ${stored.render.version}` : 'no render PATCH within 45 s');
   check(!!stored && files.has(`jcard-renders/${USER_ID}/${saved.id}/${stored.render.version}-outside.webp`), 'editor: file uploaded to the user\'s folder');
   check(!!stored?.render?.spine && files.has(`jcard-renders/${USER_ID}/${saved.id}/${stored.render.version}-spine.webp`), 'editor: the spine is stored too');
+  check(!!stored?.render?.cover && files.has(`jcard-renders/${USER_ID}/${saved.id}/${stored.render.version}-cover.webp`), 'editor: and the cover');
 } finally {
   await browser.close();
 }

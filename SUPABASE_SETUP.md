@@ -808,12 +808,13 @@ that line is harmless.
 ### 2. Render bucket
 
 Public reads (public cards are shown to other people), writes only into the
-user's own folder: `{user_id}/{card_id}/{version}-{outside|inside|spine}.webp`.
+user's own folder: `{user_id}/{card_id}/{version}-{outside|inside|spine|cover}.webp`.
 The spine file is a small crop (512 px tall, a few kB) that the 3D library's
 shelf loads for every card, instead of downloading each full render; the
-`render` column's `spine` key points at it. Renders stored before the spine
-file existed get one the next time their owner saves the card or opens it in
-3D, with no SQL to run. Every file name carries the content hash, so the files
+`render` column's `spine` key points at it. The cover file (384 px tall) is the
+same for the cover the shelf shows on a hovered case, under the `cover` key.
+Renders stored before the spine or cover file existed get them the next time
+their owner saves the card or opens it in 3D, with no SQL to run. Every file name carries the content hash, so the files
 are uploaded with a one-year cache lifetime, and older versions of a card are
 deleted after each upload.
 

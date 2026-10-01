@@ -8,7 +8,16 @@ import { createShelf, type Shelf } from './shelf/shelfModel';
 import { createShelfView, type ShelfView } from './shelf/shelfView';
 import type { CassetteScene } from './scene';
 import type { TapeData } from './tapeData';
-import { coverFromSnapshot, isTrustedRender, jcardRenderVersion, loadStoredCover, loadStoredSpine, spineFromSnapshot, trustedSpineUrl } from './textures/jcardRender';
+import {
+  coverFromSnapshot,
+  isTrustedRender,
+  jcardRenderVersion,
+  loadStoredCover,
+  loadStoredImage,
+  spineFromSnapshot,
+  trustedCoverUrl,
+  trustedSpineUrl,
+} from './textures/jcardRender';
 import { getSnapshot, isSnapshotCached } from './textures/snapshotCache';
 import { drawCover, drawSpine, loadSpineFonts, spineFonts } from './textures/spineTexture';
 import { drawPlainCover, drawPlainSpine, loadPlainFonts } from './textures/plainCard';
@@ -26,7 +35,8 @@ import type { CustomFont } from '~/types';
  * re-flows), the camera blend between the shelf and the hero view, the shadow
  * focus, and the spines (drawn at once, upgraded to real renders when this tab
  * has them). The last case on each row shows its cover side too: drawn at first,
- * then cropped from the card's render, fetched only for the cases at a row's end.
+ * then cropped from the card's render, fetched only for the cases at a row's end
+ * and for the case you hover, which turns its cover towards you.
  * The bookcase stands in a room (shelf/room.ts): wall, floor, fairy lights, plants, a lamp.
  */
 
@@ -74,6 +84,10 @@ const SPINE_LOADS = 4;
 const HERO_FOCUS = { x: 0, y: 0, z: 0, halfSize: 12 };
 /** Shelf brightness while a tape is on the turntable. */
 const SHELF_DIM = 0.3;
+/** How long the pointer rests on a case before its real cover is fetched. */
+const HOVER_COVER_DELAY_MS = 200;
+/** Covers kept for cases that aren't at a row end (each a small canvas). */
+const HOVER_COVERS_KEPT = 24;
 
 export function createLibrary(handle: CassetteScene, hero: Hero, options: LibraryOptions = {}): Library {
   const { camera, renderer } = handle;
@@ -100,6 +114,9 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   let coverLoads = new Set<number>();
   /** Tapes wearing a drawn cover (redrawn once the fonts are in). */
   let drawnCovers = new Set<number>();
+  /** Cases given a cover because they were hovered, oldest first. */
+  let hoverCovers: number[] = [];
+  let hoverCoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   // --- Camera blend + shadow focus ------------------------------------------------------
   const shelfPos = new Vector3();
@@ -191,44 +208,82 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   }
 
   /**
-   * Real covers for the cases at the row ends: from the snapshot cache, else the
-   * stored render's outside face (a full download, so only for these few cases).
-   * Until then they wear a drawn cover.
+   * Real covers for the cases at the row ends, and for the case you hover: from the
+   * snapshot cache, else the small cover crop stored with the card's render, else
+   * (renders from before the crop) the stored outside face, a full download. Until
+   * then they wear a drawn cover.
    */
   function requestCovers() {
     if (!shelf) return;
+    for (const i of shelf.rowEnds()) {
+      giveDrawnCover(i);
+      loadRealCover(i);
+    }
+  }
+
+  function giveDrawnCover(i: number) {
+    if (!shelf || realCovers.has(i) || drawnCovers.has(i)) return;
+    shelf.setCover(i, coverFor(tapes[i]!, shelf.covers.coverHeight));
+    drawnCovers.add(i);
+  }
+
+  function loadRealCover(i: number) {
+    // A plain paper card's drawn cover is the real thing.
+    if (!shelf || realCovers.has(i) || coverLoads.has(i) || tapes[i]!.plain) return;
     const gen = generation;
     const height = shelf.covers.coverHeight;
-    for (const i of shelf.rowEnds()) {
-      if (realCovers.has(i) || coverLoads.has(i)) continue;
-      if (!drawnCovers.has(i)) {
-        shelf.setCover(i, coverFor(tapes[i]!, height));
-        drawnCovers.add(i);
-      }
-      // A plain paper card's drawn cover is the real thing.
-      if (tapes[i]!.plain) continue;
-      coverLoads.add(i);
-      void (async () => {
-        const { jcard } = tapes[i]!;
-        try {
-          const version = await jcardRenderVersion(jcard.content);
-          const key = `${jcard.id}:${version}`;
-          let cover: HTMLCanvasElement | null = null;
-          if (isSnapshotCached(key)) {
-            cover = coverFromSnapshot((await getSnapshot(key, () => Promise.reject(new Error('not cached')))).snapshot, height);
-          } else if (jcard.render?.version === version && isTrustedRender(jcard.render, options.supabaseUrl ?? '')) {
-            cover = await loadStoredCover(jcard.render, height);
-          }
-          if (disposed || gen !== generation || !cover || realCovers.has(i)) return;
-          shelf?.setCover(i, cover);
-          realCovers.add(i);
-        } catch (err) {
-          console.warn('[cassette3d] Could not load a cover; keeping the drawn one', err);
-        } finally {
-          if (gen === generation) coverLoads.delete(i);
+    const supabaseUrl = options.supabaseUrl ?? '';
+    coverLoads.add(i);
+    void (async () => {
+      const { jcard } = tapes[i]!;
+      try {
+        const version = await jcardRenderVersion(jcard.content);
+        const key = `${jcard.id}:${version}`;
+        const render = jcard.render?.version === version ? jcard.render : null;
+        const cropUrl = trustedCoverUrl(render, supabaseUrl);
+        let cover: HTMLCanvasElement | null = null;
+        if (isSnapshotCached(key)) {
+          cover = coverFromSnapshot((await getSnapshot(key, () => Promise.reject(new Error('not cached')))).snapshot, height);
+        } else if (cropUrl) {
+          cover = await loadStoredImage(cropUrl);
+        } else if (render && isTrustedRender(render, supabaseUrl)) {
+          cover = await loadStoredCover(render, height);
         }
-      })();
+        if (disposed || gen !== generation || !cover || realCovers.has(i)) return;
+        shelf?.setCover(i, cover);
+        realCovers.add(i);
+        drawnCovers.delete(i);
+      } catch (err) {
+        console.warn('[cassette3d] Could not load a cover; keeping the drawn one', err);
+      } finally {
+        if (gen === generation) coverLoads.delete(i);
+      }
+    })();
+  }
+
+  /**
+   * The hovered (or keyboard-focused) case turns its cover towards you: drawn at
+   * once, the real one once the pointer rests on it a moment (so sweeping along a
+   * row fetches nothing). Covers of the last few cases stay; older ones are let go.
+   */
+  function coverOnHover(index: number | null) {
+    clearTimeout(hoverCoverTimer);
+    if (index === null || !shelf || !tapes[index]) return;
+    giveDrawnCover(index);
+    hoverCovers = [...hoverCovers.filter((i) => i !== index), index];
+    const ends = new Set(shelf.rowEnds());
+    while (hoverCovers.length > HOVER_COVERS_KEPT) {
+      const old = hoverCovers.shift()!;
+      if (ends.has(old) || coverLoads.has(old)) continue;
+      shelf.setCover(old, undefined);
+      realCovers.delete(old);
+      drawnCovers.delete(old);
     }
+    if (realCovers.has(index)) return;
+    const gen = generation;
+    hoverCoverTimer = setTimeout(() => {
+      if (!disposed && gen === generation && (hovered ?? highlighted) === index) loadRealCover(index);
+    }, HOVER_COVER_DELAY_MS);
   }
 
   // --- Picking on the shelf ----------------------------------------------------------------
@@ -253,6 +308,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     if (index === hovered) return;
     hovered = index;
     shelf?.setHovered(index ?? highlighted);
+    coverOnHover(index ?? highlighted);
     options.onHover?.(index ?? highlighted);
   }
 
@@ -346,6 +402,8 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     realCovers = new Set();
     coverLoads = new Set();
     drawnCovers = new Set();
+    hoverCovers = [];
+    clearTimeout(hoverCoverTimer);
     best = [];
     shelf?.dispose();
     shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer);
@@ -419,7 +477,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     const worker = async () => {
       for (let job = toFetch.shift(); job; job = toFetch.shift()) {
         try {
-          const canvas = await loadStoredSpine(job.url);
+          const canvas = await loadStoredImage(job.url);
           if (disposed || gen !== generation) return;
           if (!real.has(job.index)) upgradeSpine(job.index, canvas);
         } catch (err) {
@@ -440,6 +498,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     highlight(index) {
       highlighted = index;
       shelf?.setHovered(hovered ?? index);
+      coverOnHover(hovered ?? index);
       if (index !== null && shelfMode()) {
         const p = shelf?.slotPosition(index);
         if (p) shelfView.reveal(p.x, p.y);
@@ -458,6 +517,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelf: () => shelf,
     dispose() {
       disposed = true;
+      clearTimeout(hoverCoverTimer);
       offFrame();
       offMachine();
       hero.view.setCameraFilter(null);

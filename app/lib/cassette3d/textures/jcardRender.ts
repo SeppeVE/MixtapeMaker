@@ -23,6 +23,8 @@ export const RENDER_PIPELINE = 'r2'; // r2: cut guides hidden
 export const RENDER_BUCKET = 'jcard-renders';
 /** Height of the stored spine crop the shelf uses, px (≈ 125 dpi; ~5–15 kB as WebP). */
 export const SPINE_RENDER_HEIGHT = 512;
+/** Height of the stored cover crop the shelf uses, px (≈ 95 dpi; ~10–30 kB as WebP). */
+export const COVER_RENDER_HEIGHT = 384;
 const WEBP_QUALITY = 0.9;
 
 /**
@@ -85,18 +87,25 @@ export function cropPanel(source: HTMLCanvasElement, rect: PanelRect, height: nu
 const bucketPrefix = (supabaseUrl: string) => `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${RENDER_BUCKET}/`;
 
 /**
- * The stored spine's URL if the render has one from our own bucket, else null.
- * (The shelf checks the render's version against the card itself.)
+ * The stored spine's (or cover's) URL if the render has one from our own bucket, else
+ * null. (The shelf checks the render's version against the card itself.)
  */
 export function trustedSpineUrl(render: JCardRender | null | undefined, supabaseUrl: string): string | null {
-  const url = render?.spine?.url;
+  return trustedUrl(render?.spine?.url, supabaseUrl);
+}
+
+export function trustedCoverUrl(render: JCardRender | null | undefined, supabaseUrl: string): string | null {
+  return trustedUrl(render?.cover?.url, supabaseUrl);
+}
+
+function trustedUrl(url: unknown, supabaseUrl: string): string | null {
   return typeof url === 'string' && !!supabaseUrl && url.startsWith(bucketPrefix(supabaseUrl)) ? url : null;
 }
 
-/** Download a stored spine as a canvas. */
-export async function loadStoredSpine(url: string): Promise<HTMLCanvasElement> {
+/** Download a stored spine or cover crop as a canvas. */
+export async function loadStoredImage(url: string): Promise<HTMLCanvasElement> {
   const res = await fetch(url, { mode: 'cors' });
-  if (!res.ok) throw new Error(`Stored J-card spine: http ${res.status}`);
+  if (!res.ok) throw new Error(`Stored J-card image: http ${res.status}`);
   const bitmap = await createImageBitmap(await res.blob());
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;

@@ -201,7 +201,13 @@ export const SHELF = {
   /** The spines sit this far back from the boards' front edge. */
   inset: 0.4,
   /** How far a hovered case slides out. */
-  hoverPull: 1.2,
+  hoverPull: 3,
+  /**
+   * How far a hovered case turns its cover side towards the viewer, degrees. It
+   * pivots on its front corner by the neighbour on its spine's left, so its back
+   * swings into the neighbour on the cover side (hidden inside it).
+   */
+  hoverTurnDeg: 32,
   /** How far a selected case slides out before it's taken off the shelf (pulledOut). */
   pullOut: 4.8,
 } as const;

@@ -8,7 +8,7 @@ import type { TapeMachineStatus, TapeState } from '~/lib/cassette3d/animation/ta
 import { resolveShelfTapes, type PublicShelfOwner, type ShelfData, type ShelfScope } from '~/composables/useHeroTapeData';
 import { useAuthStore } from '~/stores/auth';
 import { isCloudId } from '~/utils/database';
-import { uploadJCardRender, uploadJCardSpine } from '~/utils/jcardRenders';
+import { uploadJCardRender, uploadJCardThumbnails } from '~/utils/jcardRenders';
 import type { CassetteScene } from '~/lib/cassette3d/scene';
 import type { TapeSounds } from '~/lib/cassette3d/audio';
 import { getLibrarySoundMuted, setLibrarySoundMuted } from '~/utils/localStorage';
@@ -172,7 +172,7 @@ export function useCassetteScene(container: Ref<HTMLElement | null>, scope: Shel
         supabaseUrl,
         canWriteBack: (jcard) => !!auth.user && jcard.userId === auth.user.id && isCloudId(jcard.id),
         writeBack: (jcard, snapshot, version) => uploadJCardRender(jcard, snapshot, version),
-        writeSpine: (jcard, render, snapshot) => uploadJCardSpine(jcard, render, snapshot),
+        writeThumbnails: (jcard, render, snapshot) => uploadJCardThumbnails(jcard, render, snapshot),
       });
       hero = createHero(handle, heroOptions, snapshotSource, {
         // ?motion=reduce|full overrides the system setting in the dev build only.

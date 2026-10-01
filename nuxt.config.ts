@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
   devtools: { enabled: true },
   devServer: { host: 'localhost', port: 3100 },
+  vite: { server: { allowedHosts: ['cork-unreeling-album.ngrok-free.dev'] } },
 
   modules: [
     '@pinia/nuxt', 

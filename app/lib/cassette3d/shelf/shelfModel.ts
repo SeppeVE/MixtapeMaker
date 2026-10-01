@@ -93,9 +93,10 @@ const SPINE_OUT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.P
 const MOVE_RATE = 9;
 const HOVER_RATE = 14;
 
-export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf {
+/** `bayWidth`: inside width of a bay, cm (SHELF.bayWidth, or narrower on a portrait phone). */
+export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer, bayWidth: number = SHELF.bayWidth): Shelf {
   const count = tapes.length;
-  const layout = computeShelfLayout(count);
+  const layout = computeShelfLayout(count, bayWidth);
   const root = new Group();
   root.name = 'shelf';
 
@@ -426,6 +427,7 @@ function occlusionChunk(body: string, specular = 1): string {
 function addWoodOcclusion(material: MeshStandardMaterial, layout: ShelfLayout) {
   const floors = layout.rowFloors.map(f).join(', ');
   const rows = layout.rowFloors.length;
+  const bw = layout.bayWidth;
   const backZ = SHELF.frontZ - SHELF.depth;
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
@@ -439,10 +441,10 @@ function addWoodOcclusion(material: MeshStandardMaterial, layout: ShelfLayout) {
         float shelfOcclusion(vec3 p, vec3 n) {
           // Bay boundaries run through the middle of the side panels, so a cubby's inner side
           // faces (exactly on its edges) never flicker between two bays.
-          float bay = floor((p.x - ${f(bayLeft(0) - SHELF.side / 2)}) / ${f(SHELF.bayWidth + SHELF.side)});
+          float bay = floor((p.x - ${f(bayLeft(0, bw) - SHELF.side / 2)}) / ${f(bw + SHELF.side)});
           if (bay < 0.0 || bay > ${f(layout.bays - 1)}) return 1.0;
-          float lx = p.x - (${f(bayLeft(0))} + bay * ${f(SHELF.bayWidth + SHELF.side)});
-          if (lx < -0.01 || lx > ${f(SHELF.bayWidth + 0.01)}) return 1.0;
+          float lx = p.x - (${f(bayLeft(0, bw))} + bay * ${f(bw + SHELF.side)});
+          if (lx < -0.01 || lx > ${f(bw + 0.01)}) return 1.0;
           if (p.z > ${f(SHELF.frontZ + 0.01)} || p.z < ${f(backZ - 0.01)}) return 1.0;
           float below = -1.0;
           for (int r = 0; r < ${rows}; r++) {
@@ -458,7 +460,7 @@ function addWoodOcclusion(material: MeshStandardMaterial, layout: ShelfLayout) {
           ao *= 1.0 - 0.4 * (1.0 - smoothstep(0.0, 3.0, below)) * (1.0 - a.y);
           ao *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, 2.5, above)) * (1.0 - a.y);
           ao *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, lx)) * (1.0 - a.x);
-          ao *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, ${f(SHELF.bayWidth)} - lx)) * (1.0 - a.x);
+          ao *= 1.0 - 0.35 * (1.0 - smoothstep(0.0, 3.0, ${f(bw)} - lx)) * (1.0 - a.x);
           // Less of the room reaches the back of a cubby.
           ao *= mix(0.7, 1.0, smoothstep(0.0, ${f(SHELF.depth)}, dz));
           return ao;
@@ -467,7 +469,7 @@ function addWoodOcclusion(material: MeshStandardMaterial, layout: ShelfLayout) {
       // a glancing angle; the wood (oiled, not lacquered) keeps a fraction of its reflections.
       .replace('#include <aomap_fragment>', occlusionChunk('float ao = shelfOcclusion(vShelfPos, normalize(vShelfNormal));', WOOD_SPECULAR));
   };
-  material.customProgramCacheKey = () => `shelfWood-${layout.bays}-${rows}`;
+  material.customProgramCacheKey = () => `shelfWood-${layout.bays}-${rows}-${bw}`;
 }
 
 // --- Wood geometry --------------------------------------------------------------------
@@ -506,18 +508,19 @@ function buildWoodGeometry(layout: ShelfLayout): BufferGeometry {
   const parts: BufferGeometry[] = [];
   const { bays } = layout;
   const cz = SHELF.frontZ - SHELF.depth / 2;
-  const innerWidth = bays * SHELF.bayWidth + (bays - 1) * SHELF.side;
-  const left = bayLeft(0);
+  const bw = layout.bayWidth;
+  const innerWidth = bays * bw + (bays - 1) * SHELF.side;
+  const left = bayLeft(0, bw);
   const midX = left + innerWidth / 2;
   // Sides (and the dividers between bays).
   for (let b = 0; b <= bays; b++) {
-    parts.push(woodBox(SHELF.side, SHELF_HEIGHT, SHELF.depth, bayLeft(b) - SHELF.side / 2, SHELF_HEIGHT / 2, cz));
+    parts.push(woodBox(SHELF.side, SHELF_HEIGHT, SHELF.depth, bayLeft(b, bw) - SHELF.side / 2, SHELF_HEIGHT / 2, cz));
   }
   // Boards the rows stand on, and the top.
   for (let b = 0; b < bays; b++) {
-    const x = bayLeft(b) + SHELF.bayWidth / 2;
-    for (const floor of layout.rowFloors) parts.push(woodBox(SHELF.bayWidth, SHELF.board, SHELF.depth, x, floor - SHELF.board / 2, cz));
-    parts.push(woodBox(SHELF.bayWidth, SHELF.board, SHELF.depth, x, SHELF_HEIGHT - SHELF.board / 2, cz));
+    const x = bayLeft(b, bw) + bw / 2;
+    for (const floor of layout.rowFloors) parts.push(woodBox(bw, SHELF.board, SHELF.depth, x, floor - SHELF.board / 2, cz));
+    parts.push(woodBox(bw, SHELF.board, SHELF.depth, x, SHELF_HEIGHT - SHELF.board / 2, cz));
   }
   // Recessed plinth and the back panel, a shade darker.
   parts.push(woodBox(innerWidth, SHELF.plinth, SHELF.board, midX, SHELF.plinth / 2, SHELF.frontZ - 1.2 - SHELF.board / 2, 0.7));

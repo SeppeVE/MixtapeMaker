@@ -84,6 +84,10 @@ const SPINE_LOADS = 4;
 const HERO_FOCUS = { x: 0, y: 0, z: 0, halfSize: 12 };
 /** Shelf brightness while a tape is on the turntable. */
 const SHELF_DIM = 0.3;
+/** Narrower than this (width / height) counts as a portrait phone. */
+const PORTRAIT_ASPECT = 0.8;
+/** Bay width on a portrait phone, cm: a dozen cases a row, so a bay fits the screen. */
+const NARROW_BAY_WIDTH = 24;
 /** How long the pointer rests on a case before its real cover is fetched. */
 const HOVER_COVER_DELAY_MS = 200;
 /** Covers kept for cases that aren't at a row end (each a small canvas). */
@@ -127,6 +131,15 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     shelfView.pose(shelfPos, shelfTarget);
     position.lerp(shelfPos, k);
     target.lerp(shelfTarget, k);
+  });
+
+  // A portrait phone gets a narrower bookcase. Turning the phone rebuilds the shelf,
+  // keeping the search and sort, once no tape is off it.
+  let view: { search: string; sort: ShelfSort } = { search: '', sort: 'updated' };
+  const bayWidthFor = () => (camera.aspect < PORTRAIT_ASPECT ? NARROW_BAY_WIDTH : SHELF.bayWidth);
+  const offResize = handle.onResize(() => {
+    if (!shelf || shelf.layout.bayWidth === bayWidthFor() || selected !== null) return;
+    void setTapes(tapes);
   });
 
   const offFrame = handle.onFrame((dt) => {
@@ -406,13 +419,13 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
     clearTimeout(hoverCoverTimer);
     best = [];
     shelf?.dispose();
-    shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer);
+    shelf = createShelf(tapes.map((t) => ({ color: cardColor(t.jcard.content.backgroundColor) })), renderer, bayWidthFor());
     handle.scene.add(shelf.root);
     room?.dispose();
     room = createRoom(shelf.layout, renderer);
     handle.scene.add(room.root);
     shelfView.setLayout(shelf.layout);
-    applyOrder(computeOrder('', 'updated'), false);
+    applyOrder(computeOrder(view.search, view.sort), false);
 
     // Spines (and covers): drawn now with whatever fonts are ready, again once they've loaded.
     const height = shelf.atlas.spineHeight;
@@ -505,6 +518,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
       }
     },
     setView(search, sort) {
+      view = { search, sort };
       applyOrder(computeOrder(search, sort), true);
       return order;
     },
@@ -519,6 +533,7 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
       disposed = true;
       clearTimeout(hoverCoverTimer);
       offFrame();
+      offResize();
       offMachine();
       hero.view.setCameraFilter(null);
       canvas.removeEventListener('pointermove', onMove);

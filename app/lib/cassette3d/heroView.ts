@@ -83,6 +83,8 @@ const LIFT = 0.02;
 /** Height of the case centre on the turntable (it stands on its short end). */
 export const HERO_CENTRE_Y = CASE.length / 2 + LIFT;
 const FIT_MARGIN = 1.08;
+/** Lowest the orbit camera gets to the floor, cm. */
+const FLOOR_CLEARANCE = 1.5;
 
 export function defaultRig(): CameraRig {
   return { elevation: DEFAULT_ELEVATION, distanceScale: 1, targetX: 0, targetY: 0, targetZ: 0 };
@@ -273,12 +275,15 @@ export function createHeroView(handle: CassetteScene, options: { autoRotate?: bo
       orbit.rotateSpeed = 0.6;
       // Clamped: no looking from below the floor or straight down, a limited zoom range.
       orbit.minPolarAngle = MathUtils.degToRad(25);
-      orbit.maxPolarAngle = MathUtils.degToRad(110);
       orbit.minAzimuthAngle = -MathUtils.degToRad(azimuthDeg);
       orbit.maxAzimuthAngle = MathUtils.degToRad(azimuthDeg);
       const d = camera.position.distanceTo(target);
       orbit.minDistance = d * 0.45;
       orbit.maxDistance = d * 1.4;
+      // Low enough to look up at the card a little, never below the floor (the room's
+      // floor is solid now): at the farthest zoom the camera stays FLOOR_CLEARANCE above it.
+      const below = Math.asin(MathUtils.clamp((target.y - FLOOR_CLEARANCE) / orbit.maxDistance, 0, 1));
+      orbit.maxPolarAngle = Math.PI / 2 + Math.min(below, MathUtils.degToRad(20));
       orbit.update();
     },
     stopOrbit(seconds) {

@@ -542,7 +542,14 @@ export function createTapeMachine(
     // Cassette.
     home.multiplyMatrices(lidWorld, cassetteHome);
     const c = ANIM.cassetteOut;
-    targetMatrix(c.position, c.rotationDeg, a1);
+    // On a portrait screen it stands on its short end, tall like the screen.
+    const tall = handle.camera.aspect < c.tallBelowAspect;
+    targetMatrix(c.position, tall ? { ...c.rotationDeg, z: c.rotationDeg.z + 90 } : c.rotationDeg, a1);
+    if (spin !== 0) {
+      // Spun round its upright axis by dragging (cassetteOut): turned in place.
+      _pos.setFromMatrixPosition(a1);
+      a1.setPosition(0, 0, 0).premultiply(_m.makeRotationY(spin)).setPosition(_pos);
+    }
     // Its hinge-side edge sits on the J-card's back flap: slide it off (away from the hinge, the lid's +X) first.
     const backTip = CASE_LAYOUT.jcard.x + (getTape().jcard.panels.find((p) => p.name === 'back')?.width ?? JCARD.backFull);
     const slide = Math.max(0, backTip - (CASE_LAYOUT.cassette.x - CASSETTE.height / 2) + c.slideMargin);
@@ -595,7 +602,55 @@ export function createTapeMachine(
     });
   }
 
-  const offFrame = handle.onFrame(() => {
+  // --- Spinning the cassette -------------------------------------------------------
+  // Out of its case (cassetteOut), the cassette turns round when dragged sideways, with
+  // a little inertia, to show its side B. Leaving the state, it turns back to the front.
+  // A press without a drag still clicks it (picking).
+  const canvas = handle.renderer.domElement;
+  let spin = 0;
+  let spinVelocity = 0;
+  let spinDrag: { id: number; x: number; t: number } | null = null;
+  const canSpin = () => TAPE_STATES[settled] === 'cassetteOut' && goal === settled && !anim && !busy;
+  function onSpinDown(e: PointerEvent) {
+    if (!canSpin()) return;
+    spinDrag = { id: e.pointerId, x: e.clientX, t: performance.now() };
+    spinVelocity = 0;
+  }
+  function onSpinMove(e: PointerEvent) {
+    if (!spinDrag || e.pointerId !== spinDrag.id) return;
+    const now = performance.now();
+    const angle = ((e.clientX - spinDrag.x) / Math.max(canvas.clientWidth, 1)) * Math.PI * 2;
+    spin += angle;
+    spinVelocity = angle / Math.max((now - spinDrag.t) / 1000, 1 / 120);
+    spinDrag.x = e.clientX;
+    spinDrag.t = now;
+  }
+  function onSpinUp(e: PointerEvent) {
+    if (!spinDrag || e.pointerId !== spinDrag.id) return;
+    if (performance.now() - spinDrag.t > 80) spinVelocity = 0;
+    spinDrag = null;
+  }
+  canvas.addEventListener('pointerdown', onSpinDown);
+  canvas.addEventListener('pointermove', onSpinMove);
+  canvas.addEventListener('pointerup', onSpinUp);
+  canvas.addEventListener('pointercancel', onSpinUp);
+
+  function updateSpin(dt: number) {
+    if (spinDrag) return;
+    if (canSpin()) {
+      spin += spinVelocity * dt;
+      spinVelocity *= Math.exp(-3 * dt);
+      return;
+    }
+    // Back to the front, the short way round.
+    spinVelocity = 0;
+    spin = Math.atan2(Math.sin(spin), Math.cos(spin));
+    spin *= Math.exp(-8 * dt);
+    if (Math.abs(spin) < 1e-4) spin = 0;
+  }
+
+  const offFrame = handle.onFrame((dt) => {
+    updateSpin(dt);
     // Resting in 'presented' the turntable and the debug hooks own the tape.
     if (settled === P && !anim && !busy) return;
     apply();
@@ -636,6 +691,10 @@ export function createTapeMachine(
       anim?.tl.kill();
       anim = null;
       offFrame();
+      canvas.removeEventListener('pointerdown', onSpinDown);
+      canvas.removeEventListener('pointermove', onSpinMove);
+      canvas.removeEventListener('pointerup', onSpinUp);
+      canvas.removeEventListener('pointercancel', onSpinUp);
       listeners.clear();
     },
   };

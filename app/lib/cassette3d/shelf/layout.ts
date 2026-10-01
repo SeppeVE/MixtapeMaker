@@ -19,6 +19,8 @@ export interface ShelfSlot {
 
 export interface ShelfLayout {
   slots: ShelfSlot[];
+  /** Inside width of a bay, cm (narrower on a portrait phone). */
+  bayWidth: number;
   bays: number;
   perRow: number;
   perBay: number;
@@ -31,26 +33,25 @@ export interface ShelfLayout {
 }
 
 export const SHELF_PITCH = CASE.depth + SHELF.gap;
-export const SHELF_PER_ROW = Math.floor((SHELF.bayWidth - SHELF.gap) / SHELF_PITCH);
 export const SHELF_HEIGHT = SHELF.plinth + SHELF.rows * (SHELF.board + SHELF.rowClearance) + SHELF.board;
 /** Case centre z: the spine face sits `inset` behind the boards' front edge. */
 export const SHELF_CASE_Z = SHELF.frontZ - SHELF.inset - CASE.width / 2;
 
 /** X of bay `b`'s left inside edge. Bay 0 is centred on x = 0, behind the turntable. */
-export function bayLeft(b: number): number {
-  return -SHELF.bayWidth / 2 + b * (SHELF.bayWidth + SHELF.side);
+export function bayLeft(b: number, bayWidth: number = SHELF.bayWidth): number {
+  return -bayWidth / 2 + b * (bayWidth + SHELF.side);
 }
 
 export function rowFloor(row: number): number {
   return SHELF.plinth + SHELF.board + (SHELF.rows - 1 - row) * (SHELF.board + SHELF.rowClearance);
 }
 
-export function computeShelfLayout(count: number): ShelfLayout {
-  const perRow = SHELF_PER_ROW;
+export function computeShelfLayout(count: number, bayWidth: number = SHELF.bayWidth): ShelfLayout {
+  const perRow = Math.max(1, Math.floor((bayWidth - SHELF.gap) / SHELF_PITCH));
   const perBay = perRow * SHELF.rows;
   const bays = Math.max(1, Math.ceil(count / perBay));
   // Spare space in a row is split evenly at both ends.
-  const rowSlack = SHELF.bayWidth - perRow * SHELF_PITCH + SHELF.gap;
+  const rowSlack = bayWidth - perRow * SHELF_PITCH + SHELF.gap;
   const slots: ShelfSlot[] = [];
   for (let i = 0; i < count; i++) {
     const bay = Math.floor(i / perBay);
@@ -58,22 +59,23 @@ export function computeShelfLayout(count: number): ShelfLayout {
     const row = Math.floor(inBay / perRow);
     const k = inBay % perRow;
     slots.push({
-      x: bayLeft(bay) + rowSlack / 2 + k * SHELF_PITCH + CASE.depth / 2,
+      x: bayLeft(bay, bayWidth) + rowSlack / 2 + k * SHELF_PITCH + CASE.depth / 2,
       y: rowFloor(row) + CASE.length / 2 + 0.005,
       z: SHELF_CASE_Z,
       bay,
       row,
     });
   }
-  const bayCentres = Array.from({ length: bays }, (_, b) => bayLeft(b) + SHELF.bayWidth / 2);
+  const bayCentres = Array.from({ length: bays }, (_, b) => bayLeft(b, bayWidth) + bayWidth / 2);
   return {
     slots,
+    bayWidth,
     bays,
     perRow,
     perBay,
     bounds: {
-      minX: bayLeft(0) - SHELF.side,
-      maxX: bayLeft(bays - 1) + SHELF.bayWidth + SHELF.side,
+      minX: bayLeft(0, bayWidth) - SHELF.side,
+      maxX: bayLeft(bays - 1, bayWidth) + bayWidth + SHELF.side,
       minY: 0,
       maxY: SHELF_HEIGHT,
     },

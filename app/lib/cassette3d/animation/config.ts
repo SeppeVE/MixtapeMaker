@@ -51,6 +51,8 @@ export const ANIM = {
     arc: 1.5,
     position: { x: 0.3, y: 0.4, z: 6.5 },
     rotationDeg: { x: -6, y: 10, z: 0 },
+    /** Narrower screens than this (width / height) get it standing on its short end, turned 90°. */
+    tallBelowAspect: 0.8,
   },
   jcardOut: {
     duration: 1.15,

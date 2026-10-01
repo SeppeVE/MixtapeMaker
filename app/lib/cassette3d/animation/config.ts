@@ -82,6 +82,17 @@ export const ANIM = {
     lidOpen: { elevation: 16, distanceScale: 1.2, targetX: -0.8, targetY: 0, targetZ: 1 },
     cassetteOut: { elevation: 12, distanceScale: 1.05, targetX: 0, targetY: 0, targetZ: 3 },
     jcardOut: { elevation: 12, distanceScale: 1.1, targetX: 1.5, targetY: -0.5, targetZ: 4.5 },
+    /**
+     * On a portrait screen (narrower than cassetteOut.tallBelowAspect) these steps are
+     * framed to fit a width (and height) in cm, centred on targetX: the open case
+     * spreads sideways, its lid (with the cassette and card in it) off to the left, and
+     * the cassette put aside off to the right. Unset steps keep the poses above.
+     */
+    tall: {
+      lidOpen: { targetX: -2.6, fitWidth: 17, fitHeight: 13 },
+      cassetteOut: { targetX: 0, fitWidth: 12, fitHeight: 13 },
+      jcardOut: { targetX: 4.8, fitWidth: 21, fitHeight: 13 },
+    },
     /** Distance for the unfolded card is fitted to its width at run time; this is extra room. */
     jcardUnfolded: { elevation: 5, margin: 1.15, targetX: 0, targetY: 0, targetZ: 5.5 },
   },

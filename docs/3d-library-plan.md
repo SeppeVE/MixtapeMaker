@@ -632,6 +632,7 @@ Build the geometry procedurally in code, so every dimension stays editable in di
   - **Phones:** in portrait (width / height < 0.8) the bookcase's bays are 24 cm wide instead of 48 (a dozen cases a row), so a bay fits the screen; turning the phone rebuilds the shelf, keeping search and sort, once no tape is off it. Out of its case, the cassette stands on its short end on a portrait screen (`ANIM.cassetteOut.tallBelowAspect`).
   - **Spin the cassette:** in cassetteOut, dragging sideways turns the cassette round (with a little inertia) to show side B; leaving the state it turns back to the front. A press without a drag still clicks it.
   - Fixed: orbiting the unfolded J-card could take the camera under the floor (solid since the room). The orbit's lowest angle now keeps it 1.5 cm above the floor at the farthest zoom.
+  - Portrait screens: the open case, the cassette out and the J-card out are framed to fit a width in cm (`ANIM.camera.tall`), centred on what's in view. The open case's lid (with the cassette and card) was off the left edge, and the cassette put aside off the right.
 
 - **2026-09-25 · Stage 7: the 4096 px J-card limit on high confirmed** (human). **Stage 8 built:** debug code dev-only (checked in the bundle), flag on for everyone with 2D as the default (human decision), What's new draft, README and ARCHITECTURE.md. **Waiting on final sign-off.**
 

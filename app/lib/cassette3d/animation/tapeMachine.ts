@@ -157,6 +157,15 @@ export function createTapeMachine(
   /** How far back the tape can go: the shelf, if there is one. */
   const minIndex = () => (options.hasShelf?.() ? 0 : P);
 
+  /** A portrait screen: the cassette stands tall and the camera frames the width (ANIM.camera.tall). */
+  const isTall = () => handle.camera.aspect < ANIM.cassetteOut.tallBelowAspect;
+  function cameraFor(step: 'lidOpen' | 'cassetteOut' | 'jcardOut') {
+    const pose = ANIM.camera[step];
+    if (!isTall()) return pose;
+    const { targetX, fitWidth, fitHeight } = ANIM.camera.tall[step];
+    return { ...pose, targetX, distanceScale: view.fitScaleFor(fitWidth, fitHeight, pose.elevation) };
+  }
+
   function restParams(state: TapeState): Params {
     const i = TAPE_STATES.indexOf(state);
     const base: Params = {
@@ -165,9 +174,9 @@ export function createTapeMachine(
     if (i < P) return { ...base, pull: i === P - 1 ? 1 : 0, fly: 0, shelf: 1 };
     const h = i - P;
     if (h === 0) return base;
-    const p: Params = { ...base, turn: ANIM.open.turnDeg, lid: ANIM.open.lidDeg, ...ANIM.camera.lidOpen };
-    if (h >= 2) Object.assign(p, { cassette: 1 }, ANIM.camera.cassetteOut);
-    if (h >= 3) Object.assign(p, { cassetteAside: 1, jcard: 1 }, ANIM.camera.jcardOut);
+    const p: Params = { ...base, turn: ANIM.open.turnDeg, lid: ANIM.open.lidDeg, ...cameraFor('lidOpen') };
+    if (h >= 2) Object.assign(p, { cassette: 1 }, cameraFor('cassetteOut'));
+    if (h >= 3) Object.assign(p, { cassetteAside: 1, jcard: 1 }, cameraFor('jcardOut'));
     if (h >= 4) {
       const { elevation, margin, targetX, targetY, targetZ } = ANIM.camera.jcardUnfolded;
       // Turned over or not is up to the viewer; either way counts as resting.
@@ -543,8 +552,7 @@ export function createTapeMachine(
     home.multiplyMatrices(lidWorld, cassetteHome);
     const c = ANIM.cassetteOut;
     // On a portrait screen it stands on its short end, tall like the screen.
-    const tall = handle.camera.aspect < c.tallBelowAspect;
-    targetMatrix(c.position, tall ? { ...c.rotationDeg, z: c.rotationDeg.z + 90 } : c.rotationDeg, a1);
+    targetMatrix(c.position, isTall() ? { ...c.rotationDeg, z: c.rotationDeg.z + 90 } : c.rotationDeg, a1);
     if (spin !== 0) {
       // Spun round its upright axis by dragging (cassetteOut): turned in place.
       _pos.setFromMatrixPosition(a1);

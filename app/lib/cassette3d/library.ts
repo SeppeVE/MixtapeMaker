@@ -36,7 +36,7 @@ import type { CustomFont } from '~/types';
  * focus, and the spines (drawn at once, upgraded to real renders when this tab
  * has them). The last case on each row shows its cover side too: drawn at first,
  * then cropped from the card's render, fetched only for the cases at a row's end
- * and for the case you hover, which turns its cover towards you.
+ * and for the case you hover.
  * The bookcase stands in a room (shelf/room.ts): wall, floor, fairy lights, plants, a lamp.
  */
 
@@ -262,8 +262,8 @@ export function createLibrary(handle: CassetteScene, hero: Hero, options: Librar
   }
 
   /**
-   * The hovered (or keyboard-focused) case turns its cover towards you: drawn at
-   * once, the real one once the pointer rests on it a moment (so sweeping along a
+   * The hovered (or keyboard-focused) case shows its cover on the side that slides
+   * into view: drawn at once, the real one once the pointer rests on it a moment (so sweeping along a
    * row fetches nothing). Covers of the last few cases stay; older ones are let go.
    */
   function coverOnHover(index: number | null) {

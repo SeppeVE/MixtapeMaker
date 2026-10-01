@@ -35,9 +35,9 @@ import { createSpineAtlas, type SpineAtlas, type SpineFace } from './spineAtlas'
  *                cell of the spine atlas through a per-instance UV rect
  *                (onBeforeCompile). The last case of each row, the only one
  *                whose lid shows, wears its J-card cover there from the cover
- *                atlas, and so does the hovered case (one more cell), which
- *                turns its lid towards the viewer; the other faces take the
- *                card's colour.
+ *                atlas, and so does the hovered case (one more cell) on the
+ *                strip of its lid that shows as it slides out; the other faces
+ *                take the card's colour.
  *   plastic      one InstancedMesh of the clear case, same instance matrices, in a
  *                cheaper plastic than the hero's (no transmission pass).
  *
@@ -87,7 +87,6 @@ export interface Shelf {
   dispose: () => void;
 }
 
-const Y_AXIS = new Vector3(0, 1, 0);
 /** Spine out: the case frame's −X (the hinge edge) faces the viewer. */
 const SPINE_OUT = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2);
 /** Exponential easing rates (1/s) for moving between slots and sliding out on hover. */
@@ -226,10 +225,6 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   /** The case last hovered, while it's still turned. */
   let leaving: number | null = null;
   const moving = new Set<number>();
-  const turn = new Quaternion();
-  const turned = new Quaternion();
-  const pivot = new Vector3();
-  const maxTurn = (SHELF.hoverTurnDeg * Math.PI) / 180;
   const m = new Matrix4();
   const one = new Vector3(1, 1, 1);
   const zero = new Vector3(0, 0, 0);
@@ -265,7 +260,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
       if (cover) fillCell(row, i, cover);
     });
     // The hovered case, unless it's a row end and has its cover already.
-    // While it eases back after the hover ends it keeps the cell, so the cover doesn't pop off mid-turn.
+    // While it eases back after the hover ends it keeps the cell, so the cover doesn't pop off mid-slide.
     const h = hovered ?? leaving;
     if (h !== null && shown(h) && !rowEnd.includes(h) && coverOf[h]) fillCell(hoverCell, h, coverOf[h]!);
     coverAttr.needsUpdate = true;
@@ -274,20 +269,7 @@ export function createShelf(tapes: ShelfTape[], renderer: WebGLRenderer): Shelf 
   function writeMatrix(i: number) {
     p.copy(cur[i]!);
     p.z += hoverCur[i]!;
-    const k = hoverCur[i]! / SHELF.hoverPull;
-    if (k > 1e-4) {
-      // Turn the lid (+X in world, cover side) towards the viewer about the front
-      // corner on the other side, so nothing swings into the left neighbour.
-      const a = maxTurn * k;
-      turn.setFromAxisAngle(Y_AXIS, -a);
-      turned.multiplyQuaternions(turn, SPINE_OUT);
-      // Pivot: the front (spine) edge on the −X side, relative to the case centre.
-      pivot.set(-CASE.depth / 2, 0, CASE.width / 2);
-      p.add(pivot).sub(pivot.applyQuaternion(turn));
-      m.compose(p, turned, shown(i) ? one : zero);
-    } else {
-      m.compose(p, SPINE_OUT, shown(i) ? one : zero);
-    }
+    m.compose(p, SPINE_OUT, shown(i) ? one : zero);
     contents.setMatrixAt(i, m);
   }
 

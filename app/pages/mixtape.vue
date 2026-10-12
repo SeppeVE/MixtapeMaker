@@ -162,6 +162,7 @@ function saveTitle() {
             @update="update"
             @save="store.save()"
             @new-mixtape="store.newMixtape()"
+            @create-j-card="store.openDesigner(null)"
             @toggle-public="store.togglePublic(mixtape, !mixtape.isPublic)"
           />
         </div>

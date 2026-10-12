@@ -44,7 +44,7 @@ function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
     id: generateId(),
     title: mixtape ? `${mixtape.title} — J-Card` : 'Untitled J-Card',
     userId,
-    mixtapeId: mixtape?.id ?? null,
+    mixtapeId: mixtape && isCloudId(mixtape.id) ? mixtape.id : null,
     content,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -269,6 +269,15 @@ function saveNow() {
         <button class="btn" :disabled="!canUndo" title="Undo (⌘Z)" @click="undo">↩</button>
         <button class="btn" :disabled="!canRedo" title="Redo (⌘⇧Z)" @click="redo">↪</button>
       </div>
+      <button
+        class="btn"
+        :disabled="card.isCopy"
+        :title="card.isCopy ? 'Unedited copies stay private — make it your own first' : undefined"
+        @click="setPublic(!card.isPublic)"
+      >
+        <VisibilityToggleIcon :is-public="card.isPublic ?? false" />
+        {{ card.isPublic ? 'Make private' : 'Make public' }}
+      </button>
       <button class="btn btn-primary" :disabled="isSaving" @click="saveNow">
         {{ isSaving ? 'Saving…' : 'Save' }}
       </button>

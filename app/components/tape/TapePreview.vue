@@ -17,6 +17,7 @@ const emit = defineEmits<{
   save: [];
   newMixtape: [];
   togglePublic: [];
+  createJCard: [];
 }>();
 
 function getSideStatus(totalDur: number, maxDur: number) {
@@ -194,6 +195,10 @@ function saveFor() {
         <p v-if="mixtape.isCopy" class="action-note">
           This is an unedited copy of another mixtape, and will not show up in the explore page
         </p>
+        <button class="btn action-btn" @click="emit('createJCard')">
+          <span class="action-btn-icon">▧</span>
+          Create j-card
+        </button>
         <ExportToSpotify :mixtape="mixtape" />
         <div class="action-btn-divider" />
         <button class="btn action-btn action-btn-secondary" @click="emit('newMixtape')">

@@ -81,7 +81,9 @@ useHead({
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span class="lp-nav-current">How-to guide</span>
+      <NuxtLink to="/how-to/editor-and-designer" class="lp-nav-link">Guide</NuxtLink>
+      <span class="lp-nav-sep">/</span>
+      <span class="lp-nav-current">Recording to cassette</span>
     </NavBar>
 
     <header class="gd-header">

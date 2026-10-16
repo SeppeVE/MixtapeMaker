@@ -22,7 +22,8 @@ const STEPS = [
         </div>
       </div>
       <div class="lp-how-foot">
-        <NuxtLink to="/how-to" class="lp-btn lp-btn-mustard">Read the full recording guide →</NuxtLink>
+        <NuxtLink to="/how-to/editor-and-designer" class="lp-btn lp-btn-mustard">Read the full guide →</NuxtLink>
+        <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Recording to cassette</NuxtLink>
       </div>
     </div>
   </section>

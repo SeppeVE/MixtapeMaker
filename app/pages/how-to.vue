@@ -2,9 +2,14 @@
 import { useSeoMeta, useHead } from '#app';
 import IconSparkle from '~icons/material-symbols/auto-awesome-rounded';
 
+const SEO_TITLE = 'How to record a Spotify mixtape onto a cassette — Mixtape Maker';
+const SEO_DESCRIPTION = 'Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.';
+
 useSeoMeta({
-  title: 'How to record a Spotify mixtape onto a cassette — Mixtape Maker',
-  description: 'Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  ogTitle: SEO_TITLE,
+  ogDescription: SEO_DESCRIPTION,
 });
 
 const TAPE_LENGTHS = [

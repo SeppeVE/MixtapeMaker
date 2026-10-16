@@ -61,12 +61,17 @@ const showContent = computed(() => !!profile.value && (!profile.value.isPrivate 
 const mixtapes = computed(() => ownItems.value?.mixtapes ?? data.value?.mixtapes ?? []);
 const jcards = computed(() => ownItems.value?.jcards ?? data.value?.jcards ?? []);
 
+const seoTitle = computed(() => (profile.value ? `@${profile.value.username} — Mixtape Maker` : 'Profile — Mixtape Maker'));
+const seoDescription = computed(() =>
+  profile.value && !profile.value.isPrivate
+    ? `Mixtapes and J-cards by @${profile.value.username} on Mixtape Maker.`
+    : 'A Mixtape Maker profile.');
+
 useSeoMeta({
-  title: () => (profile.value ? `@${profile.value.username} — Mixtape Maker` : 'Profile — Mixtape Maker'),
-  description: () =>
-    profile.value && !profile.value.isPrivate
-      ? `Mixtapes and J-cards by @${profile.value.username} on Mixtape Maker.`
-      : 'A Mixtape Maker profile.',
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
   robots: 'noindex, follow',
 });
 

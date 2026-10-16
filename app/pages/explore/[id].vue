@@ -32,12 +32,15 @@ const mixtape = computed(() => data.value?.mixtape ?? null);
 
 const notFound = computed(() => !pending.value && !mixtape.value);
 
+const seoDescription = computed(() =>
+  mixtape.value
+    ? `A public cassette mixtape: ${mixtape.value.sideA.length + mixtape.value.sideB.length} tracks across Side A & B.`
+    : 'A public cassette mixtape on Mixtape Maker.');
+
 useSeoMeta({
   title: () => (mixtape.value ? `${mixtape.value.title} — Mixtape Maker` : 'Mixtape — Mixtape Maker'),
-  description: () =>
-    mixtape.value
-      ? `A public cassette mixtape: ${mixtape.value.sideA.length + mixtape.value.sideB.length} tracks across Side A & B.`
-      : 'A public cassette mixtape on Mixtape Maker.',
+  description: seoDescription,
+  ogDescription: seoDescription,
   ogTitle: () => (mixtape.value ? mixtape.value.title : 'Mixtape Maker'),
   robots: 'noindex, follow',
 });

@@ -28,12 +28,14 @@ export default defineNuxtConfig({
     '/share/**': { ssr: true },
     '/user/**': { ssr: true },
     '/jcard/**': { ssr: true },
-    '/mixtape': { ssr: false },
-    '/library': { ssr: false },
-    '/profile': { ssr: false },
-    '/admin': { ssr: false },
-    '/cards/**': { ssr: false },
-    '/spotify-callback': { ssr: false },
+    // Client-only pages ship an empty shell, so noindex goes out as a header
+    // (a useSeoMeta robots tag would only exist after hydration).
+    '/mixtape': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/library': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/profile': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/admin': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/cards/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
+    '/spotify-callback': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     // Legacy redirects
     '/editor': { redirect: '/mixtape' },
     '/cards': { redirect: '/library?tab=jcards' },
@@ -82,16 +84,12 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
         { property: 'og:site_name', content: 'Mixtape Maker' },
         { property: 'og:locale', content: 'en_US' },
-        { property: 'og:url', content: 'https://mixtape-maker.com' },
         { property: 'og:title', content: 'Mixtape Maker: Make Retro Cassette Mixtapes' },
         { property: 'og:description', content: 'Make retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud.' },
         { property: 'og:image', content: 'https://mixtape-maker.com/og-image.png' },
         { property: 'og:image:width', content: '3456' },
         { property: 'og:image:height', content: '1582' },
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'Mixtape Maker — Make Retro Cassette Mixtapes' },
-        { name: 'twitter:description', content: 'Make retro cassette mixtapes using Spotify search. Design custom J-cards, split tracks across Side A & B, and save your mixes to the cloud.' },
-        { name: 'twitter:image', content: 'https://mixtape-maker.com/og-image.png' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
@@ -100,7 +98,6 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/android-chrome-192x192.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' },
-        { rel: 'canonical', href: 'https://mixtape-maker.com' },
       ],
       script: [
         {

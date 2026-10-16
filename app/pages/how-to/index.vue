@@ -86,6 +86,7 @@ useHead({
 
     <header class="gd-header">
       <div class="gd-header-inner">
+        <GuideSwitch />
         <div class="gd-eyebrow">◆ HOW-TO GUIDE</div>
         <h1 class="gd-title">How to record a Spotify mixtape onto a cassette</h1>
         <p class="gd-subhead">
@@ -116,6 +117,11 @@ useHead({
             <div class="gd-part-title">Make the mixtape</div>
           </div>
         </div>
+
+        <p class="gd-p">
+          This part is the short version. For every button in the editor and the J-card designer, see the
+          <NuxtLink to="/how-to/editor-and-designer">editor &amp; designer guide</NuxtLink>.
+        </p>
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
@@ -302,6 +308,14 @@ useHead({
             </details>
           </div>
         </section>
+
+        <div class="gd-next">
+          <div>
+            <div class="gd-next-label">OTHER GUIDE</div>
+            <div class="gd-next-title">Using the editor &amp; J-card designer</div>
+          </div>
+          <NuxtLink to="/how-to/editor-and-designer" class="lp-btn lp-btn-mustard">Read it →</NuxtLink>
+        </div>
       </main>
     </div>
 

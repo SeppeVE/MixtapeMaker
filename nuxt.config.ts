@@ -23,6 +23,8 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { prerender: true },
     '/privacy': { prerender: true },
+    '/how-to': { prerender: true },
+    '/how-to/editor-and-designer': { prerender: true },
     '/explore': { ssr: true },
     '/explore/**': { ssr: true },
     '/share/**': { ssr: true },

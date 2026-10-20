@@ -11,6 +11,7 @@ import {
   PAPER_SIZES_MM, DEFAULT_PAPER, DEFAULT_DUPLEX_FLIP,
 } from '~/utils/jcardPdf';
 import { useUiStore } from '~/stores/ui';
+import { trackEvent } from '~/utils/analytics';
 
 const props = defineProps<{
   card: JCard;
@@ -125,6 +126,7 @@ async function handleExport() {
   } finally {
     exporting.value = false;
   }
+  trackEvent('jcard_pdf_exported');
   // The file is already downloading. What people need *now* is the print
   // guidance they would otherwise get wrong; it is muteable on its own.
   ui.openSuccessModal({

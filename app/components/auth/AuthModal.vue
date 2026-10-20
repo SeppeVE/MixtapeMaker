@@ -3,6 +3,7 @@ import { ref, useTemplateRef } from 'vue';
 import { useRuntimeConfig } from '#app';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
+import { trackEvent } from '~/utils/analytics';
 import TurnstileWidget from '~/components/auth/TurnstileWidget.vue';
 
 // Self-contained: driven by the ui store (open state) + auth store (actions).
@@ -51,11 +52,13 @@ async function handleSubmit() {
     if (err) {
       error.value = err.message;
     } else if (isSignUp.value) {
+      trackEvent('signed_up');
       success.value = true;
       email.value = '';
       password.value = '';
       isSignUp.value = false;
     } else {
+      trackEvent('signed_in', { method: 'email' });
       close();
     }
   } catch {
@@ -76,6 +79,9 @@ async function handleGoogleSignIn() {
     if (err) {
       error.value = err.message;
       loading.value = false;
+    } else {
+      // Fired before the redirect; Google can't tell us new vs returning here.
+      trackEvent('signed_in', { method: 'google' });
     }
     // On success the browser redirects, so no need to close.
   } catch {

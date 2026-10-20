@@ -122,6 +122,7 @@ async function handleShare(tape: Mixtape) {
       cloudTapes.value = cloudTapes.value.map((t) => (t.id === tape.id ? { ...t, shareToken: token } : t));
     }
     url = buildShareUrl(token);
+    trackEvent('mixtape_share_link');
   } catch {
     ui.showToast('Failed to create share link', 'error');
     return;

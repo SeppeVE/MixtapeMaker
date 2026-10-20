@@ -4,6 +4,7 @@ import { navigateTo } from '#app';
 import type { Mixtape, CassetteLength, JCard } from '~/types';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
+import { trackEvent } from '~/utils/analytics';
 import { generateId } from '~/utils/timeUtils';
 import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { findProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
@@ -127,7 +128,9 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     }
     isSaving.value = true;
     try {
+      const firstSave = !isCloudId(mixtape.value.id);
       mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
+      trackEvent('mixtape_saved', { first: firstSave });
       trackCopySignature(mixtape.value);
       dirty.value = false;
       ui.showToast('Mixtape saved to cloud', 'success');
@@ -170,6 +173,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
       await toggleMixtapePublic(tape.id, makePublic);
       if (mixtape.value.id === tape.id) mixtape.value = { ...mixtape.value, isPublic: makePublic };
       if (makePublic) {
+        trackEvent('mixtape_made_public');
         // Going public is a share: hand over the explore link right away.
         ui.openSuccessModal({
           title: 'Mixtape is now public',

@@ -99,6 +99,10 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   // copy, re-derive isCopy from whether it still matches the original content
   // (so add-then-remove, or any edit reverted by hand, stays flagged as a copy).
   function updateMixtape(patch: Partial<Mixtape>) {
+    // Clicking into the title or dedication and back out re-sends the same
+    // value; that's not an edit, so it mustn't mark the tape unsaved.
+    const current = mixtape.value;
+    if ((Object.keys(patch) as (keyof Mixtape)[]).every((k) => patch[k] === current[k])) return;
     const next: Mixtape = { ...mixtape.value, ...patch, updatedAt: new Date().toISOString() };
     if (copySignature !== null) next.isCopy = contentSignature(next) === copySignature;
     mixtape.value = next;

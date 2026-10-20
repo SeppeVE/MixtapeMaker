@@ -130,7 +130,12 @@ const editor = useEditor({
       'data-placeholder': props.placeholder,
     },
   },
-  onUpdate({ editor }) {
+  onUpdate({ editor, transaction }) {
+    // Only the user's own edit counts. Tiptap's StarterKit appends a trailing
+    // empty paragraph as a side effect of the first transaction (even just
+    // clicking into the editor); emitting that would mark an untouched card
+    // as having unsaved changes.
+    if (!transaction.docChanged) return;
     emit('change', editor.getHTML());
     syncListColors(editor.view.dom as HTMLElement);
   },

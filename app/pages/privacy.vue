@@ -4,7 +4,7 @@ import { useSeoMeta } from '#app';
 // Plain-language privacy policy. Every claim in here mirrors what the code
 // actually does — if a data flow changes (new provider, new field), update
 // the matching section and bump LAST_UPDATED.
-const LAST_UPDATED = '11 September 2026';
+const LAST_UPDATED = '20 October 2026';
 const CONTACT_EMAIL = 'contact@mixtape-maker.com';
 
 const SEO_TITLE = 'Privacy Policy — Mixtape Maker';
@@ -40,6 +40,11 @@ const PROVIDERS = [
     name: 'Vercel',
     role: 'Hosting and analytics',
     what: 'Serves the website. Vercel Analytics counts page views without cookies; it records the page, referrer, country and device type, not who you are.',
+  },
+  {
+    name: 'Umami',
+    role: 'Analytics',
+    what: 'A self-hosted copy of Umami, run by us on Vercel with its data in our own Supabase database, counts page views and a few button clicks without cookies. It records the page, referrer, country, browser and device type, not who you are.',
   },
   {
     name: 'Spotify',

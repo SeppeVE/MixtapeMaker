@@ -54,6 +54,8 @@ const isOwner = computed(() => !!auth.user && !!card.value && auth.user.id === c
 useSeoMeta({
   title: () => (card.value ? `${card.value.title || 'J-Card'} — Mixtape Maker` : 'J-Card — Mixtape Maker'),
   description: 'A cassette J-card designed on Mixtape Maker.',
+  ogTitle: () => (card.value ? card.value.title || 'J-Card' : 'Mixtape Maker'),
+  ogDescription: 'A cassette J-card designed on Mixtape Maker.',
   robots: 'noindex, follow',
 });
 

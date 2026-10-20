@@ -81,7 +81,7 @@ function signIn() {
       </div>
 
       <NuxtLink v-if="profileStore.isAdmin" to="/admin" class="lp-btn lp-btn-plum">Admin</NuxtLink>
-      <NuxtLink to="/how-to" class="lp-btn lp-btn-paper">Guide</NuxtLink>
+      <NuxtLink to="/how-to/editor-and-designer" class="lp-btn lp-btn-paper">Guide</NuxtLink>
       <NuxtLink to="/explore" class="lp-btn lp-btn-paper">Explore</NuxtLink>
       <NuxtLink v-if="library" to="/library" class="lp-btn lp-btn-paper">Library</NuxtLink>
       <!-- Sign Out lives on the profile page; signed-in users reach it via the profile button (right-most) -->

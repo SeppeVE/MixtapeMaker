@@ -7,9 +7,14 @@ import { useSeoMeta } from '#app';
 const LAST_UPDATED = '11 September 2026';
 const CONTACT_EMAIL = 'contact@mixtape-maker.com';
 
+const SEO_TITLE = 'Privacy Policy — Mixtape Maker';
+const SEO_DESCRIPTION = 'What Mixtape Maker collects, why, which services process it, and how to see, change or delete your data.';
+
 useSeoMeta({
-  title: 'Privacy Policy — Mixtape Maker',
-  description: 'What Mixtape Maker collects, why, which services process it, and how to see, change or delete your data.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  ogTitle: SEO_TITLE,
+  ogDescription: SEO_DESCRIPTION,
   robots: 'index, follow',
 });
 

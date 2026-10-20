@@ -34,6 +34,10 @@ const notFound = computed(() => !pending.value && !mixtape.value);
 
 useSeoMeta({
   title: () => (mixtape.value ? `${mixtape.value.title} — Mixtape Maker` : 'Shared Mixtape — Mixtape Maker'),
+  ogDescription: () =>
+    mixtape.value
+      ? `A cassette mixtape: ${mixtape.value.sideA.length + mixtape.value.sideB.length} tracks across Side A & B.`
+      : 'A cassette mixtape on Mixtape Maker.',
   ogTitle: () => (mixtape.value ? mixtape.value.title : 'Mixtape Maker'),
   robots: 'noindex, follow',
 });

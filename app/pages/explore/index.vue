@@ -16,11 +16,16 @@ function setTab(tab: Tab) {
   router.replace({ query: tab === 'mixtapes' ? {} : { tab } });
 }
 
+const seoTitle = computed(() => (activeTab.value === 'jcards' ? 'Explore J-Cards — Mixtape Maker' : 'Explore — Mixtape Maker'));
+const seoDescription = computed(() => (activeTab.value === 'jcards'
+  ? 'Browse public cassette J-cards designed by the community.'
+  : 'Browse public cassette mixtapes made by the community.'));
+
 useSeoMeta({
-  title: () => (activeTab.value === 'jcards' ? 'Explore J-Cards — Mixtape Maker' : 'Explore — Mixtape Maker'),
-  description: () => (activeTab.value === 'jcards'
-    ? 'Browse public cassette J-cards designed by the community.'
-    : 'Browse public cassette mixtapes made by the community.'),
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
 });
 </script>
 

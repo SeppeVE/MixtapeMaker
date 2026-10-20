@@ -76,6 +76,58 @@
 }
 .gd-tab:hover { background: var(--color-mustard); }
 
+/* Inline links in guide copy */
+.gd-subhead a { color: var(--color-mustard); text-decoration: underline; text-underline-offset: 2px; }
+.gd-p a,
+.gd-caption a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── Guide switcher (top of header) ── */
+.gd-guides {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 2px solid var(--color-paper);
+  margin-bottom: 22px;
+}
+.gd-guide-link {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: var(--color-paper);
+  padding: 5px 14px 3px;
+  text-decoration: none;
+}
+.gd-guide-link + .gd-guide-link { border-left: 2px solid var(--color-paper); }
+.gd-guide-link:hover { background: rgba(255, 255, 255, 0.1); }
+.gd-guide-link--active,
+.gd-guide-link--active:hover {
+  background: var(--color-mustard);
+  color: var(--color-text);
+}
+
+/* ── Next-guide card (end of each guide) ── */
+.gd-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  border: 2.5px solid var(--color-text);
+  box-shadow: var(--shadow);
+  background: var(--color-paper);
+}
+.gd-next-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+.gd-next-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.5px;
+}
+
 /* ── Body: TOC + main ── */
 .gd-body {
   max-width: 980px;

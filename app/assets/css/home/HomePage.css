@@ -304,7 +304,10 @@
 }
 
 .lp-how-foot {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 40px;
 }
 

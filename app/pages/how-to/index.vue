@@ -2,9 +2,14 @@
 import { useSeoMeta, useHead } from '#app';
 import IconSparkle from '~icons/material-symbols/auto-awesome-rounded';
 
+const SEO_TITLE = 'How to record a Spotify mixtape onto a cassette — Mixtape Maker';
+const SEO_DESCRIPTION = 'Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.';
+
 useSeoMeta({
-  title: 'How to record a Spotify mixtape onto a cassette — Mixtape Maker',
-  description: 'Make a mixtape of your desired songs in Mixtape Maker, and record it onto a cassette. Connect a Spotify player device (laptop or phone usually) to your receiver and into your cassette deck. A full walkthrough: pick a tape length, balance both sides, wire up the deck, set levels, and record clean.',
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  ogTitle: SEO_TITLE,
+  ogDescription: SEO_DESCRIPTION,
 });
 
 const TAPE_LENGTHS = [
@@ -76,11 +81,14 @@ useHead({
     <NavBar library>
       <NuxtLink to="/" class="lp-nav-link">◀ Home</NuxtLink>
       <span class="lp-nav-sep">/</span>
-      <span class="lp-nav-current">How-to guide</span>
+      <NuxtLink to="/how-to/editor-and-designer" class="lp-nav-link">Guide</NuxtLink>
+      <span class="lp-nav-sep">/</span>
+      <span class="lp-nav-current">Recording to cassette</span>
     </NavBar>
 
     <header class="gd-header">
       <div class="gd-header-inner">
+        <GuideSwitch />
         <div class="gd-eyebrow">◆ HOW-TO GUIDE</div>
         <h1 class="gd-title">How to record a Spotify mixtape onto a cassette</h1>
         <p class="gd-subhead">
@@ -111,6 +119,11 @@ useHead({
             <div class="gd-part-title">Make the mixtape</div>
           </div>
         </div>
+
+        <p class="gd-p">
+          This part is the short version. For every button in the editor and the J-card designer, see the
+          <NuxtLink to="/how-to/editor-and-designer">editor &amp; designer guide</NuxtLink>.
+        </p>
 
         <section class="gd-section gd-step">
           <div class="gd-step-head">
@@ -297,6 +310,14 @@ useHead({
             </details>
           </div>
         </section>
+
+        <div class="gd-next">
+          <div>
+            <div class="gd-next-label">OTHER GUIDE</div>
+            <div class="gd-next-title">Using the editor &amp; J-card designer</div>
+          </div>
+          <NuxtLink to="/how-to/editor-and-designer" class="lp-btn lp-btn-mustard">Read it →</NuxtLink>
+        </div>
       </main>
     </div>
 

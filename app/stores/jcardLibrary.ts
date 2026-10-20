@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { JCard } from '~/types';
 import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
+import { trackEvent } from '~/utils/analytics';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '~/utils/localStorage';
 import { listJCards, upsertJCard, deleteJCard, toggleJCardPublic } from '~/utils/jcardDatabase';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
@@ -74,6 +75,7 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
       cloudIds.add(synced.id);
       cloudCardIds.value = cloudIds;
       localCards.value = [...localCards.value.filter((c) => c.id !== card.id), synced];
+      trackEvent('jcard_saved');
       ui.showToast('Card saved to cloud ☁', 'success');
     } catch {
       ui.showToast('Upload failed', 'error');

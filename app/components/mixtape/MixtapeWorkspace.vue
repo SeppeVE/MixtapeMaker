@@ -6,6 +6,7 @@ import { useMixtapeStore } from '~/stores/mixtape';
 import { isCloudId } from '~/utils/database';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { useUnsavedStore } from '~/stores/unsaved';
+import { trackEvent } from '~/utils/analytics';
 
 const store = useMixtapeStore();
 const router = useRouter();
@@ -46,6 +47,8 @@ function doFlip() {
 
 function handleAddSong(song: Song, side: Side) {
   const key = side === 'A' ? 'sideA' : 'sideB';
+  // First song on an empty tape: the top of the "make a mixtape" funnel.
+  if (!mixtape.value.sideA.length && !mixtape.value.sideB.length) trackEvent('mixtape_started');
   update({ [key]: [...mixtape.value[key], song] });
   if (side !== activeSide.value) doFlip();
 }

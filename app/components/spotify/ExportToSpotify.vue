@@ -5,6 +5,7 @@ import { useUiStore } from '~/stores/ui';
 import { exportMixtapeToSpotify, exportMixtapeSidesToSpotify, type ExportResult, type SideExportResult } from '~/utils/spotifyExport';
 import { isAuthenticated, clearTokens, startSpotifyAuth } from '~/utils/spotifyAuth';
 import { mixtapeFacts } from '~/utils/mixtapeStats';
+import { trackEvent } from '~/utils/analytics';
 import { getSpotifyExportMode, setSpotifyExportMode, type SpotifyExportMode } from '~/utils/localStorage';
 import IconUpload from '~icons/material-symbols/upload-rounded';
 
@@ -87,6 +88,7 @@ async function handleClick() {
       if (!single.coverSet) console.warn('Spotify playlist cover not set:', single.coverError);
     }
     state.value = 'success';
+    trackEvent('spotify_exported', { mode: effectiveMode.value });
     // The export is already done; the modal only confirms it and hands over the link(s).
     if (Array.isArray(result.value)) {
       const ok = result.value.filter((s): s is SideExportResult & { result: ExportResult } => s.status === 'ok' && !!s.result);

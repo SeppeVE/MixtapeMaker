@@ -18,6 +18,17 @@ declare global {
  *   support_block_clicked     { trigger: 'spotify' | 'share' | 'pdf' | 'footer' | 'library' }
  *   support_block_opted_out   { trigger }
  *   print_checklist_opted_out {}
+ *
+ * Funnel events (one per key action, for Umami funnels and goals):
+ *   mixtape_started           {}  first song added to an empty tape
+ *   mixtape_saved             { first: boolean }
+ *   mixtape_made_public       {}
+ *   mixtape_share_link        {}
+ *   spotify_exported          { mode: 'combined' | 'split' }
+ *   jcard_pdf_exported        {}
+ *   jcard_saved               {}
+ *   signed_up                 {}  email sign-up submitted
+ *   signed_in                 { method: 'email' | 'google' }
  */
 export function trackEvent(name: string, props?: EventProps): void {
   if (typeof window === 'undefined') return;

@@ -27,7 +27,6 @@ const sideA = ref(true);
 const flipping = ref(false);
 const isEditingTitle = ref(false);
 const editTitle = ref('');
-const titleInput = ref<HTMLInputElement | null>(null);
 
 const mixtape = computed(() => store.mixtape);
 const activeSide = computed<Side>(() => (sideA.value ? 'A' : 'B'));
@@ -83,7 +82,12 @@ function handleShuffle() {
 function startEditTitle() {
   editTitle.value = mixtape.value.title;
   isEditingTitle.value = true;
-  nextTick(() => titleInput.value?.focus());
+  // NavBar renders its slot twice (inline, and again in the mobile menu), so
+  // the ref lands on whichever copy rendered last. Focus the one on screen.
+  nextTick(() => {
+    const inputs = document.querySelectorAll<HTMLInputElement>('.lp-nav-title-input');
+    Array.from(inputs).find((el) => el.offsetParent !== null)?.focus();
+  });
 }
 function saveTitle() {
   const trimmed = editTitle.value.trim();
@@ -102,7 +106,6 @@ function saveTitle() {
         <span class="lp-nav-sep">/</span>
         <input
           v-if="isEditingTitle"
-          ref="titleInput"
           v-model="editTitle"
           class="lp-nav-title-input"
           @blur="saveTitle"

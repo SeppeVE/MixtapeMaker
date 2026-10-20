@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore, skipHydrate } from 'pinia';
 import { ref, watch } from 'vue';
 import { navigateTo } from '#app';
 import type { Mixtape, CassetteLength, JCard } from '~/types';
@@ -76,8 +76,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   }
   trackCopySignature(mixtape.value);
 
-  // Client-only: hydrate from localStorage and persist on change. The app pages
-  // that use this store mount client-side (ssr:false or <ClientOnly>), so this runs on the client.
+  // Client-only: hydrate from localStorage and persist on change.
   if (import.meta.client) {
     const stored = loadMixtapeFromLocal();
     if (stored) mixtape.value = stored;
@@ -208,10 +207,14 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   }
 
   return {
-    mixtape,
-    activeCard,
+    // localStorage is the source of truth for these on the client. Without
+    // skipHydrate, a server-rendered page that touches this store (the
+    // homepage) ships its blank defaults in the payload, Pinia writes them over
+    // the draft loaded above, and the watchers then persist the blank tape.
+    mixtape: skipHydrate(mixtape),
+    activeCard: skipHydrate(activeCard),
     isSaving,
-    dirty,
+    dirty: skipHydrate(dirty),
     hasUnsavedChanges,
     updateMixtape,
     save,

@@ -11,6 +11,10 @@ useSeoMeta({
   ogTitle: SEO_TITLE,
   ogDescription: SEO_DESCRIPTION,
 });
+useBreadcrumbs([
+  { name: 'How to', path: '/how-to' },
+  { name: 'Editor and designer', path: '/how-to/editor-and-designer' },
+]);
 
 const TAPE_LENGTHS = [
   { tape: 'C30', per: '15 min' },

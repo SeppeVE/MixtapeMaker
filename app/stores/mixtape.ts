@@ -77,7 +77,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   trackCopySignature(mixtape.value);
 
   // Client-only: hydrate from localStorage and persist on change. The app pages
-  // that use this store are client-rendered (ssr:false), so this runs on the client.
+  // that use this store mount client-side (ssr:false or <ClientOnly>), so this runs on the client.
   if (import.meta.client) {
     const stored = loadMixtapeFromLocal();
     if (stored) mixtape.value = stored;

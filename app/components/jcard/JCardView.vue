@@ -13,6 +13,7 @@ import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaul
 import { registerCustomFonts } from '~/utils/fontManager';
 import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
 import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
+import { pruneJCardImages } from '~/utils/supabaseImages';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import IconSettings from '~icons/material-symbols/settings-rounded';
 
@@ -84,7 +85,29 @@ onMounted(() => {
     },
   });
 });
-onBeforeUnmount(() => unsaved.unregister('jcard'));
+onBeforeUnmount(() => {
+  unsaved.unregister('jcard');
+  // Flush a pending autosave so the prune below sees the card the cloud holds.
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+    lastScheduled = card.value;
+    doSave(card.value, false).then((ok) => { if (ok) pruneReplacedImages(); });
+  } else {
+    pruneReplacedImages();
+  }
+});
+
+// Uploads never overwrite, so a replaced or removed image stays in the bucket
+// until something deletes it. That happens here, on leaving the designer,
+// rather than on every replace: until then undo can still bring the old image
+// back. Skipped while the cloud is behind, so its copy never points at a
+// deleted file.
+function pruneReplacedImages() {
+  const userId = auth.user?.id;
+  if (!userId || !persisted || cloudDirty.value) return;
+  pruneJCardImages([...imageFolderIds].map((id) => `${userId}/${id}`), card.value.content);
+}
 
 // Non-reactive internals (mutating these must NOT trigger a re-render).
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -98,6 +121,9 @@ let persisted = !!props.initialCard && isCloudId(props.initialCard.id);
 // Signature of the untouched copy this card started as, or null when it isn't
 // tracking a copy at all.
 const copySignature: string | null = seed.isCopy ? contentSignature(seed) : null;
+// Every id this card has had. Uploads are filed under the id at upload time,
+// and a local draft swaps its id for a UUID on its first cloud save.
+const imageFolderIds = new Set([seed.id]);
 let histStack: JCard[] = [seed];
 let histIdx = 0;
 let lastPushMs = 0;
@@ -153,6 +179,7 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
         deleteJCardFromLocal(target.id);
       }
       persisted = true;
+      imageFolderIds.add(saved.id);
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
       if (saved.id !== target.id) saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
       // Only mark clean if no further edit was queued while the request was in flight.

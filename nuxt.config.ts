@@ -30,13 +30,15 @@ export default defineNuxtConfig({
     '/share/**': { ssr: true },
     '/user/**': { ssr: true },
     '/jcard/**': { ssr: true },
+    // The editor and designer are indexable: their shell (title, description,
+    // breadcrumbs) is prerendered and the tool mounts client-side via <ClientOnly>.
+    '/mixtape': { prerender: true },
+    '/cards/designer': { prerender: true },
     // Client-only pages ship an empty shell, so noindex goes out as a header
     // (a useSeoMeta robots tag would only exist after hydration).
-    '/mixtape': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/library': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/profile': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/admin': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
-    '/cards/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/spotify-callback': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     // Legacy redirects
     '/editor': { redirect: '/mixtape' },

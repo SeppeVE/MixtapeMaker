@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore, skipHydrate } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import {
@@ -100,7 +100,9 @@ export const useSupportStore = defineStore('support', () => {
   }
 
   return {
-    state,
+    // Read from localStorage on the client; don't let the server's empty
+    // default in the page payload overwrite it during hydration.
+    state: skipHydrate(state),
     printChecklistMuted,
     shouldShowSupportBlock,
     markSupportBlockShown,

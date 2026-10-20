@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+import { defineStore, skipHydrate } from 'pinia';
 import { ref, watch } from 'vue';
 import { navigateTo } from '#app';
 import type { Mixtape, CassetteLength, JCard } from '~/types';
@@ -76,8 +76,7 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   }
   trackCopySignature(mixtape.value);
 
-  // Client-only: hydrate from localStorage and persist on change. The app pages
-  // that use this store are client-rendered (ssr:false), so this runs on the client.
+  // Client-only: hydrate from localStorage and persist on change.
   if (import.meta.client) {
     const stored = loadMixtapeFromLocal();
     if (stored) mixtape.value = stored;
@@ -99,6 +98,10 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   // copy, re-derive isCopy from whether it still matches the original content
   // (so add-then-remove, or any edit reverted by hand, stays flagged as a copy).
   function updateMixtape(patch: Partial<Mixtape>) {
+    // Clicking into the title or dedication and back out re-sends the same
+    // value; that's not an edit, so it mustn't mark the tape unsaved.
+    const current = mixtape.value;
+    if ((Object.keys(patch) as (keyof Mixtape)[]).every((k) => patch[k] === current[k])) return;
     const next: Mixtape = { ...mixtape.value, ...patch, updatedAt: new Date().toISOString() };
     if (copySignature !== null) next.isCopy = contentSignature(next) === copySignature;
     mixtape.value = next;
@@ -204,10 +207,14 @@ export const useMixtapeStore = defineStore('mixtape', () => {
   }
 
   return {
-    mixtape,
-    activeCard,
+    // localStorage is the source of truth for these on the client. Without
+    // skipHydrate, a server-rendered page that touches this store (the
+    // homepage) ships its blank defaults in the payload, Pinia writes them over
+    // the draft loaded above, and the watchers then persist the blank tape.
+    mixtape: skipHydrate(mixtape),
+    activeCard: skipHydrate(activeCard),
     isSaving,
-    dirty,
+    dirty: skipHydrate(dirty),
     hasUnsavedChanges,
     updateMixtape,
     save,

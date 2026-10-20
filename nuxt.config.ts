@@ -55,6 +55,10 @@ export default defineNuxtConfig({
       supabaseAnonKey: '',   // NUXT_PUBLIC_SUPABASE_ANON_KEY
       spotifyClientId: '',   // NUXT_PUBLIC_SPOTIFY_CLIENT_ID
       turnstileSiteKey: '',  // NUXT_PUBLIC_TURNSTILE_SITE_KEY
+      umami: {
+        scriptUrl: '',       // NUXT_PUBLIC_UMAMI_SCRIPT_URL (e.g. https://<umami-host>/script.js)
+        websiteId: '',       // NUXT_PUBLIC_UMAMI_WEBSITE_ID
+      },
       sentry: {
         dsn: '',             // NUXT_PUBLIC_SENTRY_DSN
         environment: '',     // NUXT_PUBLIC_SENTRY_ENVIRONMENT (optional)

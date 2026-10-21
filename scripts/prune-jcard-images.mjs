@@ -9,6 +9,9 @@
 //   SUPABASE_SERVICE_ROLE_KEY=<service role key> \
 //   node scripts/prune-jcard-images.mjs            # dry run: list only
 //   node scripts/prune-jcard-images.mjs --delete   # actually remove them
+//   node scripts/prune-jcard-images.mjs --show-used
+//       # also list the files still in use, grouped by the card using them,
+//       # with a link to each card (set SITE_URL for full links)
 //
 // Files younger than a day are left alone, so an image someone is placing on
 // a card right now is never mistaken for an orphan.
@@ -26,24 +29,32 @@ if (!url || !key) {
   process.exit(1);
 }
 const doDelete = process.argv.includes('--delete');
+const showUsed = process.argv.includes('--show-used');
+const siteUrl = (process.env.SITE_URL ?? '').replace(/\/$/, '');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 // Same matching as referencedJCardImagePaths() in app/utils/supabaseImages.ts.
 const BUCKET_PATH_RE = new RegExp(`/${BUCKET}/([^"?#\\s]+)`, 'g');
 
-async function referencedPaths() {
-  const paths = new Set();
+/** Every card, with the bucket paths its content points at. */
+async function loadCards() {
+  const cards = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase.from('jcards').select('content').range(from, from + PAGE - 1);
+    const { data, error } = await supabase.from('jcards')
+      .select('id, title, user_id, is_public, is_copy, content')
+      .order('updated_at', { ascending: false })
+      .range(from, from + PAGE - 1);
     if (error) throw error;
     for (const row of data) {
+      const paths = new Set();
       for (const match of JSON.stringify(row.content).matchAll(BUCKET_PATH_RE)) {
         try { paths.add(decodeURIComponent(match[1])); } catch { paths.add(match[1]); }
       }
+      cards.push({ ...row, paths });
     }
     if (data.length < PAGE) break;
   }
-  return paths;
+  return cards;
 }
 
 /** Every file under `prefix`, recursing into folders. */
@@ -64,15 +75,39 @@ async function listAll(prefix) {
 
 const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
-const referenced = await referencedPaths();
+const cards = await loadCards();
+const referenced = new Set(cards.flatMap((c) => [...c.paths]));
 const files = await listAll('');
 const now = Date.now();
 const orphans = files.filter((f) =>
   !referenced.has(f.path) && now - new Date(f.createdAt).getTime() > MIN_AGE_MS);
 
+if (showUsed) {
+  const byPath = new Map(files.map((f) => [f.path, f]));
+  console.log('Files in use, by card:\n');
+  for (const card of cards) {
+    const used = [...card.paths].map((p) => byPath.get(p)).filter(Boolean);
+    if (!used.length) continue;
+    const visibility = card.is_copy ? 'copy, private' : card.is_public ? 'public' : 'private';
+    const size = used.reduce((sum, f) => sum + f.size, 0);
+    console.log(`${card.title || 'Untitled J-Card'}  (${visibility}, ${mb(size)})`);
+    console.log(`  card:  ${siteUrl}/jcard/${card.id}`);
+    console.log(`  owner: ${card.user_id}`);
+    for (const f of used) {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(f.path);
+      console.log(`  ${mb(f.size).padStart(10)}  ${data.publicUrl}`);
+    }
+    console.log('');
+  }
+  console.log('---\n');
+}
+
 const total = files.reduce((sum, f) => sum + f.size, 0);
 const orphanTotal = orphans.reduce((sum, f) => sum + f.size, 0);
-for (const f of orphans) console.log(`${mb(f.size).padStart(10)}  ${f.path}`);
+console.log('Orphaned files:\n');
+for (const f of orphans) {
+  console.log(`${mb(f.size).padStart(10)}  ${supabase.storage.from(BUCKET).getPublicUrl(f.path).data.publicUrl}`);
+}
 console.log(`\n${files.length} files (${mb(total)}) in ${BUCKET}, ${referenced.size} referenced by a card.`);
 console.log(`${orphans.length} orphaned files (${mb(orphanTotal)}).`);
 

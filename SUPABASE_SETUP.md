@@ -472,6 +472,78 @@ Read-only: editing and deleting stay owner-only. Every other card query in
 the app already filters on the owner or on `is_public`, so admins see nothing
 extra in their library or on Explore; only the card page uses it.
 
+### 9. Site stats in the admin panel
+
+Powers the "Site stats" section at the top of `/admin`: total users,
+mixtapes and J-cards, how many were made in the last 24 hours / 7 days, and a
+per-day breakdown. One RPC call returns everything as JSON. It is
+`SECURITY DEFINER` so it can count every row (and read `auth.users`) without
+any new RLS policies, and it refuses to run for anyone who isn't an admin.
+Requires `is_admin()` from part 1 above. Days are UTC calendar days.
+
+```sql
+CREATE OR REPLACE FUNCTION public.admin_stats(days integer DEFAULT 14)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Admins only' USING ERRCODE = '42501';
+  END IF;
+  days := LEAST(GREATEST(COALESCE(days, 14), 1), 90);
+
+  SELECT jsonb_build_object(
+    'users', (
+      SELECT jsonb_build_object(
+        'total',   count(*),
+        'last24h', count(*) FILTER (WHERE created_at > now() - interval '24 hours'),
+        'last7d',  count(*) FILTER (WHERE created_at > now() - interval '7 days')
+      ) FROM auth.users
+    ),
+    'mixtapes', (
+      SELECT jsonb_build_object(
+        'total',   count(*),
+        'public',  count(*) FILTER (WHERE is_public),
+        'last24h', count(*) FILTER (WHERE created_at > now() - interval '24 hours'),
+        'last7d',  count(*) FILTER (WHERE created_at > now() - interval '7 days')
+      ) FROM mixtapes
+    ),
+    'jcards', (
+      SELECT jsonb_build_object(
+        'total',   count(*),
+        'public',  count(*) FILTER (WHERE is_public),
+        'last24h', count(*) FILTER (WHERE created_at > now() - interval '24 hours'),
+        'last7d',  count(*) FILTER (WHERE created_at > now() - interval '7 days')
+      ) FROM jcards
+    ),
+    'daily', (
+      SELECT jsonb_agg(jsonb_build_object(
+        'day',      d.day,
+        'users',    (SELECT count(*) FROM auth.users WHERE created_at::date = d.day),
+        'mixtapes', (SELECT count(*) FROM mixtapes   WHERE created_at::date = d.day),
+        'jcards',   (SELECT count(*) FROM jcards     WHERE created_at::date = d.day)
+      ) ORDER BY d.day DESC)
+      FROM generate_series(current_date - (days - 1), current_date, interval '1 day') AS g(ts),
+           LATERAL (SELECT g.ts::date AS day) d
+    )
+  ) INTO result;
+
+  RETURN result;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_stats(integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_stats(integer) TO authenticated;
+```
+
+Copies made with "Copy to my library" count as new mixtapes / J-cards, since
+they are new rows in the user's library.
+
 ## Step 3g: Account Deletion
 
 Powers "Delete my account" on `/profile` (a GDPR requirement now that the

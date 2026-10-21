@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSeoMeta } from '#app';
-import type { AppNotification, FeedbackEntry, Profile } from '~/types';
+import type { AppNotification, FeedbackEntry, Profile, SiteStats } from '~/types';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useProfileStore } from '~/stores/profile';
@@ -14,6 +14,7 @@ import {
 } from '~/utils/notificationDatabase';
 import { listFeedback, deleteFeedback } from '~/utils/feedbackDatabase';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
+import { loadSiteStats } from '~/utils/statsDatabase';
 import IconLightbulb from '~icons/mdi/lightbulb-outline';
 import IconLock from '~icons/material-symbols/lock-rounded';
 import IconStar from '~icons/material-symbols/star-rounded';
@@ -100,9 +101,47 @@ async function removeFeedback(f: FeedbackEntry) {
   }
 }
 
+const stats = ref<SiteStats | null>(null);
+const statsLoading = ref(false);
+const statsError = ref<string | null>(null);
+
+async function loadStats() {
+  if (!allowed.value) return;
+  statsLoading.value = true;
+  statsError.value = null;
+  try {
+    stats.value = await loadSiteStats();
+  } catch {
+    statsError.value = 'Failed to load stats — is the admin_stats() function set up?';
+  } finally {
+    statsLoading.value = false;
+  }
+}
+
+const statTiles = computed(() => {
+  const s = stats.value;
+  if (!s) return [];
+  return [
+    { label: 'Users', counts: s.users },
+    { label: 'Mixtapes', counts: s.mixtapes },
+    { label: 'J-cards', counts: s.jcards },
+  ];
+});
+
+// Shared scale for the per-day bars so the three columns compare honestly.
+const dailyMax = computed(() =>
+  Math.max(1, ...(stats.value?.daily ?? []).flatMap((d) => [d.users, d.mixtapes, d.jcards])),
+);
+const barWidth = (n: number) => `${(n / dailyMax.value) * 100}%`;
+
+// `day` is a plain YYYY-MM-DD (UTC); parse it as UTC so it never shifts a day.
+const fmtDay = (day: string) =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
 function loadAll() {
   load();
   loadFeedback();
+  loadStats();
 }
 
 onMounted(loadAll);
@@ -160,7 +199,7 @@ const fmtDate = (iso: string) =>
       <div class="lib-header-inner">
         <div>
           <div class="lib-page-eyebrow">◆ SITE ADMIN</div>
-          <h1 class="lib-page-title">Notifications &amp; Feedback</h1>
+          <h1 class="lib-page-title">Stats, Notifications &amp; Feedback</h1>
         </div>
       </div>
     </div>
@@ -176,6 +215,50 @@ const fmtDate = (iso: string) =>
       </div>
 
       <div v-else class="lib-section-stack">
+        <section class="lib-section">
+          <div class="lib-section-head">
+            <span>Site stats</span>
+            <span class="lib-section-sub">Straight from the database · days are UTC</span>
+          </div>
+
+          <p v-if="statsLoading && !stats" class="lib-loading">Loading…</p>
+          <div v-else-if="statsError" class="lib-error-state">
+            <IconWarning class="lib-error-icon" aria-hidden="true" />
+            <span class="lib-error-msg">{{ statsError }}</span>
+            <button class="lp-btn lp-btn-mustard" @click="loadStats">↻ Retry</button>
+          </div>
+          <template v-else-if="stats">
+            <div class="adm-stats">
+              <div v-for="t in statTiles" :key="t.label" class="adm-stat">
+                <span class="adm-stat-label">{{ t.label }}</span>
+                <strong class="adm-stat-total">{{ t.counts.total.toLocaleString() }}</strong>
+                <span class="adm-stat-delta">+{{ t.counts.last24h }} today · +{{ t.counts.last7d }} this week</span>
+                <span v-if="t.counts.public !== undefined" class="adm-stat-delta">{{ t.counts.public }} public</span>
+              </div>
+            </div>
+
+            <table class="adm-daily">
+              <thead>
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col">New users</th>
+                  <th scope="col">Mixtapes</th>
+                  <th scope="col">J-cards</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="d in stats.daily" :key="d.day">
+                  <th scope="row">{{ fmtDay(d.day) }}</th>
+                  <td v-for="(n, i) in [d.users, d.mixtapes, d.jcards]" :key="i">
+                    <span class="adm-daily-bar" :style="{ width: barWidth(n) }" aria-hidden="true" />
+                    <span class="adm-daily-num" :class="{ 'adm-daily-zero': n === 0 }">{{ n }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+        </section>
+
         <section class="lib-section">
           <div class="lib-section-head">
             <span>New notification</span>

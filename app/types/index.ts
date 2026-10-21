@@ -190,3 +190,21 @@ export interface AppNotification {
   linkLabel: string | null;
   createdAt: string;
 }
+
+/** Row counts for one table, as returned by the admin_stats() RPC. */
+export interface SiteStatCounts {
+  total: number;
+  last24h: number;
+  last7d: number;
+  /** Only for tables with an is_public flag. */
+  public?: number;
+}
+
+/** Site-wide totals shown at the top of the admin panel. */
+export interface SiteStats {
+  users: SiteStatCounts;
+  mixtapes: SiteStatCounts;
+  jcards: SiteStatCounts;
+  /** One entry per UTC day, newest first. `day` is YYYY-MM-DD. */
+  daily: { day: string; users: number; mixtapes: number; jcards: number }[];
+}

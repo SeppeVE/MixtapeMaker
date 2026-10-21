@@ -152,7 +152,7 @@ Storage buckets:
 
 | Bucket | Path convention | Used by |
 | --- | --- | --- |
-| `jcard-images` | `{userId}/{cardId}/{type}-{ts}.{ext}`, `…-thumb.webp` beside it, `…/inlined-{ts}-{rand}.{ext}` for images lifted out of a copied card | J-card cover/background uploads (`utils/supabaseImages.ts`) |
+| `jcard-images` | `{userId}/{cardId}/{type}-{ts}.{ext}`, `…-thumb.webp` beside it, `…/inlined-{ts}-{rand}.{ext}` for images lifted out of a copied card | J-card cover/background uploads (`utils/supabaseImages.ts`). Files a card no longer points at are pruned when the designer closes, and a deleted card's files go with it. `scripts/prune-jcard-images.mjs` finds older orphans. |
 | `avatars` | `{userId}/avatar-{ts}.jpg` | Profile pictures, resized to 256px client-side (`utils/profileDatabase.ts`) |
 
 SQL functions the client calls or relies on:

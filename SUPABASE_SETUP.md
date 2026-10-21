@@ -455,6 +455,23 @@ Non-admins still get an empty result rather than an error, so nothing else
 in the app changes. Delete entries once they've been dealt with: the privacy
 page promises feedback is only kept until it has been read and acted on.
 
+### 8. Admins can open private J-cards
+
+Lets an admin open any card at `/jcard/<id>`, including private cards and
+unedited copies (handy for checking what the images in storage belong to).
+Requires `is_admin()` from part 1 above.
+
+```sql
+CREATE POLICY "Admins can read all jcards"
+  ON jcards FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+```
+
+Read-only: editing and deleting stay owner-only. Every other card query in
+the app already filters on the owner or on `is_public`, so admins see nothing
+extra in their library or on Explore; only the card page uses it.
+
 ## Step 3g: Account Deletion
 
 Powers "Delete my account" on `/profile` (a GDPR requirement now that the

@@ -5,7 +5,6 @@ import { JCARD_PRESETS } from '~/utils/jcardPresets';
 import { type Section, SECTION_COLORS, SETTINGS_COLOR_PRESETS as COLOR_PRESETS } from './settingsSections';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { fontNameFromFile, readFileAsBase64, mimeTypeFromFile, registerCustomFonts } from '~/utils/fontManager';
-import { deleteJCardImage } from '~/utils/supabaseImages';
 import {
   exportJCardToPDF, resolvePdfLayout, shouldExportInside, jcardHasInsideContent,
   PAPER_SIZES_MM, DEFAULT_PAPER, DEFAULT_DUPLEX_FLIP,
@@ -145,11 +144,10 @@ function handleApplyPreset(presetId: string) {
 }
 
 // Background images carry a thumbnail (see supabaseImages.ts) that the Explore
-// grid preview reads instead of the full-size original. The old thumbnail is
-// orphaned once its image is replaced or removed, so it's deleted here
-// explicitly — ImageUpload only reports the new upload.
+// grid preview reads instead of the full-size original. Replaced files,
+// thumbnail included, are left for the designer to prune on exit (JCardView),
+// so undo can still restore them.
 function handleBackgroundImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
-  if (content.value.backgroundImageThumbUrl) deleteJCardImage(content.value.backgroundImageThumbUrl);
   patch({ backgroundImageUrl: url ?? undefined, backgroundImageThumbUrl: thumbUrl });
 }
 

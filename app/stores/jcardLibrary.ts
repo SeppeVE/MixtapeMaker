@@ -6,6 +6,7 @@ import { useAuthStore } from '~/stores/auth';
 import { trackEvent } from '~/utils/analytics';
 import { loadJCardsFromLocal, deleteJCardFromLocal, saveJCardToLocal } from '~/utils/localStorage';
 import { listJCards, upsertJCard, deleteJCard, toggleJCardPublic } from '~/utils/jcardDatabase';
+import { deleteAllJCardImages } from '~/utils/supabaseImages';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 
 export type StorageStatus = 'local' | 'cloud' | 'synced';
@@ -92,6 +93,8 @@ export const useJCardLibraryStore = defineStore('jcardLibrary', () => {
       const status = cardStatus(card);
       if (status === 'cloud' || status === 'synced') await deleteJCard(card.id);
       if (status === 'local' || status === 'synced') deleteJCardFromLocal(card.id);
+      // The row is gone, so nothing points at its images any more.
+      if (auth.user) deleteAllJCardImages(card.id, card.content, auth.user.id);
       allCards.value = allCards.value.filter((c) => c.id !== card.id);
       const cloudIds = new Set(cloudCardIds.value);
       cloudIds.delete(card.id);

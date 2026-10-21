@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAsyncData, useSeoMeta, useRequestEvent, setResponseStatus } from '#app';
-import type { JCardPaperSize } from '~/types';
-import { loadPublicJCard } from '~/utils/jcardDatabase';
+import type { JCard, JCardPaperSize, Profile } from '~/types';
+import { loadJCard, loadPublicJCard } from '~/utils/jcardDatabase';
 import { loadPublicMixtape } from '~/utils/database';
 import { loadProfilesByIds } from '~/utils/profileDatabase';
 import { registerCustomFonts } from '~/utils/fontManager';
@@ -11,6 +11,7 @@ import { useCopyToLibrary } from '~/composables/useCopyToLibrary';
 import { useAuthStore } from '~/stores/auth';
 import { useUiStore } from '~/stores/ui';
 import { useMixtapeStore } from '~/stores/mixtape';
+import { useProfileStore } from '~/stores/profile';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconPencil from '~icons/material-symbols/edit-sharp';
 
@@ -19,6 +20,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const ui = useUiStore();
 const mixtapeStore = useMixtapeStore();
+const profileStore = useProfileStore();
 
 const id = computed(() => route.params.id as string);
 
@@ -43,12 +45,36 @@ const { data, pending } = await useAsyncData(
   },
 );
 
-const card = computed(() => data.value?.card ?? null);
-const author = computed(() => data.value?.author ?? null);
+// Admins can also open private cards and unedited copies ("Admins can read all
+// jcards" in SUPABASE_SETUP.md). The session only exists in the browser, so the
+// server renders these as not found and the admin lookup runs client-side.
+const adminCard = ref<{ card: JCard; author: Profile | null } | null>(null);
+const adminLoading = ref(false);
+watch(
+  () => [pending.value, !!data.value?.card, profileStore.isAdmin, id.value] as const,
+  async ([isPending, hasPublic, isAdmin, cardId]) => {
+    if (isPending || hasPublic || !isAdmin || adminCard.value?.card.id === cardId) return;
+    adminLoading.value = true;
+    try {
+      const found = await loadJCard(cardId).catch(() => null);
+      if (found && found.id === id.value) {
+        const profiles = await loadProfilesByIds([found.userId]);
+        adminCard.value = { card: found, author: profiles.get(found.userId) ?? null };
+      }
+    } finally {
+      adminLoading.value = false;
+    }
+  },
+  { immediate: true },
+);
+const viewingAsAdmin = computed(() => !data.value?.card && !!adminCard.value);
+
+const card = computed(() => data.value?.card ?? adminCard.value?.card ?? null);
+const author = computed(() => data.value?.author ?? adminCard.value?.author ?? null);
 const linkedMixtape = computed(() => data.value?.mixtape ?? null);
 const sourceCard = computed(() => data.value?.sourceCard ?? null);
 const sourceAuthor = computed(() => data.value?.sourceAuthor ?? null);
-const notFound = computed(() => !pending.value && !card.value);
+const notFound = computed(() => !pending.value && !adminLoading.value && !card.value);
 const isOwner = computed(() => !!auth.user && !!card.value && auth.user.id === card.value.userId);
 
 useSeoMeta({
@@ -124,7 +150,7 @@ function handleCopyClick() {
       </NavBar>
 
       <div class="lib-content">
-        <p v-if="pending" class="lib-page-loading">Loading…</p>
+        <p v-if="pending || (adminLoading && !card)" class="lib-page-loading">Loading…</p>
 
         <div v-else-if="notFound" class="lib-empty">
           <IconCard class="lib-empty-icon" aria-hidden="true" />
@@ -138,6 +164,9 @@ function handleCopyClick() {
               <span>{{ card.title || 'Untitled J-Card' }}</span>
               <AuthorByline v-if="author" :profile="author" />
             </div>
+            <p v-if="viewingAsAdmin" class="pf-hint jcard-detail-hint">
+              {{ card.isCopy ? 'Unedited copy' : 'Private card' }}: only visible to you because you're an admin.
+            </p>
             <p v-if="linkedMixtape" class="pf-hint jcard-detail-hint">
               Designed for the mixtape
               <NuxtLink :to="`/explore/${linkedMixtape.id}`" class="pf-inline-link">{{ linkedMixtape.title }}</NuxtLink>
@@ -164,7 +193,7 @@ function handleCopyClick() {
               <button v-if="isOwner" class="lp-btn lp-btn-plum" @click="handleEdit">
                 <IconPencil class="icon-inline" aria-hidden="true" /> Edit
               </button>
-              <button v-else class="lp-btn lp-btn-forest" :disabled="copying" @click="handleCopyClick">
+              <button v-else-if="!viewingAsAdmin" class="lp-btn lp-btn-forest" :disabled="copying" @click="handleCopyClick">
                 {{ copying ? 'Copying…' : '⎘ Copy to my library' }}
               </button>
             </div>

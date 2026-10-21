@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { JCardContent } from '~/types';
-import { deleteJCardImage } from '~/utils/supabaseImages';
 
 const props = defineProps<{
   content: JCardContent;
@@ -62,7 +61,8 @@ function withIndex<T>(list: T[] | undefined, index: number, value: T, empty: T):
 }
 
 // Cover images carry a thumbnail (see supabaseImages.ts) that the Explore
-// grid preview reads. The old thumbnail is orphaned once replaced or removed.
+// grid preview reads. Replaced files, thumbnail included, are left for the
+// designer to prune on exit (JCardView), so undo can still restore them.
 function onImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: string }) {
   if (props.side === 'inside') {
     emit('patch', {
@@ -71,7 +71,6 @@ function onImageChange({ url, thumbUrl }: { url: string | null; thumbUrl?: strin
     return;
   }
   if (isCover.value) {
-    if (props.content.coverImageThumbUrl) deleteJCardImage(props.content.coverImageThumbUrl);
     emit('patch', { coverImageUrl: url ?? undefined, coverImageThumbUrl: thumbUrl });
     return;
   }

@@ -28,11 +28,69 @@ export async function uploadJCardImage(file: File, userId: string, type: 'cover'
   return { url: data.publicUrl, thumbUrl };
 }
 
-export async function deleteJCardImage(publicUrl: string): Promise<void> {
-  const path = bucketPath(publicUrl);
-  if (!path) return;
+// Matches the path part of any of our public URLs, wherever it sits in a
+// card's content. Scanning the serialized content rather than a list of keys
+// means a new image field can never be mistaken for an unused file.
+const BUCKET_PATH_RE = new RegExp(`/${BUCKET}/([^"?#\\s]+)`, 'g');
+
+/** Every bucket path the given contents point at. */
+export function referencedJCardImagePaths(...contents: JCardContent[]): Set<string> {
+  const paths = new Set<string>();
+  for (const content of contents) {
+    for (const match of JSON.stringify(content).matchAll(BUCKET_PATH_RE)) {
+      try {
+        paths.add(decodeURIComponent(match[1]!));
+      } catch {
+        paths.add(match[1]!);
+      }
+    }
+  }
+  return paths;
+}
+
+/** Paths of the files directly inside `folder` (sub-folders skipped). */
+async function listFolderFiles(folder: string): Promise<string[]> {
+  const paths: string[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.storage.from(BUCKET).list(folder, { limit: pageSize, offset });
+    if (error || !data) break;
+    for (const entry of data) if (entry.id) paths.push(`${folder}/${entry.name}`);
+    if (data.length < pageSize) break;
+  }
+  return paths;
+}
+
+/**
+ * Remove every file in the given card folders that `keep` no longer points
+ * at: covers and backgrounds that were replaced or removed, with their
+ * thumbnails. Uploads always get a fresh timestamped name, so nothing else
+ * ever clears them out. Best-effort — a failed prune leaves files for the
+ * next one.
+ */
+export async function pruneJCardImages(folders: string[], keep: JCardContent): Promise<void> {
   try {
-    await supabase.storage.from(BUCKET).remove([path]);
+    const referenced = referencedJCardImagePaths(keep);
+    const stale: string[] = [];
+    for (const folder of new Set(folders)) {
+      for (const path of await listFolderFiles(folder)) if (!referenced.has(path)) stale.push(path);
+    }
+    if (stale.length) await supabase.storage.from(BUCKET).remove(stale);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Remove a deleted card's images: its own folder, plus anything it points at
+ * elsewhere in the user's folder — a card first drafted locally keeps its
+ * early uploads under the local id it had before the cloud gave it a UUID.
+ */
+export async function deleteAllJCardImages(cardId: string, content: JCardContent, userId: string): Promise<void> {
+  try {
+    const paths = new Set(await listFolderFiles(`${userId}/${cardId}`));
+    for (const path of referencedJCardImagePaths(content)) {
+      if (path.startsWith(`${userId}/`)) paths.add(path);
+    }
+    if (paths.size) await supabase.storage.from(BUCKET).remove([...paths]);
   } catch { /* ignore */ }
 }
 

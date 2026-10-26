@@ -48,7 +48,7 @@ const CONTENT: Record<'mixtape' | 'designer', {
     ],
     faqs: [
       { q: 'What size is a cassette J-card?', a: 'The card is 102 mm (about 4 in) tall. The front panel is 65 mm wide, the spine 12.7 mm (half an inch) and the back flap 25.4 mm, or 10 mm for a short back. Extra inside panels add roughly 62 mm each.' },
-      { q: 'What paper should I print it on?', a: 'Card stock between 160 and 250 g/m² folds cleanly and stands up in the case. Print a single page first and measure the 50 mm scale bar on it to check your printer kept the size.' },
+      { q: 'What paper should I print it on?', a: 'Any paper works. Card stock between 160 and 250 g/m² folds cleanly and stands up best in the case. If your paper is thin and you can\'t print double-sided, print the outside and the inside on separate sheets and glue them back to back for a sturdier card. Print a single page first and measure the 50 mm scale bar on it to check your printer kept the size.' },
       { q: 'Do I need design software?', a: 'No. Everything runs in your browser. The designer works best on a laptop or desktop screen, where the card and its settings fit side by side.' },
     ],
     other: { to: '/mixtape', label: 'Plan the tracklist first' },

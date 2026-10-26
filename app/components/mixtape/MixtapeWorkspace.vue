@@ -174,6 +174,7 @@ function saveTitle() {
         </div>
       </div>
     </div>
+    <slot />
     <HomeFooter />
   </div>
 </template>

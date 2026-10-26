@@ -17,12 +17,19 @@ useBreadcrumbs([{ name: 'Mixtape Editor', path: '/mixtape' }]);
   <!-- The page shell is prerendered for search engines; the editor itself reads
        the draft from localStorage, so it only mounts on the client. -->
   <div class="contents">
-    <div class="sr-only">
-      <h1>Mixtape Editor</h1>
-      <p>{{ SEO_DESCRIPTION }}</p>
-    </div>
+    <h1 class="sr-only">Mixtape Editor</h1>
     <ClientOnly>
-      <MixtapeWorkspace />
+      <MixtapeWorkspace>
+        <ToolAbout tool="mixtape" />
+      </MixtapeWorkspace>
+      <!-- Prerendered stand-in: a screen of empty workspace, then the same
+           about section, so the static HTML carries the page's real content. -->
+      <template #fallback>
+        <div class="editor">
+          <div class="tool-placeholder" />
+          <ToolAbout tool="mixtape" />
+        </div>
+      </template>
     </ClientOnly>
   </div>
 </template>

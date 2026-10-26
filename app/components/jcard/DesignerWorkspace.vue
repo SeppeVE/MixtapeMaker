@@ -14,6 +14,9 @@ const router = useRouter();
 // When the previews would not fit above the footer, the workspace takes the
 // full viewport instead and the footer moves below the fold, reachable by
 // scrolling the page — the same natural-scroll model mobile uses.
+// Slotted content (the about section on /cards/designer) counts as part of the
+// footer, so with it the workspace always takes the viewport and the about
+// section and footer both sit below the fold, like the mixtape editor.
 const pageRef = ref<HTMLElement | null>(null);
 const footerBelow = ref(false);
 const chromeHeight = ref(0);
@@ -104,6 +107,7 @@ useEventListener(typeof window !== 'undefined' ? window : null, 'resize', schedu
       <JCardView :initial-card="store.activeCard" :current-mixtape="store.mixtape" />
     </div>
     <div class="jcard-page-footer">
+      <slot />
       <HomeFooter />
     </div>
   </div>

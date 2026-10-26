@@ -40,9 +40,10 @@ export default defineNuxtConfig({
     '/profile': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/admin': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
     '/spotify-callback': { ssr: false, headers: { 'X-Robots-Tag': 'noindex' } },
-    // Legacy redirects
-    '/editor': { redirect: '/mixtape' },
-    '/cards': { redirect: '/library?tab=jcards' },
+    // Legacy redirects. Permanent (301) so Google drops the old URL; the
+    // default 307 kept /editor listed as "crawled - currently not indexed".
+    '/editor': { redirect: { to: '/mixtape', statusCode: 301 } },
+    '/cards': { redirect: { to: '/library?tab=jcards', statusCode: 301 } },
   },
 
   css: ['~/assets/css/index.css'],

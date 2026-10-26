@@ -12,6 +12,9 @@
 }
 
 .editor-side-b { background: var(--color-lavender); }
+
+/* Prerendered stand-in for the editor/designer until they mount (see mixtape.vue) */
+.tool-placeholder { min-height: 100vh; }
 @keyframes cur-blink {
   0%,50%  { opacity: 0.5; }
   51%,100%{ opacity: 0; }

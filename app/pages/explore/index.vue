@@ -46,6 +46,11 @@ useBreadcrumbs([{ name: 'Explore', path: '/explore' }]);
           <div>
             <div class="lib-page-eyebrow">{{ activeTab === 'jcards' ? '◆ COMMUNITY J-CARDS' : '◆ COMMUNITY MIXTAPES' }}</div>
             <h1 class="lib-page-title">Explore</h1>
+            <p class="explore-intro">
+              {{ activeTab === 'jcards'
+                ? 'Cassette J-cards people designed in the J-card designer and made public. Open one to see it up close, or copy it to your library and change the text, colors and fonts to fit your own tape.'
+                : 'Mixtapes people planned in the editor and made public: real two-sided tracklists, fitted to a cassette length. Open one to see both sides, listen on Spotify, or copy it to your library to remix it.' }}
+            </p>
           </div>
           <div class="lib-tabs">
             <button :class="`lib-tab${activeTab === 'mixtapes' ? ' lib-tab--active' : ''}`" @click="setTab('mixtapes')">
@@ -67,3 +72,14 @@ useBreadcrumbs([{ name: 'Explore', path: '/explore' }]);
     <HomeFooterRail />
   </div>
 </template>
+
+<style scoped>
+.explore-intro {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-sage);
+  max-width: 560px;
+  margin: 14px 0 0;
+}
+</style>

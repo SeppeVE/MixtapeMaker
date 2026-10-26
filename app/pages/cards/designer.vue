@@ -17,12 +17,19 @@ useBreadcrumbs([{ name: 'J-Card Designer', path: '/cards/designer' }]);
   <!-- The page shell is prerendered for search engines; the designer itself
        reads the active card from localStorage, so it only mounts on the client. -->
   <div class="contents">
-    <div class="sr-only">
-      <h1>Cassette J-Card Designer</h1>
-      <p>{{ SEO_DESCRIPTION }}</p>
-    </div>
+    <h1 class="sr-only">Cassette J-Card Designer</h1>
     <ClientOnly>
-      <DesignerWorkspace />
+      <DesignerWorkspace>
+        <ToolAbout tool="designer" />
+      </DesignerWorkspace>
+      <!-- Prerendered stand-in: a screen of empty workspace, then the same
+           about section, so the static HTML carries the page's real content. -->
+      <template #fallback>
+        <div class="editor">
+          <div class="tool-placeholder" />
+          <ToolAbout tool="designer" />
+        </div>
+      </template>
     </ClientOnly>
   </div>
 </template>

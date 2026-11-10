@@ -873,6 +873,117 @@ check **Storage → Policies** before pasting.
    - Click on **Email Templates** under Configuration
    - Customize the confirmation email if desired
 
+## Step 4b: Keep Auth Emails Deliverable
+
+The only email this app makes Supabase send is the **sign-up confirmation**
+(email + password accounts; Google sign-in sends nothing). Every confirmation
+sent to an address that doesn't exist bounces, and Supabase restricts its
+built-in mailer for projects with a high bounce rate. Three layers keep that
+down:
+
+1. **Client-side check** (already in the app): `app/utils/emailValidation.ts`
+   rejects malformed, reserved (`example.com`, `*.test`, ...), placeholder and
+   throwaway addresses before calling `signUp`, and offers a "did you mean"
+   fix for typos like `gmial.com`. It can be bypassed by calling the API
+   directly, so also do 2 and 3.
+2. **Server-side hook** (below): rejects the same fake domains inside
+   Supabase Auth, before the user row is created and before any mail is sent.
+3. **Custom SMTP** (below): moves sending off Supabase's shared mailer, which
+   is only meant for testing and has a very low hourly limit.
+
+Also: don't test sign-up against the production project with made-up
+addresses. Use your own inbox with a `+tag` (e.g. `you+test1@gmail.com`),
+which lands in your real mailbox and never bounces.
+
+### Block fake domains with a `before_user_created` hook
+
+Run this in the SQL Editor, then go to **Authentication → Auth Hooks**, add a
+**Before User Created** hook, choose **Postgres**, and pick
+`public.hook_block_fake_signup_emails`.
+
+```sql
+-- Rejects sign-ups whose email can never receive the confirmation mail.
+-- Keep the domain lists roughly in sync with app/utils/emailValidation.ts.
+CREATE OR REPLACE FUNCTION public.hook_block_fake_signup_emails(event jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  email  text := lower(coalesce(event->'user'->>'email', ''));
+  domain text := split_part(email, '@', 2);
+  tld    text := regexp_replace(domain, '^.*\.', '');
+BEGIN
+  -- OAuth sign-ups (Google) come with a verified address; nothing to check.
+  IF email = '' THEN
+    RETURN '{}'::jsonb;
+  END IF;
+
+  IF domain !~ '^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'
+     OR tld IN ('test', 'example', 'invalid', 'localhost', 'local', 'internal')
+     OR domain IN (
+       'example.com', 'example.net', 'example.org',
+       'test.com', 'test.be', 'fake.com', 'asdf.com', 'abc.com', 'xyz.com', 'domain.com',
+       'mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'sharklasers.com',
+       '10minutemail.com', 'yopmail.com', 'temp-mail.org', 'tempmail.com', 'trashmail.com',
+       'throwawaymail.com', 'maildrop.cc', 'dispostable.com', 'getnada.com', 'mailnesia.com',
+       'fakeinbox.com', 'mintemail.com', 'emailondeck.com', 'mohmal.com', 'tempail.com'
+     )
+  THEN
+    RETURN jsonb_build_object(
+      'error', jsonb_build_object(
+        'http_code', 400,
+        'message', 'Please sign up with an email address you can receive mail at.'
+      )
+    );
+  END IF;
+
+  RETURN '{}'::jsonb;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.hook_block_fake_signup_emails TO supabase_auth_admin;
+REVOKE EXECUTE ON FUNCTION public.hook_block_fake_signup_emails FROM authenticated, anon, public;
+```
+
+### Find the addresses that bounced
+
+Unconfirmed accounts are where bounces come from. This lists them, newest
+first, so you can spot the pattern (typos, bots, test addresses):
+
+```sql
+SELECT email, created_at, confirmation_sent_at
+FROM auth.users
+WHERE email_confirmed_at IS NULL
+  AND confirmation_sent_at IS NOT NULL
+ORDER BY created_at DESC;
+```
+
+Junk rows can be deleted under **Authentication → Users**. That doesn't undo
+past bounces, but it stops a repeat sign-up attempt from re-sending to them.
+
+### Send through a custom SMTP provider (Resend)
+
+1. Create an account at [resend.com](https://resend.com) and add your domain
+   (`mixtape-maker.com`) under **Domains**. Add the DNS records it shows
+   (SPF/DKIM TXT records and an MX record on a `send.` subdomain) at your DNS
+   host, and wait until the domain shows **Verified**.
+2. Under **API Keys**, create a key with **Sending access** for that domain.
+3. In Supabase go to **Authentication → Emails → SMTP Settings**, turn on
+   **Enable custom SMTP**, and fill in:
+   - Sender email: `no-reply@mixtape-maker.com`
+   - Sender name: `Mixtape Maker`
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: the API key from step 2
+4. Save, then go to **Authentication → Rate Limits** and raise
+   "Rate limit for sending emails" (it starts at 30/hour once custom SMTP is on).
+5. Sign up once with a `+tag` address to check the mail arrives and isn't in spam.
+
+Resend's free plan covers 3,000 emails a month (100 a day), far more than
+sign-up confirmations need. Its dashboard also shows bounces per address, which
+Supabase's built-in mailer does not.
+
 ## Step 5: Configure Your .env File
 
 1. In your project root, open or create the `.env` file
@@ -902,7 +1013,9 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 3. Click "Sign In / Sign Up"
 
-4. Create a test account with your email and a password
+4. Create a test account with your own email and a password (use a `+tag`
+   alias like `you+test@gmail.com` for extra accounts, never a made-up address;
+   see Step 4b)
 
 5. Check your email for a confirmation link (check spam folder)
 

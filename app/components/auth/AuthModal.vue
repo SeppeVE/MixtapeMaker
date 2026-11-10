@@ -5,6 +5,7 @@ import { useUiStore } from '~/stores/ui';
 import { useAuthStore } from '~/stores/auth';
 import { trackEvent } from '~/utils/analytics';
 import TurnstileWidget from '~/components/auth/TurnstileWidget.vue';
+import { checkSignupEmail } from '~/utils/emailValidation';
 
 // Self-contained: driven by the ui store (open state) + auth store (actions).
 const ui = useUiStore();
@@ -20,9 +21,15 @@ const password = ref('');
 const error = ref<string | null>(null);
 const loading = ref(false);
 const success = ref(false);
+// "Did you mean ...?" for a likely-mistyped domain. `typoAccepted` holds the
+// exact address the user chose to keep anyway, so the second submit goes through.
+const suggestion = ref<string | null>(null);
+const typoAccepted = ref<string | null>(null);
 
 function reset() {
   email.value = '';
+  suggestion.value = null;
+  typoAccepted.value = null;
   password.value = '';
   error.value = null;
   success.value = false;
@@ -34,10 +41,39 @@ function close() {
   ui.closeAuth();
 }
 
+function useSuggestion() {
+  if (suggestion.value) email.value = suggestion.value;
+  suggestion.value = null;
+}
+
+function keepTypedEmail() {
+  typoAccepted.value = email.value.trim().toLowerCase();
+  suggestion.value = null;
+}
+
 async function handleSubmit() {
   error.value = null;
-  loading.value = true;
   success.value = false;
+  suggestion.value = null;
+
+  // Sign-up sends a confirmation email, and every one sent to a dead address
+  // bounces. Catch malformed / fake / mistyped addresses before that happens.
+  if (isSignUp.value) {
+    const check = checkSignupEmail(email.value);
+    if (check.error) {
+      error.value = check.error;
+      return;
+    }
+    if (check.suggestion && typoAccepted.value !== check.email) {
+      suggestion.value = check.suggestion;
+      return;
+    }
+    email.value = check.email;
+  } else {
+    email.value = email.value.trim();
+  }
+
+  loading.value = true;
 
   if (captchaRequired && !captchaToken.value) {
     error.value = 'Please complete the captcha.';
@@ -106,6 +142,14 @@ async function handleGoogleSignIn() {
 
       <div v-if="error" class="error-message">{{ error }}</div>
 
+      <div v-if="suggestion" class="suggestion-message">
+        Did you mean <strong>{{ suggestion }}</strong>?
+        <div class="suggestion-actions">
+          <button type="button" @click="useSuggestion">Yes, use that</button>
+          <button type="button" @click="keepTypedEmail">No, keep {{ email.trim() }}</button>
+        </div>
+      </div>
+
       <button type="button" class="google-button" :disabled="loading" @click="handleGoogleSignIn">
         <svg class="google-icon" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -121,7 +165,17 @@ async function handleGoogleSignIn() {
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <label for="email">Email</label>
-          <input id="email" v-model="email" type="email" required :disabled="loading" />
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            autocapitalize="off"
+            spellcheck="false"
+            required
+            :disabled="loading"
+            @input="suggestion = null"
+          />
         </div>
 
         <div class="form-group">

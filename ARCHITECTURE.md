@@ -246,6 +246,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | Module | Role |
 | --- | --- |
 | `profanity.ts` | `containsProfanity`, `findProfanity(fields)`, `PROFANITY_MESSAGE`. Used for usernames, bios, and anything being made public. Client-side only. |
+| `emailValidation.ts` | `checkSignupEmail` — blocks malformed, reserved, placeholder and throwaway addresses on sign-up and suggests fixes for provider typos (`gmial.com`), so confirmation mails don't bounce. Mirrored server-side by the `before_user_created` hook in `SUPABASE_SETUP.md` Step 4b. |
 | `mixtapeTitle.ts` | `DEFAULT_MIXTAPE_TITLE`, `isMixtapeUntitled` (blocks cloud-saving unnamed tapes). |
 | `timeUtils.ts` | Duration formatting, side-limit maths, `generateId`. |
 | `localStorage.ts` | The keys listed in §4.3. `saveJCardToLocal` returns `false` on a refused write so callers don't report a card as saved when it landed nowhere. |

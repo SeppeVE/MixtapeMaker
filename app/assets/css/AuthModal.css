@@ -217,6 +217,41 @@
   box-shadow: var(--shadow-sm);
 }
 
+.suggestion-message {
+  background: var(--color-paper);
+  border: 2px solid var(--color-accent);
+  color: var(--color-text);
+  padding: 8px 10px;
+  margin-bottom: var(--spacing-sm);
+  font-size: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow-wrap: anywhere;
+}
+
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+
+.suggestion-actions button {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+  font-family: var(--font-body);
+  font-size: 12px;
+  text-align: left;
+}
+
+.suggestion-actions button:hover {
+  color: var(--color-primary);
+}
+
 .google-button {
   width: 100%;
   padding: 9px 14px;

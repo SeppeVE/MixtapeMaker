@@ -8,9 +8,9 @@ import { trackEvent } from '~/utils/analytics';
 import { generateId } from '~/utils/timeUtils';
 import { DEFAULT_MIXTAPE_TITLE, isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { findProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
+import { isCloudId } from '~/utils/cloudId';
 import {
   saveMixtape,
-  isCloudId,
   toggleMixtapePublic,
   enableMixtapeShare,
   disableMixtapeShare,
@@ -128,11 +128,21 @@ export const useMixtapeStore = defineStore('mixtape', () => {
     }
     isSaving.value = true;
     try {
-      const firstSave = !isCloudId(mixtape.value.id);
-      mixtape.value = await saveMixtape(mixtape.value, auth.user.id);
+      const sent = mixtape.value;
+      const firstSave = !isCloudId(sent.id);
+      const saved = await saveMixtape(sent, auth.user.id);
       trackEvent('mixtape_saved', { first: firstSave });
-      trackCopySignature(mixtape.value);
-      dirty.value = false;
+      if (mixtape.value === sent) {
+        mixtape.value = saved;
+        trackCopySignature(mixtape.value);
+        dirty.value = false;
+      } else if (mixtape.value.id === sent.id) {
+        // Edited while the save was in flight: keep those edits (they're not
+        // in the cloud yet, so the tape stays unsaved) but adopt the cloud id,
+        // so the next save updates this row instead of starting another.
+        mixtape.value = { ...mixtape.value, id: saved.id, userId: saved.userId };
+      }
+      // Otherwise another tape was opened meanwhile; leave it alone.
       ui.showToast('Mixtape saved to cloud', 'success');
       return true;
     } catch (err) {

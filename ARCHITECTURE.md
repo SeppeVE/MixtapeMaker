@@ -22,7 +22,7 @@ Related docs:
 | UI kit | **@nuxt/ui** (only `UPagination` is used) + hand-written CSS | Retro "paper & cassette" design tokens live in `app/assets/css/App.css` |
 | Rich text | **Tiptap** | J-card panel editor (`ContentEditor.vue`) |
 | Backend | **Supabase** | Postgres + Row Level Security, Auth (email + Google), Storage buckets |
-| Server routes | **Nitro** (`server/`) | One route: a Spotify search proxy with an in-memory rate limiter |
+| Server routes | **Nitro** (`server/`) | A Spotify search proxy with an in-memory rate limiter, plus a dev-only route that saves starter J-card presets |
 | External APIs | Spotify (search via server, export via user PKCE token), Cloudflare Turnstile (captcha), Vercel Analytics | |
 | PDF export | `html-to-image` + `pdf-lib` | Renders the J-card DOM to PNG, embeds in a PDF |
 | Fonts | Self-hosted via **Fontsource** | `app/assets/css/fonts.css`; nothing is fetched from Google |
@@ -60,12 +60,14 @@ plus manual testing.
 │   ├── composables/         useCopyToLibrary — the auth-gated "copy to my library" flow
 │   ├── utils/               Plain TS modules: DB access, Spotify, PDF, helpers (see §6)
 │   ├── plugins/auth.client.ts   Boots the auth + profile stores, replays a parked copy (§9)
+│   ├── presets/jcards/      Starter J-card presets as JSON (one file per preset)
 │   ├── types/index.ts       All shared TS interfaces (Song, Mixtape, JCard, Profile…)
 │   └── assets/
 │       ├── css/             One file per feature, aggregated by index.css (see §8)
 │       └── images/          Placeholder art + icons
 ├── server/
 │   ├── api/spotify/search.get.ts   GET /api/spotify/search?q= (Spotify proxy)
+│   ├── api/dev/jcard-presets.*.ts   Dev only: save (post) / delete a starter preset in app/presets/jcards/
 │   └── utils/rateLimit.ts          Fixed-window in-memory limiter
 ├── public/                  Static files: favicons, og-image, robots.txt, sitemap.xml
 ├── nuxt.config.ts           Modules, route rules, runtime config, <head> metadata
@@ -235,7 +237,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | Module | Role |
 | --- | --- |
 | `jcardDefaults.ts` | `buildBlankJCardContent`, `migrateJCardContent` (upgrades old saved shapes), `applyMixtapeToJCard` (pulls track list into panels). |
-| `jcardPresets.ts` | Ready-made designs applied from the settings panel. |
+| `jcardStarterPresets.ts` | Starter presets: complete example cards (fake title, tracklist, styling) loaded from `app/presets/jcards/*.json` at build time. A new card with no tape to build from opens with a random one. The designer's Presets section lists the same files. `cardToStarterPresetFile` serialises the open card for the dev-only "Save as preset" button. |
 | `jcardPdf.ts` | Paper size / duplex logic and `exportJCardToPDF`: mounts `JCardPrintable` (+ inside) in a detached `createApp`, snapshots with `html-to-image`, lays pages out with `pdf-lib`. |
 | `jcardSanitize.ts` | DOMPurify wrapper for panel HTML before `v-html`. SSR-safe. |
 | `htmlUtils.ts` | `liftListColors` — copies span colours onto `<li>` so list markers match. |
@@ -394,6 +396,18 @@ Two invariants hold this together, and breaking either loses work silently:
   `isCloudId()`: update a known row, check-then-write an unconfirmed UUID, or
   let Postgres mint an id for a local draft and adopt it (dropping the
   local-id entry so the library doesn't list the card twice).
+
+**Starter presets.** A brand-new card (`JCardView.makeBlank`) is built from
+the current tape when that tape has tracks or a real name, as before.
+Otherwise it opens with a random starter preset. Presets are plain JSON in
+`app/presets/jcards/`, bundled by `import.meta.glob`, so there is no table
+and no backend involved; their images sit in `public/presets/jcards/<id>/`.
+Under `nuxt dev` the designer shows **★ Save as preset**, which posts the open
+card to `server/api/dev/jcard-presets.post.ts`. That route writes the JSON and
+copies uploaded or inlined images into the public folder; it is a 404 in
+production builds. The Presets section also gets a dev-only ✕ per preset,
+backed by `jcard-presets.delete.ts`, which removes the JSON and its image
+folder. Commit both folders to ship a preset (or a deletion).
 
 **PDF export.** `exportJCardToPDF()` mounts the printable components in a
 hidden `createApp`, waits for fonts/images, `toPng()`s each face, and places

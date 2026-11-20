@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { JCard, JCardContent, Mixtape, CustomFont, JCardPaperSize, JCardDuplexFlip } from '~/types';
-import { JCARD_PRESETS } from '~/utils/jcardPresets';
 import { type Section, SECTION_COLORS, SETTINGS_COLOR_PRESETS as COLOR_PRESETS } from './settingsSections';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { fontNameFromFile, readFileAsBase64, mimeTypeFromFile, registerCustomFonts } from '~/utils/fontManager';
@@ -136,13 +135,6 @@ async function handleExport() {
   });
 }
 
-function handleApplyPreset(presetId: string) {
-  const preset = JCARD_PRESETS.find((p) => p.id === presetId);
-  if (!preset) return;
-  if (!confirm(`Apply the "${preset.label}" preset? This will overwrite your current design.`)) return;
-  emit('contentChange', { ...content.value, ...preset.content } as JCardContent);
-}
-
 // Background images carry a thumbnail (see supabaseImages.ts) that the Explore
 // grid preview reads instead of the full-size original. Replaced files,
 // thumbnail included, are left for the designer to prune on exit (JCardView),
@@ -205,21 +197,6 @@ function blockAttrs(id: Section) {
         This is an unedited copy of another J-card, and will not show up in the explore page
       </p>
       <p class="small-info">Needs to be saved to the cloud (sign in) before anyone else can see it.</p>
-    </SettingsBlock>
-
-    <!-- 1b. Presets -->
-    <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Basic presets" @toggle="toggle">
-      <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
-      <div class="jc-preset-list">
-        <button
-          v-for="preset in JCARD_PRESETS"
-          :key="preset.id"
-          class="btn jc-preset-btn"
-          @click="handleApplyPreset(preset.id)"
-        >
-          <span class="jc-preset-label">{{ preset.label }}</span>
-        </button>
-      </div>
     </SettingsBlock>
 
     <!-- 2. Layout -->
@@ -674,24 +651,6 @@ function blockAttrs(id: Section) {
 .jc-mt    { margin-top: 8px; }
 
 .jc-mt-lg { margin-top: 10px; }
-
-/* ── Presets ── */
-.jc-preset-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.jc-preset-btn {
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 5px 10px;
-}
-
-.jc-preset-label {
-  font-family: var(--font-body);
-  font-size: 12px;
-}
 
 /* ── Custom fonts ── */
 .jc-font-list {

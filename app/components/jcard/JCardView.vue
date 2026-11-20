@@ -371,7 +371,7 @@ function saveNow() {
         <JCardSettings
           :card="card"
           :current-mixtape="currentMixtape"
-          :sections="['info', 'presets', 'layout', 'fonts', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']"
+          :sections="['info', 'layout', 'fonts', 'flaps', 'background', 'spine', 'back', 'mixtape', 'export']"
           @title-change="(title: string) => update({ title })"
           @content-change="(content: JCardContent) => update({ content })"
           @mixtape-link="(mixtapeId: string | null) => update({ mixtapeId })"

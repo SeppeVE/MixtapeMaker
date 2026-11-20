@@ -41,8 +41,6 @@ const SAVE_ACTIONS = [
   { title: 'New Mixtape', body: 'Starts an empty tape. Save the current one first if you want to keep it.' },
 ];
 
-const PRESETS = ['Vaporwave', 'Kraft Minimal', 'Punk Zine', 'Vintage', 'Monochrome'];
-
 const PANELS = [
   { title: 'Panel content', body: 'Text for the cover and each extra panel, outside and inside. Pick a panel, then type. Shift + Enter adds a new line.' },
   { title: 'Spine', body: 'Top, center and bottom fields on the outside, plus one field on the inside.' },
@@ -91,7 +89,7 @@ useHead({
           { '@type': 'HowToStep', name: 'Search Spotify and add tracks', text: 'Search for a song or artist and press A or B on a result to add it to that side.' },
           { '@type': 'HowToStep', name: 'Arrange both sides', text: 'Drag to reorder, move tracks between sides, shuffle or remove them until each side fits the tape length.' },
           { '@type': 'HowToStep', name: 'Save, share and export', text: 'Save to the cloud, make the tape public, or export it to Spotify as one playlist or one per side.' },
-          { '@type': 'HowToStep', name: 'Open the J-card designer', text: 'Press "Create j-card" to start a card filled in from the tape, or start from a preset.' },
+          { '@type': 'HowToStep', name: 'Open the J-card designer', text: 'Press "Create j-card" to start a card filled in from the tape. Without a tape, a new card opens with a random ready-made design.' },
           { '@type': 'HowToStep', name: 'Design the card', text: 'Set the number of panels, then edit the cover, spine, back panel, background and fonts.' },
           { '@type': 'HowToStep', name: 'Export and print', text: 'Choose A4, US Letter or a custom page, export the PDF and print it at 100% on card stock.' },
         ],
@@ -253,8 +251,8 @@ useHead({
             Undo and redo are at the top (⌘Z / ⌘⇧Z).
           </p>
           <p class="gd-p">
-            Want a quick look first? Open <strong>Basic presets</strong> and pick one:
-            {{ PRESETS.join(', ') }}. A preset replaces your current design, so press Undo if you change your mind.
+            No tape open yet? Then a new card starts from a random ready-made design, with a made-up title and tracklist,
+            so you have something to edit straight away.
           </p>
         </section>
 

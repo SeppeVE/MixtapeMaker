@@ -149,6 +149,19 @@ function handleApplyPreset(presetId: string) {
   emit('contentChange', { ...next, customFonts: fonts.length ? fonts : undefined });
 }
 
+// Dev only: delete a preset file. The list refreshes on its own because Vite
+// reloads the presets glob when a file in the folder disappears.
+const isDev = import.meta.dev;
+async function handleDeletePreset(presetId: string, label: string) {
+  if (!confirm(`Delete the "${label}" preset? This removes app/presets/jcards/${presetId}.json and its images.`)) return;
+  try {
+    const res = await $fetch<{ path: string }>('/api/dev/jcard-presets', { method: 'DELETE', query: { id: presetId } });
+    ui.showToast(`Deleted ${res.path}`, 'success');
+  } catch (err: any) {
+    ui.showToast(err?.data?.message ?? 'Deleting the preset failed', 'error');
+  }
+}
+
 // Background images carry a thumbnail (see supabaseImages.ts) that the Explore
 // grid preview reads instead of the full-size original. Replaced files,
 // thumbnail included, are left for the designer to prune on exit (JCardView),
@@ -217,14 +230,18 @@ function blockAttrs(id: Section) {
     <SettingsBlock v-if="STARTER_PRESETS.length" v-bind="blockAttrs('presets')" label="✦ Presets" @toggle="toggle">
       <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
       <div class="jc-preset-list">
-        <button
-          v-for="preset in STARTER_PRESETS"
-          :key="preset.id"
-          class="btn jc-preset-btn"
-          @click="handleApplyPreset(preset.id)"
-        >
-          <span class="jc-preset-label">{{ preset.label }}</span>
-        </button>
+        <div v-for="preset in STARTER_PRESETS" :key="preset.id" class="jc-preset-row">
+          <button class="btn jc-preset-btn" @click="handleApplyPreset(preset.id)">
+            <span class="jc-preset-label">{{ preset.label }}</span>
+          </button>
+          <button
+            v-if="isDev"
+            class="btn jc-preset-delete"
+            :title="`Dev only: delete app/presets/jcards/${preset.id}.json`"
+            :aria-label="`Delete preset ${preset.label}`"
+            @click="handleDeletePreset(preset.id, preset.label)"
+          >✕</button>
+        </div>
       </div>
     </SettingsBlock>
 
@@ -688,7 +705,18 @@ function blockAttrs(id: Section) {
   gap: 4px;
 }
 
+.jc-preset-row {
+  display: flex;
+  gap: 4px;
+}
+
+.jc-preset-delete {
+  flex-shrink: 0;
+  padding: 5px 8px;
+}
+
 .jc-preset-btn {
+  flex: 1;
   justify-content: flex-start;
   gap: 8px;
   padding: 5px 10px;

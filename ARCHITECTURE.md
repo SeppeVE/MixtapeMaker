@@ -67,7 +67,7 @@ plus manual testing.
 │       └── images/          Placeholder art + icons
 ├── server/
 │   ├── api/spotify/search.get.ts   GET /api/spotify/search?q= (Spotify proxy)
-│   ├── api/dev/jcard-presets.post.ts   Dev only: writes a starter preset into app/presets/jcards/
+│   ├── api/dev/jcard-presets.*.ts   Dev only: save (post) / delete a starter preset in app/presets/jcards/
 │   └── utils/rateLimit.ts          Fixed-window in-memory limiter
 ├── public/                  Static files: favicons, og-image, robots.txt, sitemap.xml
 ├── nuxt.config.ts           Modules, route rules, runtime config, <head> metadata
@@ -405,7 +405,9 @@ and no backend involved; their images sit in `public/presets/jcards/<id>/`.
 Under `nuxt dev` the designer shows **★ Save as preset**, which posts the open
 card to `server/api/dev/jcard-presets.post.ts`. That route writes the JSON and
 copies uploaded or inlined images into the public folder; it is a 404 in
-production builds. Commit both folders to ship a preset.
+production builds. The Presets section also gets a dev-only ✕ per preset,
+backed by `jcard-presets.delete.ts`, which removes the JSON and its image
+folder. Commit both folders to ship a preset (or a deletion).
 
 **PDF export.** `exportJCardToPDF()` mounts the printable components in a
 hidden `createApp`, waits for fonts/images, `toPng()`s each face, and places

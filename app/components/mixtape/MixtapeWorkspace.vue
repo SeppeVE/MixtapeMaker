@@ -3,7 +3,7 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Song, Side, Mixtape } from '~/types';
 import { useMixtapeStore } from '~/stores/mixtape';
-import { isCloudId } from '~/utils/database';
+import { isCloudId } from '~/utils/cloudId';
 import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { useUnsavedStore } from '~/stores/unsaved';
 import { trackEvent } from '~/utils/analytics';

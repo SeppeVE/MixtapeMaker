@@ -7,12 +7,12 @@ import { useUiStore } from '~/stores/ui';
 import { useRoute } from 'vue-router';
 import { useMixtapeStore } from '~/stores/mixtape';
 import { useUnsavedStore } from '~/stores/unsaved';
-import { isCloudId } from '~/utils/database';
+import { isCloudId, jcardCloudId } from '~/utils/cloudId';
 import { generateId } from '~/utils/timeUtils';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaults';
 import { registerCustomFonts } from '~/utils/fontManager';
 import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
-import { loadJCard, createJCard, updateJCard } from '~/utils/jcardDatabase';
+import { saveJCardById, updateJCard } from '~/utils/jcardDatabase';
 import { pruneJCardImages } from '~/utils/supabaseImages';
 import { containsProfanity, PROFANITY_MESSAGE } from '~/utils/profanity';
 import IconSettings from '~icons/material-symbols/settings-rounded';
@@ -138,10 +138,31 @@ watch(
   { immediate: true },
 );
 
+// Saves run one at a time, in the order they were asked for. Autosave, the
+// Save button, the leave-page prompt and the unmount flush can all fire while
+// an earlier write is still in flight; run side by side, two first saves of the
+// same draft each created a row (the older one then kept the first version of
+// the design forever), and an older write landing last could undo a newer one.
+let saveQueue: Promise<unknown> = Promise.resolve();
+
 // Resolves true when the cloud now holds `target` (false when signed out or the sync failed).
-async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
+function doSave(target: JCard, feedback: boolean): Promise<boolean> {
+  const run = saveQueue.then(() => runSave(target, feedback));
+  saveQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function runSave(target: JCard, feedback: boolean): Promise<boolean> {
   isSaving.value = true;
-  const localOk = saveJCardToLocal(target); // always persist locally first
+  const userId = auth.user?.id;
+  // Signed in, the card is filed under the id the cloud knows it by. For a
+  // local draft that's the UUID derived from its local id, so every save of
+  // it, including one from an undo step or a history entry that still holds
+  // the old local id, lands on the same row.
+  const id = userId ? jcardCloudId(target.id) : target.id;
+  // Locally, keep the draft's own id until the cloud has confirmed the row:
+  // a stored UUID id reads as "already in the cloud" when the card is reopened.
+  const localOk = saveJCardToLocal(persisted && id !== target.id ? { ...target, id } : target); // always persist locally first
   let cloudOk = false;
   // A card that reached neither the browser nor the cloud is gone the moment
   // this tab closes, so never report that one as saved.
@@ -151,7 +172,7 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
     else ui.showToast('Could not save — this card is too big for offline storage. Sign in to save it to the cloud.', 'error');
   };
   try {
-    if (auth.user) {
+    if (userId) {
       // isCopy rides along on every write: without it a copy edited into
       // something original would stay flagged in the cloud for good.
       const patch = {
@@ -161,27 +182,20 @@ async function doSave(target: JCard, feedback: boolean): Promise<boolean> {
         isPublic: target.isPublic ?? false,
         isCopy: target.isCopy ?? false,
       };
-      let saved: JCard;
-      if (persisted) {
-        saved = await updateJCard(target.id, patch);
-      } else if (isCloudId(target.id)) {
-        // A UUID we haven't confirmed yet — a cloud card reopened in a fresh
-        // session. It may or may not still be there.
-        const exists = await loadJCard(target.id);
-        saved = exists
-          ? await updateJCard(target.id, patch)
-          : await createJCard(auth.user.id, { ...patch, id: target.id, copiedFromId: target.copiedFromId ?? null });
-      } else {
-        // A local draft reaching the cloud for the first time: let Postgres
-        // mint the UUID and adopt it below, dropping the local-id entry so the
-        // library doesn't list the card twice.
-        saved = await createJCard(auth.user.id, { ...patch, copiedFromId: target.copiedFromId ?? null });
-        deleteJCardFromLocal(target.id);
-      }
+      // Not confirmed in the cloud yet (a new draft, or a cloud card reopened
+      // in a fresh session): upsert by id, which creates the row or updates
+      // the one an earlier save, another tab or a lost response already made.
+      const saved = persisted
+        ? await updateJCard(id, patch)
+        : await saveJCardById(userId, id, { ...patch, copiedFromId: target.copiedFromId ?? null });
       persisted = true;
       imageFolderIds.add(saved.id);
       card.value = { ...card.value, id: saved.id, updatedAt: saved.updatedAt };
-      if (saved.id !== target.id) saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
+      if (saved.id !== target.id) {
+        // Move the local copy over to the cloud id, so the library doesn't list the card twice.
+        saveJCardToLocal({ ...target, id: saved.id, updatedAt: saved.updatedAt });
+        deleteJCardFromLocal(target.id);
+      }
       // Only mark clean if no further edit was queued while the request was in flight.
       if (target === lastScheduled) cloudDirty.value = false;
       cloudOk = true;

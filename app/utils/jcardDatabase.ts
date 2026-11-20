@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { CustomFont, JCard, JCardContent, JCardPreviewRow } from '../types';
 import { duplicateJCardImages } from './supabaseImages';
+import { jcardCloudId } from './cloudId';
 
 interface DbJCard {
   id: string; user_id: string; mixtape_id: string | null;
@@ -168,16 +169,35 @@ export async function deleteJCard(id: string): Promise<void> {
   if (error) throw error;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Create-or-update the card stored under `id`. Used for a card's first cloud
+ * save: the id is decided by the client (see jcardCloudId), so a retry, a
+ * second save that overlaps the first, or another tab saving the same draft
+ * all write the same row instead of each inserting one.
+ */
+export async function saveJCardById(userId: string, id: string, input: {
+  title: string; content: JCardContent; mixtapeId: string | null; isPublic: boolean;
+  isCopy: boolean; copiedFromId: string | null;
+}): Promise<JCard> {
+  const row = {
+    id, user_id: userId, mixtape_id: input.mixtapeId, title: input.title, content: input.content,
+    is_public: input.isPublic, is_copy: input.isCopy, copied_from_id: input.copiedFromId,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from('jcards').upsert(row).select().single();
+  if (error) throw error;
+  return dbToJCard(data as DbJCard);
+}
 
 /**
- * Upload a card to the cloud.
- * If the card's id is already a UUID (previously cloud-saved) we upsert in-place.
- * If it's a locally-generated id (timestamp format) we let Supabase create a new UUID,
- * and the returned card will have the new id — the caller should replace the local copy.
+ * Upload a card to the cloud, upserting it in place. A local draft (timestamp
+ * id) is stored under the UUID derived from that id, so uploading it again, or
+ * the designer saving the same draft, updates this row rather than adding one.
+ * The returned card carries the cloud id; the caller should replace the local copy.
  */
 export async function upsertJCard(card: JCard, userId: string): Promise<JCard> {
   const payload: Record<string, unknown> = {
+    id: jcardCloudId(card.id),
     user_id: userId,
     mixtape_id: card.mixtapeId ?? null,
     title: card.title,
@@ -188,11 +208,6 @@ export async function upsertJCard(card: JCard, userId: string): Promise<JCard> {
     created_at: card.createdAt,
     updated_at: new Date().toISOString(),
   };
-
-  // Only forward the id when it's already a valid UUID — otherwise let Supabase generate one.
-  if (UUID_RE.test(card.id)) {
-    payload.id = card.id;
-  }
 
   const { data, error } = await supabase
     .from('jcards')

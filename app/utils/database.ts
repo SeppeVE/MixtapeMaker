@@ -1,40 +1,7 @@
 import { supabase } from './supabase';
 import { Mixtape } from '../types';
 import { getPendingSaveId, setPendingSaveId, clearPendingSaveId } from './localStorage';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// 32-bit FNV-1a, used four times with different seeds to build 128 bits.
-function fnv1a32(str: string, seed: number): number {
-  let hash = seed >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash;
-}
-
-// Deterministic (not random) UUID derived from an arbitrary string. The same
-// input always produces the same output, from any tab, any device, with or
-// without a warm cache — unlike crypto.randomUUID(), which mints a different
-// id every call. Used below so a local mixtape id always maps to the same
-// cloud id, making first-save id assignment idempotent by construction
-// rather than by remembering a previous answer. Not cryptographic; a 128-bit
-// hash's collision odds are astronomically below this app's id volume.
-function deterministicUuid(seed: string): string {
-  const chunks = [
-    fnv1a32(seed, 0x811c9dc5),
-    fnv1a32(`a:${seed}`, 0x811c9dc5),
-    fnv1a32(`b:${seed}`, 0x811c9dc5),
-    fnv1a32(`c:${seed}`, 0x811c9dc5),
-  ];
-  const bytes = chunks.map((n) => n.toString(16).padStart(8, '0')).join('').match(/.{2}/g)!;
-  // Stamp version/variant bits so it reads as a well-formed (v5-shaped) UUID.
-  bytes[6] = ((parseInt(bytes[6], 16) & 0x0f) | 0x50).toString(16).padStart(2, '0');
-  bytes[8] = ((parseInt(bytes[8], 16) & 0x3f) | 0x80).toString(16).padStart(2, '0');
-  const hex = bytes.join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
+import { UUID_RE, deterministicUuid } from './cloudId';
 
 export interface DatabaseMixtape {
   id: string;
@@ -49,9 +16,6 @@ export interface DatabaseMixtape {
   share_token: string | null;
   is_copy: boolean;
 }
-
-// A cloud-saved mixtape always has a UUID id (see saveMixtape below).
-export const isCloudId = (id: string): boolean => UUID_RE.test(id);
 
 // Convert database format to app format
 function dbToMixtape(dbMixtape: DatabaseMixtape): Mixtape {

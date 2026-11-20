@@ -6,14 +6,17 @@
     "backgroundColor": "#141B3A",
     "coverImageUrl": null,
     "flapContents": [
-      "<p style=\"text-align:center;font-size:2.5mm;color:#7FE7FF;letter-spacing:0.8mm\">EXIT 14 · 2AM</p><h1 style=\"text-align:center;font-size:9mm;color:#FF5FA2\"><span style=\"font-family: Bebas Neue\">NIGHT DRIVE</span></h1><p style=\"text-align:center;font-size:3mm;color:#FFD86B\">vol. 2</p>",
-      "<p style=\"font-size:2.6mm;color:#C9D2FF\">For the long way home with the windows down. Play side A on the highway, side B once the streetlights thin out.</p>",
-      "", "", "", ""
+      "<p style=\"text-align:center\"><span style=\"font-size:9px;color:#7FE7FF;letter-spacing:3px\">EXIT 14 · 2AM</span></p><h1 style=\"text-align:center\"><span style=\"font-size:34px;color:#FF5FA2;font-family: Bebas Neue\">NIGHT DRIVE</span></h1><p style=\"text-align:center\"><span style=\"font-size:11px;color:#FFD86B\">vol. 2</span></p>",
+      "<p><span style=\"font-size:10px;color:#C9D2FF\">For the long way home with the windows down. Play side A on the highway, side B once the streetlights thin out.</span></p>",
+      "",
+      "",
+      "",
+      ""
     ],
     "spineTopContent": "<strong style=\"color:#FF5FA2\">NIGHT DRIVE</strong>",
     "spineCenterContent": "<span style=\"color:#7FE7FF\">vol. 2</span>",
     "spineBottomContent": "<span style=\"color:#FFD86B\">60 min</span>",
-    "backLeftContent": "<h4 style=\"color:#FF5FA2\">Side A</h4><ol><li style=\"color:#C9D2FF\">Neon Overpass — The Glass Vultures</li><li style=\"color:#C9D2FF\">Sodium Lights — Mara Kestrel</li><li style=\"color:#C9D2FF\">Cruise Control — Velvet Static</li><li style=\"color:#C9D2FF\">Last Gas for 90 Miles — Dune Motel</li><li style=\"color:#C9D2FF\">Rearview — Juniper &amp; the Haze</li></ol>",
-    "backRightContent": "<h4 style=\"color:#7FE7FF\">Side B</h4><ol><li style=\"color:#C9D2FF\">Exit Ramp Lullaby — Moth Radio</li><li style=\"color:#C9D2FF\">Dashboard Glow — The Late Arrivals</li><li style=\"color:#C9D2FF\">Toll Booth Romance — Pale Comet</li><li style=\"color:#C9D2FF\">Headlights on the Lake — Saint Orchard</li><li style=\"color:#C9D2FF\">Home by Sunrise — Kip Delgado</li></ol>"
+    "backLeftContent": "<h4><span style=\"color:#FF5FA2\">Side A</span></h4><ol><li><span style=\"color:#C9D2FF\">Neon Overpass — The Glass Vultures</span></li><li><span style=\"color:#C9D2FF\">Sodium Lights — Mara Kestrel</span></li><li><span style=\"color:#C9D2FF\">Cruise Control — Velvet Static</span></li><li><span style=\"color:#C9D2FF\">Last Gas for 90 Miles — Dune Motel</span></li><li><span style=\"color:#C9D2FF\">Rearview — Juniper &amp; the Haze</span></li></ol>",
+    "backRightContent": "<h4><span style=\"color:#7FE7FF\">Side B</span></h4><ol><li><span style=\"color:#C9D2FF\">Exit Ramp Lullaby — Moth Radio</span></li><li><span style=\"color:#C9D2FF\">Dashboard Glow — The Late Arrivals</span></li><li><span style=\"color:#C9D2FF\">Toll Booth Romance — Pale Comet</span></li><li><span style=\"color:#C9D2FF\">Headlights on the Lake — Saint Orchard</span></li><li><span style=\"color:#C9D2FF\">Home by Sunrise — Kip Delgado</span></li></ol>"
   }
 }

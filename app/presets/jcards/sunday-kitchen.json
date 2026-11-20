@@ -5,9 +5,12 @@
     "flaps": 2,
     "backgroundColor": "#D9B98A",
     "flapContents": [
-      "<h2 style=\"text-align:center;font-size:7mm;color:#5A2E1A\"><span style=\"font-family: Caveat\">songs for sunday pancakes</span></h2><p style=\"text-align:center;font-size:3mm;color:#7A4A2A\"><span style=\"font-family: Caveat\">made with love (and too much syrup)</span></p>",
-      "<p style=\"font-size:3.2mm;color:#5A2E1A\"><span style=\"font-family: Caveat\">Flip the tape when you flip the pancakes. Coffee is mandatory, dancing is encouraged.</span></p>",
-      "", "", "", ""
+      "<h2 style=\"text-align:center\"><span style=\"font-size:26px;color:#5A2E1A;font-family: Caveat\">songs for sunday pancakes</span></h2><p style=\"text-align:center\"><span style=\"font-size:11px;color:#7A4A2A;font-family: Caveat\">made with love (and too much syrup)</span></p>",
+      "<p><span style=\"font-size:12px;color:#5A2E1A;font-family: Caveat\">Flip the tape when you flip the pancakes. Coffee is mandatory, dancing is encouraged.</span></p>",
+      "",
+      "",
+      "",
+      ""
     ],
     "spineTopContent": "<span style=\"font-family: Caveat\"><strong>sunday pancakes</strong></span>",
     "spineCenterContent": "",

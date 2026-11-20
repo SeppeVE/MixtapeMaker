@@ -7,9 +7,12 @@
     "showCutGuides": true,
     "coverImageUrl": null,
     "flapContents": [
-      "<h1 style=\"font-size:8mm;text-transform:uppercase\"><span style=\"font-family: Permanent Marker\">BASEMENT SHOW</span></h1><p style=\"font-size:3mm;border-top:1px solid #1A1A1A;padding-top:1mm\"><span style=\"font-family: Special Elite\">LIVE BOOTLEG · NO REFUNDS · 4 BANDS $5</span></p>",
-      "<p style=\"font-size:2.6mm\"><span style=\"font-family: Special Elite\">Recorded on a boombox balanced on the washing machine. Sorry about the feedback on track 3. Not sorry.</span></p>",
-      "", "", "", ""
+      "<h1><span style=\"font-size:30px;font-family: Permanent Marker\">BASEMENT SHOW</span></h1><p><span style=\"font-size:11px;font-family: Special Elite\">LIVE BOOTLEG · NO REFUNDS · 4 BANDS $5</span></p>",
+      "<p><span style=\"font-size:10px;font-family: Special Elite\">Recorded on a boombox balanced on the washing machine. Sorry about the feedback on track 3. Not sorry.</span></p>",
+      "",
+      "",
+      "",
+      ""
     ],
     "spineTopContent": "<span style=\"font-family: Permanent Marker\">BASEMENT SHOW</span>",
     "spineCenterContent": "<span style=\"font-family: Special Elite\">bootleg</span>",

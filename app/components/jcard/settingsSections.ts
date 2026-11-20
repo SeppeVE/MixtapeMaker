@@ -1,9 +1,10 @@
 export type Section =
   | 'info' | 'layout' | 'flaps' | 'background' | 'fonts'
-  | 'spine' | 'back' | 'inside' | 'mixtape' | 'export';
+  | 'spine' | 'back' | 'inside' | 'mixtape' | 'export' | 'presets';
 
 export const SECTION_COLORS: Record<Section, { bg: string; fg: string }> = {
   info: { bg: 'var(--color-accent)', fg: 'var(--color-paper)' },
+  presets: { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },
   layout: { bg: 'var(--color-mustard)', fg: 'var(--color-text)' },
   fonts: { bg: 'var(--color-accent)', fg: 'var(--color-paper)' },
   background: { bg: 'var(--color-primary)', fg: 'var(--color-paper)' },

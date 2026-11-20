@@ -237,7 +237,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 | Module | Role |
 | --- | --- |
 | `jcardDefaults.ts` | `buildBlankJCardContent`, `migrateJCardContent` (upgrades old saved shapes), `applyMixtapeToJCard` (pulls track list into panels). |
-| `jcardStarterPresets.ts` | Starter presets: complete example cards (fake title, tracklist, styling) loaded from `app/presets/jcards/*.json` at build time. A new card with no tape to build from opens with a random one. `cardToStarterPresetFile` serialises the open card for the dev-only "Save as preset" button. |
+| `jcardStarterPresets.ts` | Starter presets: complete example cards (fake title, tracklist, styling) loaded from `app/presets/jcards/*.json` at build time. A new card with no tape to build from opens with a random one. The designer's Presets section lists the same files. `cardToStarterPresetFile` serialises the open card for the dev-only "Save as preset" button. |
 | `jcardPdf.ts` | Paper size / duplex logic and `exportJCardToPDF`: mounts `JCardPrintable` (+ inside) in a detached `createApp`, snapshots with `html-to-image`, lays pages out with `pdf-lib`. |
 | `jcardSanitize.ts` | DOMPurify wrapper for panel HTML before `v-html`. SSR-safe. |
 | `htmlUtils.ts` | `liftListColors` — copies span colours onto `<li>` so list markers match. |
@@ -286,7 +286,7 @@ the router guard and the `beforeunload` listener for the unsaved store.
 
 ### J-card designer (`/cards/designer`)
 - `jcard/JCardView.vue` — owns the card being edited: undo/redo history, debounced autosave (local first, cloud if signed in), public toggle guard. Renders previews + settings.
-- `jcard/JCardSettings.vue` + `SettingsBlock.vue` + `settingsSections.ts` — the collapsible right-hand panel (info, layout, fonts, flaps, background, spine, back, inside, mixtape link, export).
+- `jcard/JCardSettings.vue` + `SettingsBlock.vue` + `settingsSections.ts` — the collapsible right-hand panel (info, presets, layout, fonts, flaps, background, spine, back, inside, mixtape link, export).
 - `jcard/ContentEditor.vue` — Tiptap editor with custom extensions for per-panel HTML.
 - `jcard/ImageUpload.vue`, `MixtapeLinkPicker.vue` — helpers used inside settings.
 - `jcard/JCardPreview.vue` / `JCardInsidePreview.vue` — scaled live previews (client-only: they use `document.fonts` and ResizeObserver).

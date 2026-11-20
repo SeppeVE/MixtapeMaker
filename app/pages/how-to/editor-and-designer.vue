@@ -252,7 +252,8 @@ useHead({
           </p>
           <p class="gd-p">
             No tape open yet? Then a new card starts from a random ready-made design, with a made-up title and tracklist,
-            so you have something to edit straight away.
+            so you have something to edit straight away. Want a different look? Open <strong>Presets</strong> and pick one;
+            it replaces your current design, so press Undo if you change your mind.
           </p>
         </section>
 

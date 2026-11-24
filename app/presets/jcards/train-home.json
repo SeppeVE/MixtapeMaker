@@ -1,0 +1,22 @@
+{
+  "label": "Train home",
+  "title": "train home",
+  "content": {
+    "flaps": 2,
+    "backgroundColor": "#9CCFC0",
+    "coverImageUrl": null,
+    "flapContents": [
+      "<p><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:22px\">train home</span></p><p><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">17:42 · platform 4</span></p>",
+      "<p><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:8px\">one side per hour, roughly</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "spineTopContent": "<p><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:12px\">train home</span></p>",
+    "spineCenterContent": "",
+    "spineBottomContent": "<p><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:10px\">C90</span></p>",
+    "backLeftContent": "<h4><span style=\"color:#1F3A34;font-family:JetBrains Mono\">Side A</span></h4><ol><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Signal Failure — Peter Moll</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Window Seat — The Commuters</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Grey Fields — Ada Lune</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Quiet Coach — Oskar Brandt</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Delayed — Little Hours</span></li></ol>",
+    "backRightContent": "<h4><span style=\"color:#1F3A34;font-family:JetBrains Mono\">Side B</span></h4><ol><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Tunnel — Field Office</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Change at Ghent — Mira Sol</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Headphones On — The Commuters</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Last Stop — Ada Lune</span></li><li><span style=\"color:#1F3A34;font-family:JetBrains Mono;font-size:9px\">Station Walk — Peter Moll</span></li></ol>"
+  }
+}

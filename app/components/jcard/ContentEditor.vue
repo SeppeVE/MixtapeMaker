@@ -107,7 +107,6 @@ const LETTER_SPACINGS = ['0px', '0.5px', '1px', '1.5px', '2px', '3px', '5px'];
 const LINE_HEIGHTS = ['0.6', '0.7', '0.8', '0.9', '1', '1.1', '1.2', '1.3', '1.5', '1.8', '2', '2.5', '3'];
 const COLOR_PRESETS = ['#000000', '#ffffff', '#555555', '#d4524a', '#3182ce', '#38a169', '#ed8936', '#805ad5'];
 
-const colorInputRef = ref<HTMLInputElement | null>(null);
 
 const editor = useEditor({
   extensions: [
@@ -160,6 +159,23 @@ const currentColor = () => editor.value?.getAttributes('textStyle').color ?? '#0
 const currentFamily = () => (editor.value?.getAttributes('textStyle').fontFamily ?? '').replace(/^["']|["']$/g, '');
 const currentLetterSpacing = () => editor.value?.getAttributes('textStyle').letterSpacing ?? '';
 const currentLineHeight = () => editor.value?.getAttributes('paragraph').lineHeight ?? '';
+
+// <input type="color"> only accepts #rrggbb; colours parsed from saved HTML
+// often come back as rgb(...) or a short #rgb.
+function toHex(c: string): string {
+  const rgb = c.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgb) return '#' + rgb.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+  const short = c.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (short) return '#' + short.slice(1).map((h) => h + h).join('');
+  return /^#[0-9a-f]{6}$/i.test(c) ? c : '#000000';
+}
+
+// No .focus() here: moving focus back into the editor while the native
+// picker is open closes it after the first change. The editor keeps its
+// selection while blurred, so the colour still lands on the selected text.
+function applyCustomColor(e: Event) {
+  editor.value?.chain().setColor((e.target as HTMLInputElement).value).run();
+}
 
 function setFamily(v: string) {
   const chain = editor.value!.chain().focus() as any;
@@ -234,10 +250,20 @@ function setLineHeight(v: string) {
           :title="c"
           @mousedown.prevent="editor.chain().focus().setColor(c).run()"
         />
-        <div class="ce-swatch ce-swatch-custom" :style="{ background: currentColor() }" title="Custom color" @mousedown.prevent="colorInputRef?.click()">
+        <!-- The real <input type="color"> covers the swatch, so the click that
+             opens the picker is the user's own. Opening it with .click() from a
+             zero-size hidden input was unreliable (Safari ignores it, and the
+             refocus on every input event closed Chrome's picker). -->
+        <label class="ce-swatch ce-swatch-custom" :style="{ background: currentColor() }" title="Custom color">
           <span class="ce-swatch-plus">+</span>
-        </div>
-        <input ref="colorInputRef" type="color" class="ce-color-hidden" :value="currentColor()" @input="editor.chain().focus().setColor(($event.target as HTMLInputElement).value).run()" />
+          <input
+            type="color"
+            class="ce-color-input"
+            :value="toHex(currentColor())"
+            @input="applyCustomColor"
+            @change="applyCustomColor"
+          />
+        </label>
       </div>
     </div>
     <EditorContent :editor="editor" />
@@ -393,12 +419,20 @@ function setLineHeight(v: string) {
   pointer-events: none;
 }
 
-.ce-color-hidden {
+.ce-swatch-custom {
+  position: relative;
+  overflow: hidden;
+}
+
+.ce-color-input {
   position: absolute;
-  width: 0;
-  height: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 
 /* ── Editable area ── */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { JCard, JCardContent, Mixtape, CustomFont, JCardPaperSize, JCardDuplexFlip } from '~/types';
-import { JCARD_PRESETS } from '~/utils/jcardPresets';
+import { STARTER_PRESETS, starterPresetContent } from '~/utils/jcardStarterPresets';
 import { type Section, SECTION_COLORS, SETTINGS_COLOR_PRESETS as COLOR_PRESETS } from './settingsSections';
 import { migrateJCardContent } from '~/utils/jcardDefaults';
 import { fontNameFromFile, readFileAsBase64, mimeTypeFromFile, registerCustomFonts } from '~/utils/fontManager';
@@ -136,11 +136,30 @@ async function handleExport() {
   });
 }
 
+// Starter presets (app/presets/jcards/), the same pool a new card picks from.
+// Applying one swaps the whole design but keeps the card's title and any
+// fonts the user uploaded, so their own text styles don't lose their font.
 function handleApplyPreset(presetId: string) {
-  const preset = JCARD_PRESETS.find((p) => p.id === presetId);
+  const preset = STARTER_PRESETS.find((p) => p.id === presetId);
   if (!preset) return;
   if (!confirm(`Apply the "${preset.label}" preset? This will overwrite your current design.`)) return;
-  emit('contentChange', { ...content.value, ...preset.content } as JCardContent);
+  const next = starterPresetContent(preset);
+  const fonts = [...(next.customFonts ?? [])];
+  for (const f of content.value.customFonts ?? []) if (!fonts.some((x) => x.name === f.name)) fonts.push(f);
+  emit('contentChange', { ...next, customFonts: fonts.length ? fonts : undefined });
+}
+
+// Dev only: delete a preset file. The list refreshes on its own because Vite
+// reloads the presets glob when a file in the folder disappears.
+const isDev = import.meta.dev;
+async function handleDeletePreset(presetId: string, label: string) {
+  if (!confirm(`Delete the "${label}" preset? This removes app/presets/jcards/${presetId}.json and its images.`)) return;
+  try {
+    const res = await $fetch<{ path: string }>('/api/dev/jcard-presets', { method: 'DELETE', query: { id: presetId } });
+    ui.showToast(`Deleted ${res.path}`, 'success');
+  } catch (err: any) {
+    ui.showToast(err?.data?.message ?? 'Deleting the preset failed', 'error');
+  }
 }
 
 // Background images carry a thumbnail (see supabaseImages.ts) that the Explore
@@ -208,17 +227,21 @@ function blockAttrs(id: Section) {
     </SettingsBlock>
 
     <!-- 1b. Presets -->
-    <SettingsBlock v-bind="blockAttrs('presets')" label="✦ Basic presets" @toggle="toggle">
+    <SettingsBlock v-if="STARTER_PRESETS.length" v-bind="blockAttrs('presets')" label="✦ Presets" @toggle="toggle">
       <p class="small-info">Applying a preset overwrites your current design. Use Undo to revert.</p>
       <div class="jc-preset-list">
-        <button
-          v-for="preset in JCARD_PRESETS"
-          :key="preset.id"
-          class="btn jc-preset-btn"
-          @click="handleApplyPreset(preset.id)"
-        >
-          <span class="jc-preset-label">{{ preset.label }}</span>
-        </button>
+        <div v-for="preset in STARTER_PRESETS" :key="preset.id" class="jc-preset-row">
+          <button class="btn jc-preset-btn" @click="handleApplyPreset(preset.id)">
+            <span class="jc-preset-label">{{ preset.label }}</span>
+          </button>
+          <button
+            v-if="isDev"
+            class="btn jc-preset-delete"
+            :title="`Dev only: delete app/presets/jcards/${preset.id}.json`"
+            :aria-label="`Delete preset ${preset.label}`"
+            @click="handleDeletePreset(preset.id, preset.label)"
+          >✕</button>
+        </div>
       </div>
     </SettingsBlock>
 
@@ -682,7 +705,18 @@ function blockAttrs(id: Section) {
   gap: 4px;
 }
 
+.jc-preset-row {
+  display: flex;
+  gap: 4px;
+}
+
+.jc-preset-delete {
+  flex-shrink: 0;
+  padding: 5px 8px;
+}
+
 .jc-preset-btn {
+  flex: 1;
   justify-content: flex-start;
   gap: 8px;
   padding: 5px 10px;

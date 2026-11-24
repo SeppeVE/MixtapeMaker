@@ -1,0 +1,23 @@
+{
+  "label": "Basement Show",
+  "title": "Basement Show Bootleg",
+  "content": {
+    "flaps": 2,
+    "backgroundColor": "#F4F1E8",
+    "showCutGuides": true,
+    "coverImageUrl": null,
+    "flapContents": [
+      "<h1><span style=\"font-size:30px;font-family: Permanent Marker\">BASEMENT SHOW</span></h1><p><span style=\"font-size:11px;font-family: Special Elite\">LIVE BOOTLEG · NO REFUNDS · 4 BANDS $5</span></p>",
+      "<p><span style=\"font-size:10px;font-family: Special Elite\">Recorded on a boombox balanced on the washing machine. Sorry about the feedback on track 3. Not sorry.</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "spineTopContent": "<span style=\"font-family: Permanent Marker\">BASEMENT SHOW</span>",
+    "spineCenterContent": "<span style=\"font-family: Special Elite\">bootleg</span>",
+    "spineBottomContent": "<span style=\"font-family: Special Elite\">60 min</span>",
+    "backLeftContent": "<h4>Side A</h4><ol><li><span style=\"font-family: Special Elite\">Rent Is Due — Cheap Thrills Club</span></li><li><span style=\"font-family: Special Elite\">Safety Pin Heart — The Rejects Choir</span></li><li><span style=\"font-family: Special Elite\">Feedback (Sorry) — Garage Saints</span></li><li><span style=\"font-family: Special Elite\">Photocopy Kid — Static Youth</span></li><li><span style=\"font-family: Special Elite\">Two Chords Forever — Brick Wall Band</span></li></ol>",
+    "backRightContent": "<h4>Side B</h4><ol><li><span style=\"font-family: Special Elite\">Mosh Pit Etiquette — The Polite Riot</span></li><li><span style=\"font-family: Special Elite\">Landlord Anthem — Cheap Thrills Club</span></li><li><span style=\"font-family: Special Elite\">Cops Came at 11 — Garage Saints</span></li><li><span style=\"font-family: Special Elite\">Encore Nobody Asked For — Static Youth</span></li></ol>"
+  }
+}

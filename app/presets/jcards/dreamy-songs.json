@@ -1,0 +1,87 @@
+{
+  "label": "Dreamy songs",
+  "title": "Slow Bloom",
+  "content": {
+    "flaps": 1,
+    "isReversed": false,
+    "shortBack": false,
+    "backgroundColor": "#FAF6EB",
+    "continuousBackground": true,
+    "flapContents": [
+      "<p style=\"text-align: center;\"><span style=\"color: rgb(195, 80, 4); font-size: 28px; font-family: &quot;Special Elite&quot;;\"><strong>Dreamy songs</strong></span></p>",
+      "<p style=\"font-size:2.6mm;color:#4A2E3E\"><span style=\"font-family: EB Garamond\">For open windows, first warm evenings and everything that takes its time.</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "coverImageBehindContent": true,
+    "isFullCoverImage": true,
+    "spineTopContent": "<p><span style=\"color: rgb(85, 85, 85); font-size: 18px; font-family: &quot;Special Elite&quot;;\"><strong><em>Vol. 1</em></strong></span></p>",
+    "spineCenterContent": "<p><span style=\"color: rgb(195, 80, 4); font-size: 18px; font-family: &quot;Special Elite&quot;;\"><strong><em>Dreamy songs</em></strong></span></p>",
+    "spineBottomContent": "<span style=\"color:#9C7488\">90 min</span>",
+    "backLeftContent": "<p></p><p></p>",
+    "backRightContent": "<p></p>",
+    "showCutGuides": false,
+    "insideFlapContents": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "flapImageUrls": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "flapImageFulls": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "flapImageBehindContents": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "insideFlapImageUrls": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "insideFlapImageFulls": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "insideFlapImageBehindContents": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "backgroundImageUrl": "/presets/jcards/dreamy-songs/backgroundImage-1795169654007-0.jpg",
+    "insideBackgroundImageUrl": "/presets/jcards/dreamy-songs/insideBackgroundImage-1795169654101-1.jpg",
+    "insideContinuousBackground": true,
+    "coverImageUrl": null
+  }
+}

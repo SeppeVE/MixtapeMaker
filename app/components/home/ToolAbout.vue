@@ -41,7 +41,7 @@ const CONTENT: Record<'mixtape' | 'designer', {
     heading: 'Make a cassette J-card that fits the case',
     intro: 'A J-card is the folded paper insert in a cassette case: the cover you see through the front, the spine you read on the shelf, and the back flap. The designer lays them out at the real size, 102 mm tall with a 12.7 mm spine, so the PDF you export cuts and folds to fit a standard case.',
     steps: [
-      { title: 'Start from a tape or a preset', body: 'Press "Create j-card" in the mixtape editor to get a card with your tracklist already on it, or start from a preset such as Vaporwave, Kraft Minimal or Punk Zine.' },
+      { title: 'Start from a tape or a ready-made card', body: 'Press "Create j-card" in the mixtape editor to get a card with your tracklist already on it. Without a tape, a new card opens with a random ready-made design to edit.' },
       { title: 'Fill in the panels', body: 'Write the cover, the three spine fields and the back, with Side A and Side B in two columns. Add extra panels when the tracklist needs more room.' },
       { title: 'Style it', body: 'Pick a background color or image, choose from nine built-in fonts, or upload up to three of your own.' },
       { title: 'Export and print', body: 'Export a PDF for A4, US Letter or a custom page with crop marks and fold guides, then print it at 100% scale.' },

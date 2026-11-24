@@ -1,0 +1,22 @@
+{
+  "label": "Slow Bloom",
+  "title": "Slow Bloom",
+  "content": {
+    "flaps": 2,
+    "backgroundColor": "#F6DDE3",
+    "coverImageUrl": null,
+    "flapContents": [
+      "<p style=\"text-align:center\"><span style=\"font-size:9px;color:#7A5468;letter-spacing:2px\">A MIXTAPE FOR SPRING</span></p><h2 style=\"text-align:center\"><span style=\"font-size:26px;color:#4A2E3E;font-family: Playfair Display\"><em>Slow Bloom</em></span></h2><p style=\"text-align:center\"><span style=\"font-size:9px;color:#9C7488\">❀ ❀ ❀</span></p>",
+      "<p><span style=\"font-size:10px;color:#4A2E3E;font-family: EB Garamond\">For open windows, first warm evenings and everything that takes its time.</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "spineTopContent": "<span style=\"font-family: Playfair Display\"><em style=\"color:#4A2E3E\">Slow Bloom</em></span>",
+    "spineCenterContent": "",
+    "spineBottomContent": "<span style=\"color:#9C7488\">90 min</span>",
+    "backLeftContent": "<h4><span style=\"color:#4A2E3E\">Side A</span></h4><ol><li><span style=\"color:#4A2E3E\">Petals on the Sill — Clara Wyn</span></li><li><span style=\"color:#4A2E3E\">April, Again — The Paper Gardens</span></li><li><span style=\"color:#4A2E3E\">Honeysuckle Hours — Ada Morrow</span></li><li><span style=\"color:#4A2E3E\">Green Light Through Leaves — Tamsin Reed</span></li><li><span style=\"color:#4A2E3E\">Bicycle Bell — Little Orchard</span></li></ol>",
+    "backRightContent": "<h4><span style=\"color:#4A2E3E\">Side B</span></h4><ol><li><span style=\"color:#4A2E3E\">Rain on Warm Stone — Elsie Marr</span></li><li><span style=\"color:#4A2E3E\">Pressed Flowers — Cedar &amp; Silk</span></li><li><span style=\"color:#4A2E3E\">Long Light — Wren Ashby</span></li><li><span style=\"color:#4A2E3E\">The Garden Sleeps — Noor Halden</span></li></ol>"
+  }
+}

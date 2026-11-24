@@ -10,6 +10,8 @@ import { useUnsavedStore } from '~/stores/unsaved';
 import { isCloudId, jcardCloudId } from '~/utils/cloudId';
 import { generateId } from '~/utils/timeUtils';
 import { buildBlankJCardContent, applyMixtapeToJCard } from '~/utils/jcardDefaults';
+import { pickRandomStarterPreset, starterPresetContent, cardToStarterPresetFile } from '~/utils/jcardStarterPresets';
+import { isMixtapeUntitled } from '~/utils/mixtapeTitle';
 import { registerCustomFonts } from '~/utils/fontManager';
 import { saveJCardToLocal, deleteJCardFromLocal } from '~/utils/localStorage';
 import { saveJCardById, updateJCard } from '~/utils/jcardDatabase';
@@ -37,15 +39,28 @@ function contentSignature(c: JCard): string {
   return JSON.stringify({ title: c.title, content: c.content });
 }
 
+// A tape worth building the card from: it has tracks or a real name. The
+// store always holds a draft, so a blank "Untitled Mixtape" doesn't count.
+function hasTapeData(m: Mixtape | null): m is Mixtape {
+  return !!m && (m.sideA.length > 0 || m.sideB.length > 0 || !isMixtapeUntitled(m.title));
+}
+
+// A brand-new card. Built from the current tape when there is one; otherwise
+// it opens with a random starter preset (app/presets/jcards/) so the designer
+// never starts empty.
 function makeBlank(userId: string, mixtape: Mixtape | null): JCard {
-  const content = mixtape
+  const preset = hasTapeData(mixtape) ? null : pickRandomStarterPreset();
+  const content = hasTapeData(mixtape)
     ? applyMixtapeToJCard(buildBlankJCardContent(), mixtape, { overwriteCover: true })
-    : buildBlankJCardContent();
+    : preset ? starterPresetContent(preset) : buildBlankJCardContent();
+  const title = hasTapeData(mixtape)
+    ? `${mixtape.title} — J-Card`
+    : preset?.title ?? 'Untitled J-Card';
   return {
     id: generateId(),
-    title: mixtape ? `${mixtape.title} — J-Card` : 'Untitled J-Card',
+    title,
     userId,
-    mixtapeId: mixtape && isCloudId(mixtape.id) ? mixtape.id : null,
+    mixtapeId: mixtape && hasTapeData(mixtape) && isCloudId(mixtape.id) ? mixtape.id : null,
     content,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -294,6 +309,29 @@ function setPublic(isPublic: boolean) {
   update({ isPublic });
 }
 
+// ── Dev only: save the open design as a starter preset ──────────────────────
+// Writes app/presets/jcards/<id>.json through a route that only exists under
+// `nuxt dev`; the button isn't rendered in production builds.
+const isDev = import.meta.dev;
+const savingPreset = ref(false);
+
+async function saveAsPreset() {
+  const label = window.prompt('Preset name (also used as the file name):', card.value.title);
+  if (!label?.trim()) return;
+  savingPreset.value = true;
+  try {
+    const res = await $fetch<{ id: string; path: string; overwritten: boolean }>('/api/dev/jcard-presets', {
+      method: 'POST',
+      body: cardToStarterPresetFile(card.value, label.trim()),
+    });
+    ui.showToast(`${res.overwritten ? 'Updated' : 'Saved'} preset ${res.path}`, 'success');
+  } catch (err: any) {
+    ui.showToast(err?.data?.message ?? 'Saving the preset failed', 'error');
+  } finally {
+    savingPreset.value = false;
+  }
+}
+
 function saveNow() {
   if (timer) clearTimeout(timer);
   lastScheduled = card.value;
@@ -318,6 +356,15 @@ function saveNow() {
       >
         <VisibilityToggleIcon :is-public="card.isPublic ?? false" />
         {{ card.isPublic ? 'Make private' : 'Make public' }}
+      </button>
+      <button
+        v-if="isDev"
+        class="btn"
+        :disabled="savingPreset"
+        title="Dev only: write this design to app/presets/jcards/"
+        @click="saveAsPreset"
+      >
+        {{ savingPreset ? 'Saving preset…' : '★ Save as preset' }}
       </button>
       <button class="btn btn-primary" :disabled="isSaving" @click="saveNow">
         {{ isSaving ? 'Saving…' : 'Save' }}

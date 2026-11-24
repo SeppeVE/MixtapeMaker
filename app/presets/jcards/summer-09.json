@@ -1,0 +1,24 @@
+{
+  "label": "Summer 09",
+  "title": "summer 09",
+  "content": {
+    "flaps": 2,
+    "backgroundColor": "#E8B83A",
+    "coverImageUrl": "/presets/jcards/summer-09/cover.jpg",
+    "flapContents": [
+      "<p style=\"text-align:center\"><span style=\"color:#FAF6EB;font-family:Bebas Neue;font-size:26px\">SUMMER 09</span></p><p style=\"text-align:center\"><span style=\"color:#FAF6EB;font-family:Inter;font-size:9px\">songs from the campsite radio</span></p>",
+      "<p><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">tape 2 of 3. don&#39;t lose this one</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "spineTopContent": "<p><span style=\"color:#3B2410;font-family:Bebas Neue;font-size:16px\">SUMMER 09</span></p>",
+    "spineCenterContent": "",
+    "spineBottomContent": "<p><span style=\"color:#B5401F;font-family:Bebas Neue;font-size:14px\">C60</span></p>",
+    "backLeftContent": "<h4><span style=\"color:#3B2410;font-family:Inter\">Side A</span></h4><ol><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Lemon Fizz — The Daytrips</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Ferry Back — Nora Vos</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Sunburn — Kid Lantern</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Pool Closes at Six — Marbles</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Ice Cream Van — The Daytrips</span></li></ol>",
+    "backRightContent": "<h4><span style=\"color:#3B2410;font-family:Inter\">Side B</span></h4><ol><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Tent Pegs — Odd Weather</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Ten Past Midnight — Ruby Stray</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Cassette Deck — Hal &amp; the Hum</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Long Way Round — Nora Vos</span></li><li><span style=\"color:#3B2410;font-family:Inter;font-size:9px\">Last Swim — June Parade</span></li></ol>",
+    "isFullCoverImage": true,
+    "coverImageBehindContent": true
+  }
+}

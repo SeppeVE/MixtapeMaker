@@ -1,0 +1,22 @@
+{
+  "label": "For You",
+  "title": "for you",
+  "content": {
+    "flaps": 2,
+    "backgroundColor": "#FAF6EB",
+    "coverImageUrl": null,
+    "flapContents": [
+      "<p><span style=\"font-size:70px\">&nbsp;</span></p><p style=\"text-align:center\"><span style=\"color:#B3261E;font-family:Caveat;font-size:48px\">for you</span></p><p style=\"text-align:center\"><span style=\"color:#2A1E28;font-family:Caveat;font-size:16px\">happy birthday!! play it loud</span></p><p style=\"text-align:center\"><span style=\"color:#2A1E28;font-family:Caveat;font-size:12px\">(and rewind it after, please)</span></p>",
+      "<p><span style=\"color:#2A1E28;font-family:Caveat;font-size:13px\">side A is for the morning, side B is for the drive home.</span></p><p><span style=\"color:#2A1E28;font-family:Caveat;font-size:13px\">track 4 is the one from the kitchen. you know the one.</span></p><p><span style=\"color:#B3261E;font-family:Caveat;font-size:15px\">love, me x</span></p>",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "spineTopContent": "<p><span style=\"color:#B3261E;font-family:Caveat;font-size:18px\">for you ♥</span></p>",
+    "spineCenterContent": "",
+    "spineBottomContent": "<p><span style=\"color:#2A1E28;font-family:Caveat;font-size:14px\">60 min</span></p>",
+    "backLeftContent": "<h4><span style=\"color:#B3261E;font-family:Caveat\">Side A</span></h4><ol><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Birthday Girl — The Pinecones</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Dancing in the Kitchen — Loes &amp; Tom</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Cherry Cola — Sam Veld</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Best Friends — Paper Kites Club</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Candles — Iris May</span></li></ol>",
+    "backRightContent": "<h4><span style=\"color:#B3261E;font-family:Caveat\">Side B</span></h4><ol><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Gas Station Coffee — The Pinecones</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Map on the Dashboard — Wild Oats</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Wrong Exit — Sam Veld</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Singing in the Car — Loes &amp; Tom</span></li><li><span style=\"color:#B3261E;font-family:Caveat;font-size:9px\">Home Again — Iris May</span></li></ol>"
+  }
+}

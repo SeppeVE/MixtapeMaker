@@ -4,9 +4,9 @@
   "content": {
     "flaps": 2,
     "backgroundColor": "#1C1C1C",
-    "coverImageUrl": null,
+    "coverImageUrl": "/presets/jcards/b-sides/cover.jpg",
     "flapContents": [
-      "<p><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:30px;letter-spacing:1px\"><strong>B-SIDES</strong></span></p><p><span style=\"color:#E5484D;font-family:IBM Plex Sans;font-size:18px\">&amp; DEMOS</span></p><p><span style=\"color:#8A8A8A;font-family:IBM Plex Sans;font-size:9px\">1994 – 1997</span></p>",
+      "<p style=\"text-align:center\"><span style=\"color:#FAF6EB;font-family:IBM Plex Sans;font-size:26px\"><strong>B-SIDES &amp; DEMOS</strong></span></p><p style=\"text-align:center\"><span style=\"color:#FAF6EB;font-family:Inter;font-size:9px\">1994 – 1997</span></p>",
       "<p><span style=\"color:#8A8A8A;font-family:IBM Plex Sans;font-size:8px\">recorded in the rehearsal room. some of these never got finished.</span></p>",
       "",
       "",
@@ -17,6 +17,8 @@
     "spineCenterContent": "",
     "spineBottomContent": "<p><span style=\"color:#E5484D;font-family:IBM Plex Sans;font-size:12px\">90</span></p>",
     "backLeftContent": "<h4><span style=\"color:#EDEDED;font-family:IBM Plex Sans\">Side A</span></h4><ol><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Static (demo) — Low Ceiling</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Untitled #4 — Low Ceiling</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Car Park — Tess Varga</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Feedback Loop — The Amps</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Basement Tapes — Low Ceiling</span></li></ol>",
-    "backRightContent": "<h4><span style=\"color:#EDEDED;font-family:IBM Plex Sans\">Side B</span></h4><ol><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Rain Delay (live) — Tess Varga</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Broken String — The Amps</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Second Take — Low Ceiling</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Hiss — Field Day</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Outro (unfinished) — Low Ceiling</span></li></ol>"
+    "backRightContent": "<h4><span style=\"color:#EDEDED;font-family:IBM Plex Sans\">Side B</span></h4><ol><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Rain Delay (live) — Tess Varga</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Broken String — The Amps</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Second Take — Low Ceiling</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Hiss — Field Day</span></li><li><span style=\"color:#EDEDED;font-family:IBM Plex Sans;font-size:9px\">Outro (unfinished) — Low Ceiling</span></li></ol>",
+    "isFullCoverImage": true,
+    "coverImageBehindContent": true
   }
 }

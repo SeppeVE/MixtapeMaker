@@ -10,7 +10,8 @@ import { SPINE_MM, FLAPS_MM } from '~/components/jcard/dimensions';
 import IconCard from '~icons/material-symbols/devices-fold-2-sharp';
 import IconWarning from '~icons/material-symbols/warning-rounded';
 
-const PAGE_SIZE = 12;
+// 15 = three full rows of five on desktop (and five rows of three on tablet).
+const PAGE_SIZE = 15;
 
 const route = useRoute();
 const router = useRouter();
@@ -216,8 +217,16 @@ function onPageChange(p: number) {
 /* ── Explore J-cards grid: preview on top, info below (mirrors .lib-tape-card) ── */
 .jce-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .jce-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 540px) {
+  .jce-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .jce-grid-card {
